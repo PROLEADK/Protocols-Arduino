@@ -13,7 +13,7 @@ DESCRIPTION:
 RECENT UPDATES:
  * Replaced PITimer library with IntervalTimer, which is part of the Teensy 3.0 core libraries
  * Upon update to Arduino 1.0.5, changed atime_t to time_t to ensure that time variables worked
- 
+ * Added appropriate tags so that the text output can be hashed by the phone and web interface (using <>)
  Using Arduino 1.0.3 w/ Teensyduino installed downloaded from http://www.pjrc.com/teensy/td_download.html .   
  */
 
@@ -61,6 +61,13 @@ SdFat sd;
 // SHARED VARIABLES
 
 char filename[13] = "ALGAE"; // Base filename used for data files and directories on the SD Card
+char protocolname = "Photosynq Main" // name of this arduino file (aka protocol)
+char variable1name = "Fs" // Fs
+char variable2name = "Fm" // Fm (peak value during saturation)
+char variable3name = "Fd" // Fd (value when actinic light is off
+char variable4name = "Fv" // == Fs-Fo
+char variable5name = "Phi2" // == Fv/Fm
+char variable6name = "1/Fs-1/Fd" // == 1/Fs-1/Fd
 unsigned long starttimer0, starttimer1, starttimer2;
 
 // WASP VARIABLES
@@ -83,21 +90,6 @@ unsigned long wdatasampleaverage3;
 unsigned long wdatasampleaverage4;
 
 // DIRKF VARIABLES
-
-/*
-// DIRKF VARIABLES - SHOWS THAT IT WORKS!
- int drepeatrun = 1;
- int dmeasurements = 3; // # of measurements per pulse (min 1 measurement per 6us pulselengthon)
- int drunlength = 10; // in seconds... minimum = cyclelength
- unsigned long dpulselengthon = 25; // pulse length in us... minimum = 6us
- float dcyclelength = .05; // in seconds... minimum = pulselengthon + 7.5us
- int dactinicoff = 10000; // in us... length of time actinic is turned off
- int dbaselinelength = 30; // The number of cycles at the beginning of the program which occur without the actinic turning off... (must be <dpulsecycles)
- int dsaturatingcycleon = 30; //The cycle number in which the saturating light turns on (set = 0 for no saturating light)
- int dsaturatingcycleoff = 100; //The cycle number in which the saturating light turns off
- const char* dirkfending = "-D.CSV"; // filename ending for the basicfluor subroutine - just make sure it's no more than 6 digits total including the .CSV
- int* ddatasample;
- */
 
 int drepeatrun = 1; // number of times the measurement is repeated
 int ddelayruns = 500; // millisecond delay between each repeated run
@@ -178,21 +170,27 @@ void setup() {
 
   delay(5000);
 
+  print("<PROTOCOLNAME>");
+  print(protocolname);
+  println("</PROTOCOLNAME>");
+
   // SET SYSTEM TIME IN ASCII "T" PLUS 10 DIGITS
   setSyncProvider((getExternalTime) Teensy3Clock.get);
   //  while (!Serial1);  // Wait for Arduino Serial1 Monitor to open
   if(timeStatus()!= timeSet) {
     Serial1.println("Unable to sync with the RTC");
-//    Serial1.println("Unable to sync with the RTC");
+    Serial.println("Unable to sync with the RTC");
   }
   else {
     Serial1.println("RTC has set the system time"); // NOTE! Chris enter experiment start time stamp here
-//    Serial1.println("RTC has set the system time"); // NOTE! Chris enter experiment start time stamp here
+    Serial.println("RTC has set the system time"); // NOTE! Chris enter experiment start time stamp here
   }
 
 //for (i=0;i<50;i++) { 
   Serial1.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
   Serial1.println("(if you make a mistake, restart teensy and reenter)");
+  Serial.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
+  Serial.println("(if you make a mistake, restart teensy and reenter)");
 
 /*delay(1000);
   Serial11.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
@@ -357,10 +355,9 @@ delay(1000);
       while (1) {
         calibrationsample(); // order matters here - calibrationsample() must be BEFORE basicflour()
         Serial1.println("Now running DIRKF");
-//        Serial1.println("Now running Basic Fluorescence");
-//        basicfluor();
-          dirkf();
+        dirkf();
         dcalculations();
+        //        Uncomment below for Basic Fluor or WASP methods
         //        Serial1.println("Now running Basic Fluor");
         //        basicfluor();
         //        bcalculations();
@@ -921,7 +918,9 @@ void dirkf() {
     strcpy(filenamelocal,filename); // reset the localfilename variable;
 
     Serial1.print("THIS IS THE BASELINE: ");
-    Serial1.println(baseline);  
+    Serial1.print("<BASELINE>");
+    Serial1.print(baseline);  
+    Serial1.print("</BASELINE>");
 
     // ADJUST TIMERS FOR SET 1
 //    PITimer0.period(dcyclelength); // Distance between pulses.  Set in Seconds.
