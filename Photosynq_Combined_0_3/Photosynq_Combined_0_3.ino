@@ -11,6 +11,10 @@ DESCRIPTION:
  of the whole run.  
  
  for dirkf you need to put the counters in the inside loop - now they are on the outside loop which won't work for loop >1.
+ update Basic Fluor
+ Add methods for CO2 measurement, light, humidity, etc.
+ Add Serial.print for all available methods at top
+ Figure out low power mode
  
  RECENT UPDATES:
  * Changed input structure of file so you choose between 000 - 999 to select what type of measurement you want to run
@@ -18,10 +22,6 @@ DESCRIPTION:
  * All data is pushed to bluetooth, according to defined structure (<DATA>...</DATA>... etc.)
  * No longer pushes time data from the Teensy itself - time will be pulled from the phone
  
- OLD UPDATES:
- * Replaced PITimer library with IntervalTimer, which is part of the Teensy 3.0 core libraries
- * Upon update to Arduino 1.0.5, changed atime_t to time_t to ensure that time variables worked
- * Added appropriate tags so that the text output can be hashed by the phone and web interface (using <>)
  Using Arduino 1.0.3 w/ Teensyduino installed downloaded from http://www.pjrc.com/teensy/td_download.html .   
  */
 
@@ -52,7 +52,8 @@ DESCRIPTION:
 #include <Wire.h>
 #include <EEPROM.h>
 #include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
-//#include <PITimer.h> // intervaltimer is now part of the primary teensy 3.0 library!
+#include <sleep.h>
+
 
 const uint8_t SD_CHIP_SELECT = SS;
 
@@ -143,6 +144,7 @@ int actiniclight1 = 5; // Teensy pin for actinic light
 int detector1 = A10; // Teensy analog pin for detector
 
 // INTERNAL VARIABLES, COUNTERS, ETC.
+int protocol;
 volatile unsigned long start1,start1orig,end1, start3, end3, calstart1orig, calend1, start5, start6, start7, end5;
 unsigned long pulselengthoncheck, pulselengthoffcheck, pulsecyclescheck, totaltimecheck, caltotaltimecheck;
 volatile float data1f, data2f, data3f, data4f, irtinvalue, irtapevalue, rebeltapevalue, rebeltinvalue, irsamplevalue, rebelsamplevalue, baselineir, dataaverage, caldataaverage1, caldataaverage2, rebelslope, irslope, baseline = 0;
@@ -179,7 +181,7 @@ char c;
 int protocols;
 
 void setup() {
-  Serial.begin(115200); // set baud rate for Serial communication to computer via USB
+//  Serial.begin(115200); // set baud rate for Serial communication to computer via USB
   Serial1.begin(115200); // set baud rate for bluetooth communication on pins 0,1
 
   delay(5000);
@@ -244,16 +246,6 @@ void setup() {
    Serial1.println("");
    
    */
-
-
-  pinMode(measuringlight1, OUTPUT); // set pin to output
-  pinMode(saturatinglight1, OUTPUT); // set pin to output
-  pinMode(calibratinglight1, OUTPUT); // set pin to output  
-  pinMode(actiniclight1, OUTPUT); // set pin to output
-  analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
-  pinMode(detector1, EXTERNAL);
-  analogReadRes(analogresolution);
-  analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
 
 /*
 //  if (!sd.begin(SD_CHIP_SELECT, SPI_FULL_SPEED)) sd.initErrorHalt(); // Set SD Card to full speed ahead!
@@ -337,7 +329,29 @@ void setup() {
  */
 }
 
-int protocol;
+void engagepins() {
+  pinMode(measuringlight1, OUTPUT); // set pin to output
+  pinMode(saturatinglight1, OUTPUT); // set pin to output
+  pinMode(calibratinglight1, OUTPUT); // set pin to output  
+  pinMode(actiniclight1, OUTPUT); // set pin to output
+  analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
+  pinMode(detector1, EXTERNAL);
+  analogReadRes(analogresolution);
+  analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
+}
+
+void idle() {
+  for (int i=0; i<46; i++) {
+    pinMode(i, OUTPUT);
+  }
+  set_sleep_mode(SLEEP_MODE_IDLE);
+  noInterrupts();
+  digitalWrite(2, LOW);
+  sleep_enable();
+  interrupts();
+  sleep_cpu();
+  sleep_disable();
+}
 
 int Protocol() {
  int a;
@@ -350,19 +364,22 @@ int Protocol() {
 }
 
 void loop() {
-
+  
 Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
 Serial1.println("");
+while (Serial1.available()=0) {
+  idle();
+}
 
-Serial.println("Please connect to bluetooth and select a 3 digit protocol code to begin");
-Serial.println("");
+// Serial.println("Please connect to bluetooth and select a 3 digit protocol code to begin");
+// Serial.println("");
   
 while (Serial1.available()<3) {} 
 protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
 
 switch(protocol) {
   case 999:        // NULL RETURN
-  Serial.println("nothing happens - please use bluetooth for serial communication!");
+//  Serial.println("nothing happens - please use bluetooth for serial communication!");
   Serial1.println("nothing happens");
   break;
   
@@ -1802,7 +1819,7 @@ int callcalibration(int loc) {
   }
   calval = atoi(temp);
   calval = calval / 1000000;
-  Serial1.println(calval,4);
+  Serial1.print(calval,4);
   return calval;
 }
 
