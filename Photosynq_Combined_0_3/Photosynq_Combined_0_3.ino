@@ -335,7 +335,7 @@ void engagepins() {
   pinMode(calibratinglight1, OUTPUT); // set pin to output  
   pinMode(actiniclight1, OUTPUT); // set pin to output
   analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
-  pinMode(detector1, EXTERNAL);
+  pinMode(detector1, INTERNAL);
   analogReadRes(analogresolution);
   analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
 }
@@ -367,14 +367,13 @@ void loop() {
   
 Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
 Serial1.println("");
-while (Serial1.available()=0) {
-  idle();
-}
 
 // Serial.println("Please connect to bluetooth and select a 3 digit protocol code to begin");
 // Serial.println("");
   
-while (Serial1.available()<3) {} 
+while (Serial1.available()<3) {
+  idle();
+} 
 protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
 
 switch(protocol) {
