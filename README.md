@@ -13,7 +13,11 @@ The information from the Photosynq device is organized as a JSON.  When received
 
 A JSON is an easy, cross-platform way to share data and it looks like this (in case you don't know, I didn't):
 
-{"subject": "apple", "raw": [337,336,348,351,348,363,370,363,362,363,357,369,373,368,382,389,365,365,361,387,361,379,383,366,374,464,496,523,535,544,542,545,544,538,549,554,567,557,563,567,566,579,561,573,557,558,576,572,565,574,566,517,518,515,509,497,492,472,492,485,468,467,461,464,461,462,466,456,471,467,442,470,455,464,465,468,471,461,462,467,473,440,466,471,466,447,460,452,459,452,469,459,473,454,447,467,445,444,455,453], "Photosynthetic\_efficiency\_(Phi(II))": 0.397,"Relative\_chlorophyll\_content": 335.09, "ProjectID": "Fruit - Alive or Dead?",  "UserID": "gbathree", "Temperature":33.89,"Relative\_Humidity": 32.43,"CO2\_content": 1050}
+{"subject": "apple", "raw": [337,336,348,351,348,363,370,363,362,363,357,369,373,368,382,389,365,365,361,387,361,379,383
+,366,374,464,496,523,535,544,542,545,544,538,549,554,567,557,563,567,566,579,561,573,557,558,576,572,565,574,566,517,518
+,515,509,497,492,472,492,485,468,467,461,464,461,462,466,456,471,467,442,470,455,464,465,468,471,461,462,467,473,440,466
+,471,466,447,460,452,459,452,469,459,473,454,447,467,445,444,455,453], "Photosynthetic\_efficiency\_(Phi(II))": 
+0.397,"Relative\_chlorophyll\_content": 335.09, "ProjectID": "Fruit - Alive or Dead?",  "UserID": "gbathree", "Temperature":33.89,"Relative\_Humidity": 32.43,"CO2\_content": 1050}
 
 If you want to create a new protocol and you are adding data to the JSON in your code (that's the only way to get the data from your app from the device to the web so you probably will want to), you can check to make sure you didn't screw it up using a JSON validator, like this: http://jsonlint.com/ .  
 
