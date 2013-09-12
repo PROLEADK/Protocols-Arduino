@@ -1,7 +1,7 @@
 Protocols-Arduino
 =================
 
-Current Protocol File: Arduino\_Combined\_03
+*Current Protocol File: Arduino\_Combined\_03*
 (other files are just for testing and messing around)
 
 This repository contains the arduino protocols used on the Teensy 3.0 in the Photosynq handheld measurement device.
@@ -12,7 +12,7 @@ The information from the Photosynq device is organized as a JSON.  When received
 
 FOR EXAMPLE: 1) the photosynq app pairs the smartphone (via bluetooth) with a photosynq device, 2) send the device '001' over bluetooth serial, 3) device runs the subroutine '001' as defined in the Arduino code, 4) device sends back the data in the form of a JSON, 5) App displays the data, adds GPS and time stamp, and ships JSON off to the website where it is stored. 
 
-INSTALLING ARDUINO IDE, TEENSYDUINO AND APPROPRIATE LIBRARIES TO CONTRIBUTE/FORK PROTOCOLS-ARDUINO
+*INSTALLING ARDUINO IDE, TEENSYDUINO AND APPROPRIATE LIBRARIES TO CONTRIBUTE/FORK PROTOCOLS-ARDUINO*
 
 Go to Arduino.cc and follow the directions for installing the base Arduino IDE:
 http://arduino.cc/en/Main/Software.
@@ -27,4 +27,4 @@ You should now be able to plug your Photosynq device into a computer using a sta
 
 Now you're ready to go!  If you want to create a new protocol, you can write your code in a separate program to work out the kinks, then add it to the Current Protocol File above with an associated 3 byte call code (a number not currently defined between '000' - '999').   
 
-Feel free to contact me at gbathree at gmail dot com with questions.
+_Feel free to contact me at gbathree at gmail dot com with questions._
