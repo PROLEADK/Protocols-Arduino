@@ -227,10 +227,10 @@ void setup() {
 
   Serial1.println();
   Serial1.println("Current protocol version:");  
-  Serial1.print("<PROTOCOLVERSION>");
-  Serial1.print(protocolversion);
-  Serial1.println("</PROTOCOLVERSION>");
-  Serial1.println();
+//  Serial1.print("<PROTOCOLVERSION>");
+  Serial1.println(protocolversion);
+//  Serial1.println("</PROTOCOLVERSION>");
+//  Serial1.println();
 
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(measuringlight2, OUTPUT); // set pin to output
@@ -427,67 +427,16 @@ int Protocol() {
 }
 
 void loop() {
-
-Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
-Serial1.println("");
-
-Serial.println("Please select a 3 digit protocol code to begin");
-Serial.println("");
-
-while (Serial1.available()<3 && Serial.available()<3) {
-//  Serial1.print(Serial1.available());
-//  Serial.print(Serial1.available());
-//  Serial.println(Serial.available());
-//  delay(1000);
-//  idle();
-}
-
-protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
-Serial.print(protocol);
-
-switch(protocol) {
-  case 999:        // NULL RETURN
-  Serial.println("");
-  Serial.println("nothing happens - please use bluetooth for serial communication!");
-  Serial1.println("");
-  Serial1.println("nothing happens");
-  break;
-  
-  case 000:        // CALIBRATION
-  calibration();
-  break;
-
-  case 001:        // TEMP, HUM, CO2
-  Serial1.println();
-  Serial.println();
+  Serial1.print("");
+  Serial1.println("");  
+  Serial1.print("Expected run time: ");  
+  Serial1.print(drunlength*drepeatrun+3);
+  Serial1.println(" seconds");  
   temp();
   relh();
   Co2();
-  delay(1000);
-  Serial1.println();
-  Serial.println();
-  break;
-
-  case 002:        // DIRK-F
   dirkf();
-  break;
-
-  case 003:        // BASIC FLUORESCENCE
-  basicfluor();    
-  break;
-
-  case 004:        // WASP
-  wasp();
-  break;
-    
-  case 005:        // eeprom tests
-  eeprom();
-  break;
-  
-  case 006:        // CO2 manual calibration
-  co2cal();
-
-}
+  delay(5000);
 }
 
 void co2cal() {
@@ -524,11 +473,15 @@ void relh() {
   rhval = byte1;
   rhval<<=8; // shift byte 1 to bits 1 - 8
   rhval+=byte2; // put byte 2 into bits 9 - 16
-  Serial1.print("Relative humidity in %: ");
-  Serial.print("Relative humidity in %: ");
+  Serial1.print("Relative humidity: ");
+  Serial.print("Relative humidity: ");
   rh = 125*(rhval/pow(2,16))-6;
-  Serial1.println(rh);
-  Serial.println(rh);
+//  Serial1.print("<VARIABLE10>");
+  Serial1.print(rh);
+//  Serial1.println("</VARIABLE10>");
+  Serial.print(rh);
+  Serial1.println(" %");
+  Serial.println(" %");
 }
 
 void temp() {
@@ -544,20 +497,27 @@ void temp() {
   tempval = byte1;
   tempval<<=8; // shift byte 1 to bits 1 - 8
   tempval+=byte2; // put byte 2 into bits 9 - 16
-  Serial1.print("Temperature in Celsius: ");
-  Serial.print("Temperature in Celsius: ");
+  Serial1.print("Temperature: ");
+  Serial.print("Temperature: ");
   temperature = 175.72*(tempval/pow(2,16))-46.85;
-  Serial1.println(temperature);
-  Serial.println(temperature);
+//  Serial1.print("<VARIABLE11>");
+  Serial1.print(temperature);
+  Serial.print(temperature);
+  Serial1.println(" C");
+  Serial.println(" C");
+//  Serial1.println("</VARIABLE11>");
 }
 
 void Co2() {
   requestCo2(readCO2);
   unsigned long valCO2 = getCo2(response);
-  Serial1.print("Co2 ppm = ");
-  Serial1.println(valCO2);
-  Serial.print("Co2 ppm = ");
-  Serial.println(valCO2);
+  Serial1.print("Co2 level = ");
+  Serial1.print(valCO2);
+  Serial.print("Co2 level = ");
+  Serial.print(valCO2);
+  Serial.println(" ppm");
+  Serial1.println(" ppm");
+  Serial.println("");
   delay(2000);
 }
 
@@ -983,15 +943,15 @@ void calibrationsample() {
   irsamplevalue = (float) irsamplevalue;
   irsamplevalue = (irsamplevalue / calpulsecycles); 
   for (i=0;i<calpulsecycles;i++) { // Print the results!
-    Serial1.print(caldatasample[i]);
-    Serial1.print(", ");
-    Serial1.print(" ");  
+//    Serial1.print(caldatasample[i]);
+//    Serial1.print(", ");
+//    Serial1.print(" ");  
   }
-  Serial1.println(" ");    
-  Serial1.print("the baseline sample reflectance value from calibration:  ");
-  Serial1.print("<CAL0>");
-  Serial1.print(irsamplevalue, 4);
-  Serial1.println("</CAL0>");
+//  Serial1.println(" ");    
+//  Serial1.print("the baseline sample reflectance value from calibration:  ");
+//  Serial1.print("<CAL0>");
+//  Serial1.print(irsamplevalue, 4);
+//  Serial1.println("</CAL0>");
 
   // RETRIEVE STORED TIN AND TAPE CALIBRATION VALUES AND CALCULATE BASELINE VALUE
   
@@ -1072,24 +1032,24 @@ void calibrationsample() {
 */
 
   // CALL AND SAVE CALIBRATION VALUES FROM EEPROM AND RUN IR CALIBRATION ON CURRENT SAMPLE
-  Serial1.print("<CAL1>");
+//  Serial1.print("<CAL1>");
   rebeltapevalue = callcalibration(0);
-  Serial1.println("</CAL1>");
-  Serial1.print("<CAL2>");
+//  Serial1.println("</CAL1>");
+//  Serial1.print("<CAL2>");
   rebeltinvalue = callcalibration(10);
-  Serial1.println("</CAL2>");
-  Serial1.print("<CAL3>");
+//  Serial1.println("</CAL2>");
+//  Serial1.print("<CAL3>");
   irtapevalue = callcalibration(20);
-  Serial1.println("</CAL3>");
-  Serial1.print("<CAL4>");
+//  Serial1.println("</CAL3>");
+//  Serial1.print("<CAL4>");
   irtinvalue = callcalibration(30);
-  Serial1.println("</CAL4>");
-  Serial1.print("<CAL5>");
+//  Serial1.println("</CAL4>");
+//  Serial1.print("<CAL5>");
   rebelslope = callcalibration(40);
-  Serial1.println("</CAL5>");
-  Serial1.print("<CAL6>");
+//  Serial1.println("</CAL5>");
+//  Serial1.print("<CAL6>");
   irslope = callcalibration(50);
-  Serial1.println("</CAL6>");
+//  Serial1.println("</CAL6>");
   
   // CALCULATE BASELINE VALUE
   baseline = (rebeltapevalue+((irsamplevalue-irtapevalue)/irslope)*rebelslope);
@@ -1305,9 +1265,8 @@ void dirkf() {
 //  digitalWriteFast(saturatinglight1_intensity_switch, LOW); // tu rnintensity 1 on
 
   analogReadAveraging(dmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
-  Serial1.print("<RUNTIME>");
-  Serial1.print(drunlength*drepeatrun);
-  Serial1.println("</RUNTIME>");  
+//  Serial1.print("<RUNTIME>");
+//  Serial1.println("</RUNTIME>");  
   
   /*
     Serial1.print("<PROTOCOLTIME>");
@@ -1315,8 +1274,8 @@ void dirkf() {
    Serial1.print("</PROTOCOLTIME>");
    Serial1.println("");
    */
-Serial1.println("check this out");
-Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
+//Serial1.println("check this out");
+//Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
 
   ddatasample1 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
   ddatasample2 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
@@ -1372,7 +1331,7 @@ Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
   
   dcalculations();
 
-  Serial1.print("<END>");
+//  Serial1.print("<END>");
 
     x=0; // Reset counter
     dpulse1count = 0;
@@ -1451,8 +1410,8 @@ void ddatasave() {
      ddatasample4[(dpulse1count-1)/2] = data2;
    }
 
-//  Serial1.print(ddatasample1[dpulse2count]);
-//  Serial1.print(",");
+//  Serial.print(ddatasample1[dpulse2count]);
+//  Serial.print(",");
 
 /*
   Serial1.print(data1-baseline);
@@ -1477,96 +1436,102 @@ void ddatasave() {
 void dcalculations() {
 
   
-  Serial1.println("");
-  Serial1.println("DATA");
-  Serial1.print("<VARIABLE1>");
+//  Serial1.println("");
+//  Serial1.println("DATA");
+//  Serial1.println("Raw Data: ");
+//  Serial1.print("<VARIABLE1>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample1[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample1[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE1>");
-  Serial1.print("<VARIABLE1NAME>");
-  Serial1.print("F1 data");
-  Serial1.println("</VARIABLE1NAME>");
+    Serial.println(",");
+//  Serial1.println("</VARIABLE1>");
+//  Serial1.print("<VARIABLE1NAME>");
+//  Serial1.print("F1 data");
+//  Serial1.println("</VARIABLE1NAME>");
 
-  Serial1.print("<VARIABLE2>");
+//  Serial1.print("<VARIABLE2>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample2[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample2[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE2>");
-  Serial1.print("<VARIABLE2NAME>");
-  Serial1.print("F2 data");
-  Serial1.println("</VARIABLE2NAME>");
+    Serial.println(",");
+//  Serial1.println("</VARIABLE2>");
+//  Serial1.print("<VARIABLE2NAME>");
+//  Serial1.print("F2 data");
+//  Serial1.println("</VARIABLE2NAME>");
 
-  Serial1.print("<VARIABLE3>");
+//  Serial1.print("<VARIABLE3>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample3[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample3[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE3>");
-  Serial1.print("<VARIABLE3NAME>");
-  Serial1.print("F3 data");
-  Serial1.println("</VARIABLE3NAME>");
+    Serial.println(",");
+//  Serial1.println("</VARIABLE3>");
+//  Serial1.print("<VARIABLE3NAME>");
+//  Serial1.print("F3 data");
+//  Serial1.println("</VARIABLE3NAME>");
 
-  Serial1.print("<VARIABLE4>");
+//  Serial1.print("<VARIABLE4>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample4[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample4[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE4>");
-  Serial1.print("<VARIABLE4NAME>");
-  Serial1.print("F4 data");
-  Serial1.println("</VARIABLE4NAME>");
+    Serial.println(",");
+//  Serial1.println();
+//  Serial1.println("</VARIABLE4>");
+//  Serial1.print("<VARIABLE4NAME>");
+//  Serial1.print("F4 data");
+//  Serial1.println("</VARIABLE4NAME>");
 
-  Serial1.print("<VARIABLE5>");
+//  Serial1.print("<VARIABLE5>");
   for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
     Fs += ddatasample3[i];
   }
   Fs = Fs / (dsaturatingcycleon/2-edge);
-  Serial1.print(Fs);
-  Serial1.println("</VARIABLE5>");
-  Serial1.print("<VARIABLE5NAME>");
-  Serial1.print("Fs");
-  Serial1.println("</VARIABLE5NAME>");
+//  Serial1.println("</VARIABLE5>");
+//  Serial1.print("<VARIABLE5NAME>");
+  Serial1.print("Relative chlorophyll content: ");
+  Serial1.println(Fs);
+//  Serial1.println("</VARIABLE5NAME>");
 
-  Serial1.print("<VARIABLE6>");
+//  Serial1.print("<VARIABLE6>");
   for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
     Fd += ddatasample2[i];
   }
   Fd = Fd / (dsaturatingcycleon/2-edge);
-  Serial1.print(Fd);
-  Serial1.println("</VARIABLE6>");
-  Serial1.print("<VARIABLE6NAME>");
-  Serial1.print("Fd");
-  Serial1.println("</VARIABLE6NAME>");
+//  Serial1.println("</VARIABLE6>");
+//  Serial1.print("<VARIABLE6NAME>");
+//  Serial1.print("Fd");
+//  Serial1.print(Fd);
+//  Serial1.println("</VARIABLE6NAME>");
 
-  Serial1.print("<VARIABLE7>");
+//  Serial1.print("<VARIABLE7>");
   for (i=dsaturatingcycleon/2+edge;i<(dsaturatingcycleoff/2-edge);i++) { // Print the results!
     Fm += ddatasample3[i];
   }
   Fm = Fm / (dsaturatingcycleoff/2-dsaturatingcycleon/2-2*edge);
-  Serial1.print(Fm);
-  Serial1.println("</VARIABLE7>");
-  Serial1.print("<VARIABLE7NAME>");
-  Serial1.print("Fm");
-  Serial1.println("</VARIABLE7NAME>");
+//  Serial1.println("</VARIABLE7>");
+//  Serial1.print("<VARIABLE7NAME>");
+//  Serial1.print("Saturation response: ");
+//  Serial1.print(Fm);
+//  Serial1.println("</VARIABLE7NAME>");
 
-  Serial1.print("<VARIABLE8>");
+//  Serial1.print("<VARIABLE8>");
   Phi2 = (Fm-Fs)/Fm;
-  Serial1.print(Phi2,3);
-  Serial1.println("</VARIABLE8>");
-  Serial1.print("<VARIABLE8NAME>");
-  Serial1.print("Phi2");
-  Serial1.println("</VARIABLE8NAME>");
+//  Serial1.println("</VARIABLE8>");
+//  Serial1.print("<VARIABLE8NAME>");
+  Serial1.print("Photosynthetic efficiency (Phi(II)): ");
+  Serial1.println(Phi2,3);
+//  Serial1.println("</VARIABLE8NAME>");
 
-  Serial1.print("<VARIABLE9>");
-  invFsinvFd = (1/Fs-1/Fd);
-  Serial1.print(invFsinvFd,6);
-  Serial1.println("</VARIABLE9>");
-  Serial1.print("<VARIABLE9NAME>");
-  Serial1.print("1/Fs-1/Fd");
-  Serial1.println("</VARIABLE9NAME>");
+//  Serial1.print("<VARIABLE9>");
+//  invFsinvFd = (1/Fs-1/Fd);
+//  Serial1.println(invFsinvFd,6);
+//  Serial1.println("</VARIABLE9>");
+//  Serial1.print("<VARIABLE9NAME>");
+//  Serial1.print("1/Fs-1/Fd");
+//  Serial1.println("</VARIABLE9NAME>");
   
   /*
   Serial1.println("ALL DATA IN CURRENT DIRECTORY - BASELINE ADJUSTED VALUES");
@@ -1599,13 +1564,37 @@ const char* variable1name = "Fs"; // Fs
    const char* variable6name = "1/Fs-1/Fd"; // == 1/Fs-1/Fd
    */
 
-  Serial1.println("");
-  Serial1.println("Size of the baseline:  ");
-  Serial1.print("<BASELINE>");
+//  Serial1.println("");
+  Serial1.print("Automatic correction factor:  ");
+//  Serial1.print("<BASELINE>");
   Serial1.print(baseline,8);  
-  Serial1.println("</BASELINE>");  
+//  Serial1.println("</BASELINE>");  
   Serial1.println("");
 
+  if (Phi2<.05) {
+    Serial1.println("This either isn't a plant, or it's dead");
+  }
+  else if (Phi2<.2 && Phi2>.05) {
+    Serial1.println("This plant is barely alive!");
+  }
+  else if (Phi2>.2 && Phi2<.4) {
+    Serial1.println("This plant is really unhappy");
+  }
+  else if (Phi2>.4 && Phi2<.6) {
+    Serial1.println("This plant is somewhat unhappy");
+  }
+  else if (Phi2>.6 && Phi2<.8) {
+    Serial1.println("This plant is doing ok");
+  }
+  else if (Phi2>.8) {
+    Serial1.println("This plant is feeling great!");
+  }
+  else {
+    Serial1.println("something's wrong - not an expected Phi2 value");
+  }
+
+
+/*
   Serial1.print("The calibration value using the reflective side for the calibration LED and measuring LED are:  ");
   Serial1.print(rebeltinvalue);
   Serial1.print(" and ");
@@ -1630,7 +1619,7 @@ const char* variable1name = "Fs"; // Fs
   Serial1.println(caltotaltimecheck);
 
   delay(50);
-  
+*/  
 }
 
 
@@ -2013,7 +2002,7 @@ int callcalibration(int loc) {
   }
   calval = atoi(temp);
   calval = calval / 1000000;
-  Serial1.print(calval,4);
+//  Serial1.print(calval,4);
   return calval;
 }
 

@@ -132,10 +132,25 @@ unsigned long cmeasurements = 4; // # of measurements per pulse (min 1 measureme
 // PIN DEFINITIONS AND TEENSY SETTINGS
 float reference = 1.2; // The reference (AREF) supplied to the ADC - currently set to INTERNAL = 1.2V
 int analogresolution = 16; // Set the resolution of the analog to digital converter (max 16 bit, 13 bit usable)
+/*
+// for old unit
 int measuringlight1 = 3; // Teensy pin for measuring light
 int saturatinglight1 = 4; // Teensy pin for saturating light
 int calibratinglight1 = 2; // Teensy pin for calibrating light
 int actiniclight1 = 5; // Teensy pin for actinic light
+*/
+// for new unit
+int measuringlight1 = 15; // Teensy pin for measuring light
+int measuringlight2 = 16; // Teensy pin for measuring light
+int saturatinglight1 = 20;
+int calibratinglight1 = 14;
+int actiniclight1; // Teensy pin for actinic light - not currently set
+
+int measuringlight_pwm = 23;
+int calibratinglight1_pwm = 9;
+int saturatinglight1_intensity2 = 3;
+int saturatinglight1_intensity1 = 4;
+int saturatinglight1_intensity_switch = 5;
 int detector1 = A10; // Teensy analog pin for detector
 
 // HTU21D Temp/Humidity variables
@@ -250,11 +265,10 @@ Serial1PrintClock();
 Serial1.println("");
 */
 
-
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(saturatinglight1, OUTPUT); // set pin to output
   pinMode(calibratinglight1, OUTPUT); // set pin to output
-  pinMode(actiniclight1, OUTPUT); // set pin to output
+//  pinMode(actiniclight1, OUTPUT); // set pin to output
   analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
   pinMode(detector1, EXTERNAL);
   analogReadRes(analogresolution);
