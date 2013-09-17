@@ -46,26 +46,16 @@ DESCRIPTION:
 // Timing of Measuring pulse and Saturation pulse is within 500ns.  Peak to Peak variability, ON and OFF length variability all is <1us.  Total measurement variability = 0 to +2us (regardless of how many cycles)
 
 // DATASHEETS
-// CO2 sensor hardware http://co2meters.com/Documentation/Datasheets/DS-S8-PSP1081.pdf
-// CO2 sensor communication http://co2meters.com/Documentation/Datasheets/DS-S8-Modbus-rev_P01_1_00.pdf
+// CO2 sensor hardware http://CO2meters.com/Documentation/Datasheets/DS-S8-PSP1081.pdf
+// CO2 sensor communication http://CO2meters.com/Documentation/Datasheets/DS-S8-Modbus-rev_P01_1_00.pdf
 
 
 // SD CARD ENABLE AND SET
-#include <SdFat.h>
-#include <SdFatUtil.h> // use functions to print strings from flash memory
 #include <Time.h>   // enable real time clock library
 #include <Wire.h>
 #include <EEPROM.h>
 #include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
 //#include <sleep.h>
-
-
-const uint8_t SD_CHIP_SELECT = SS;
-
-SdFat sd;
-#define error(s) sd.errorHalt_P(PSTR(s))  // store error strings in flash to save RAM
-
-// KEY VARIABLES USED IN THE PROTOCOL
 
 // SHARED VARIABLES
 
@@ -83,25 +73,6 @@ float Fd;
 float Fm;
 float Phi2;
 float invFsinvFd;
-
-// WASP VARIABLES
-int wrepeatrun = 2; // # of times to repeat set1, set2, and set3 combined (limited based on dynamic array size of datasample[] - generally keep low at <5)
-int wmeasurements = 1; // FOR WASP LEAVE AT 1!  # of measurements per pulse (min 1 measurement per 6us pulselengthon)
-int wnumberpulses1 = 30; // number of pulses in set 1
-int wnumberpulses2 = 30; // number of pulses in set 2
-int wnumberpulses3 = 30; // number of pulses in set 3
-unsigned long wpulselengthon1 = 25; // pulse length in set 1 us... minimum = 6us
-unsigned long wpulselengthon2 = 25; // pulse length in set 2 us... minimum = 6us
-unsigned long wpulselengthon3 = 25; // pulse length in set 3 us... minimum = 6us
-float wcyclelength1 = .1; // length of pulse cycle, set 1.  in seconds... minimum = pulselengthon + 7.5us
-float wcyclelength2 = .01; // length of pulse cycle, set 2.   in seconds... minimum = pulselengthon + 7.5us
-float wcyclelength3 = .001;// length of pulse cycle, set 3.  in seconds... minimum = pulselengthon + 7.5us
-const char* waspending = "-W.CSV"; // filename ending for the wasp subroutine - just make sure it's no more than 6 digits total including the .CSV
-int* wdatasample;
-unsigned long wdatasampleaverage1;
-unsigned long wdatasampleaverage2;
-unsigned long wdatasampleaverage3;
-unsigned long wdatasampleaverage4;
 
 // DIRKF VARIABLES
 
@@ -144,11 +115,11 @@ float reference = 1.2; // The reference (AREF) supplied to the ADC - currently s
 int analogresolution = 16; // Set the resolution of the analog to digital converter (max 16 bit, 13 bit usable)  
 /*
 // for old unit
-int measuringlight1 = 3; // Teensy pin for measuring light
-int saturatinglight1 = 4; // Teensy pin for saturating light
-int calibratinglight1 = 2; // Teensy pin for calibrating light
-int actiniclight1 = 5; // Teensy pin for actinic light
-*/
+ int measuringlight1 = 3; // Teensy pin for measuring light
+ int saturatinglight1 = 4; // Teensy pin for saturating light
+ int calibratinglight1 = 2; // Teensy pin for calibrating light
+ int actiniclight1 = 5; // Teensy pin for actinic light
+ */
 // for new unit
 int measuringlight1 = 15; // Teensy pin for measuring light
 int measuringlight2 = 16; // Teensy pin for measuring light
@@ -174,242 +145,52 @@ float temperature;
 float rh;
 
 // S8 CO2 variables
-byte readCO2[] = {0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25};  //Command packet to read CO2 (see app note)
-byte response[] = {0,0,0,0,0,0,0};  //create an array to store CO2 response
+byte readCO2[] = {
+  0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25};  //Command packet to read CO2 (see app note)
+byte response[] = {
+  0,0,0,0,0,0,0};  //create an array to store CO2 response
 float valMultiplier = 0.1;
-int co2calibration = 17; // manual CO2 calibration pin (CO2 sensor has auto-calibration, so manual calibration is only necessary when you don't want to wait for autocalibration to occur - see datasheet for details 
-
+int CO2calibration = 17; // manual CO2 calibration pin (CO2 sensor has auto-calibration, so manual calibration is only necessary when you don't want to wait for autocalibration to occur - see datasheet for details 
+unsigned long valCO2;
 
 // INTERNAL VARIABLES, COUNTERS, ETC.
-int protocol;
 volatile unsigned long start1,start1orig,end1, start3, end3, calstart1orig, calend1, start5, start6, start7, end5;
 unsigned long pulselengthoncheck, pulselengthoffcheck, pulsecyclescheck, totaltimecheck, caltotaltimecheck;
 volatile float data1f, data2f, data3f, data4f, irtinvalue, irtapevalue, rebeltapevalue, rebeltinvalue, irsamplevalue, rebelsamplevalue, baselineir, dataaverage, caldataaverage1, caldataaverage2, rebelslope, irslope, baseline = 0;
 char filenamedir[13];
 char filenamelocal[13];
 volatile int data0=0, data1=0, data2=0, data3=0, data4=0, data5=0, data6=0, data7=0, data8=0, data9=0, data10=0, caldata1, caldata2, caldata3, caldata4, analogresolutionvalue, dpulse1count, dpulse1noactcount, dpulse2count;
-int i = 0; // Used as a counter
-int j = 0; // Used as a counter
-int k = 0; // Used as a counter
-int z = 0; // Used as a counter
-int y = 0; // Used as a counter
-int q = 0; // Used as a counter
-int x = 0; // Used as a counter
-int p = 0; // Used as a counter
-int* caldatatape;
-int* caldatatin;
+int i=0, j=0, k=0,z=0,y=0,q=0,x=0,p=0; // Used as a counters
+int* caldatatape; 
+int* caldatatin; 
 int* caldatasample;
 int* rebeldatasample;
-int val = 0;
-int cal = 0;
-int cal2 = 0;
-int cal3 = 0;  
-int val2 = 0;
-int flag = 0;
-int flag2 = 0;
-int keypress = 0;
-IntervalTimer timer0;
-IntervalTimer timer1;
-IntervalTimer timer2;
-SdFile file;
-SdFile sub1;
-SdBaseFile* dir = &sub1;
+int val=0, cal=0, cal2=0, cal3=0, val2=0, flag=0, flag2=0, keypress=0, protocol, protocols, manualadjust=80;
+IntervalTimer timer0, timer1, timer2;
 char c;
-int protocols;
 
 void setup() {
   Serial.begin(115200); // set baud rate for Serial communication to computer via USB
   Serial1.begin(115200); // set baud rate for bluetooth communication on pins 0,1
   Serial3.begin(9600);
   Wire.begin();
-  delay(2000);
   delay(wait);
-
-  Serial1.println();
-  Serial1.println("Current protocol version:");  
-  Serial1.print("<PROTOCOLVERSION>");
-  Serial1.print(protocolversion);
-  Serial1.println("</PROTOCOLVERSION>");
-  Serial1.println();
 
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(measuringlight2, OUTPUT); // set pin to output
   pinMode(saturatinglight1, OUTPUT); // set pin to output
   pinMode(calibratinglight1, OUTPUT); // set pin to output  
-//  pinMode(actiniclight1, OUTPUT); // set pin to output (currently unset)
+  pinMode(saturatinglight1_intensity2, OUTPUT); // set pin to output
+  pinMode(saturatinglight1_intensity1, OUTPUT); // set pin to output
+  pinMode(saturatinglight1_intensity_switch, OUTPUT); // set pin to output
+  pinMode(calibratinglight1_pwm, OUTPUT); // set pin to output  
+  //  pinMode(actiniclight1, OUTPUT); // set pin to output (currently unset)
   analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
   pinMode(detector1, EXTERNAL);
   analogReadRes(analogresolution);
   analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
 
-
-  // ADD ANY OTHER STARTING INFO HERE
-
-  /*
-  // SET SYSTEM TIME IN ASCII "T" PLUS 10 DIGITS
-   setSyncProvider((getExternalTime) Teensy3Clock.get);
-   //    while (!Serial);  // Wait for Arduino Serial Monitor to open
-   if(timeStatus()!= timeSet) {
-   Serial1.println("Unable to sync with the RTC");
-   Serial1.println("Unable to sync with the RTC");
-   }
-   else {
-   Serial1.println("RTC has set the system time"); // NOTE! Chris enter experiment start time stamp here
-   Serial1.println("RTC has set the system time"); // NOTE! Chris enter experiment start time stamp here
-   }
-   
-   Serial1.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
-   Serial1.println("(if you make a mistake, restart teensy and reenter)");
-   Serial1.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
-   Serial1.println("(if you make a mistake, restart teensy and reenter)");
-   
-  /*delay(1000);
-   Serial1.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
-   Serial1.println("(if you make a mistake, restart teensy and reenter)");
-   Serial1.println("Please type in T followed by 10 digit ASCII time (eg 'T1231231231')");
-   Serial1.println("(if you make a mistake, restart teensy and reenter)");
-   delay(1000);
-   }
-   
-   //  Serial1.println(Serial1.available());
-   
-   
-   while (Serial1.available()<11) {
-   // c = Serial1.read();
-   //  Serial1.print(Serial1.available());
-   //  Serial1.print(",");
-   //  Serial1.println(Serial1.peek());
-   //  delay(500);
-   
-   }
-   time_t t = processSyncMessage();
-   Serial1.print("'T' plus ASCII 10 digit time: ");
-   Serial1.println(t);
-   Serial1.print("Serial buffer size: ");
-   Serial1.println(Serial1.available());
-   setTime(t);          
-   Serial1.print("UTC time: ");
-   SerialPrintClock();  
-   //  delay(3000);
-   //  digitalClockDisplay();
-   //  }
-   Serial1.println("");
-   
-   */
-
-/*
-//  if (!sd.begin(SD_CHIP_SELECT, SPI_FULL_SPEED)) sd.initErrorHalt(); // Set SD Card to full speed ahead!
- sd.begin(SD_CHIP_SELECT, SPI_FULL_SPEED);
- 
- //PRINT SD CARD MEMORY INFORMATION
- PgmPrint("Free RAM: ");
- Serial1.println(FreeRam());  
- 
- PgmPrint("Volume is FAT");
- Serial1.println(sd.vol()->fatType(), DEC);
- Serial1.println();
- 
- // list file in root with date and size
- PgmPrintln("Files found in root:");
- sd.ls(LS_DATE | LS_SIZE);
- Serial1.println();
- 
- // Recursive list of all directories
- PgmPrintln("Files found in all dirs:");
- sd.ls(LS_R);
- 
- // PRINT OTHER INFORMATION
- wprintout();
- 
- //CREATE NEW DIRECTORY OR DATA FILE, OR APPEND EXISTING  
- //If the primary file name does not yet exist as a file or folder, then create the folder and store all subsequent files (ie file-m.csv, file.c.csv...) in that folder
- //... if the primary file name does already exist as a file or folder, then create a new folder with that name and store subsequent files in it.
- 
- strcpy(filenamedir, filename);
- Serial1.println(sd.exists(filenamedir));
- 
- if (sd.exists(filenamedir) == 1) {
- Serial1.print("Press 1 to append the existing data files in directory ");
- Serial1.print(filenamedir);
- Serial1.println(" or press 2 to create a new directory.");    
- 
- while (cal3 != 1 && cal3 !=2) {
- cal3 = Serial1.read()-48; // for some crazy reason, inputting 0 in the Serial Monitor yields 48 on the Teensy itself, so this just shifts everything by 48 so that when you input X, it's saved in Teensy as X.
- if (cal3 == 2) {
- for (j = 0; j<100; j++) {
- filenamedir[0] = j/10 + '0';
- filenamedir[1] = j%10 + '0';
- if (sd.exists(filenamedir) == 0) {
- break;
- }
- }
- Serial1.print("OK - creating a new directory called:  ");
- Serial1.println(filenamedir);
- SdFile sub1;
- sub1.makeDir(sd.vwd(), filenamedir); // Creating new folder
- Serial1.print(".  Data files are saved in that directory as ");
- Serial1.print(filename);
- Serial1.println(" plus -(subroutine extension letter).CSV for each subroutine.");
- }
- else if (cal3 == 1) {
- for (j = 0; j<100; j++) {
- filenamedir[0] = j/10 + '0';
- filenamedir[1] = j%10 + '0';
- if (sd.exists(filenamedir) == 0) {
- filenamedir[0] = (j-1)/10 + '0';
- filenamedir[1] = (j-1)%10 + '0';
- break;
- }
- }
- Serial1.print("Ok - appending most recently used files located in directory ");
- Serial1.println(filenamedir);
- break;
- }
- }
- }
- else if (sd.exists(filenamedir) == 0) {
- 
- Serial1.print("OK - creating a new directory called ");
- Serial1.print(filenamedir);
- Serial1.print(".  Data files are saved in that directory as ");
- Serial1.print(filenamedir);
- Serial1.println(" plus -(subroutine extension letter).CSV for each subroutine.");
- sub1.makeDir(sd.vwd(), filenamedir); // Creating new folder
- } 
- */
- 
-// engagepins();
- 
 }
-
-void engagepins() {
-
-  pinMode(measuringlight1, OUTPUT); // set pin to output
-  pinMode(measuringlight2, OUTPUT); // set pin to output
-  pinMode(saturatinglight1, OUTPUT); // set pin to output
-  pinMode(calibratinglight1, OUTPUT); // set pin to output
-//  pinMode(actiniclight1, OUTPUT); // set pin to output (currently unset)
-  pinMode(co2calibration, OUTPUT); // set pin to output  
-  analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
-  pinMode(detector1, EXTERNAL);
-  analogReadRes(analogresolution);
-  analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
-}
-
-/* - still need to fix idle mode and get it working
-void idle() {
-  for (int i=0; i<46; i++) {
-    pinMode(i, OUTPUT);
-  }
-  set_sleep_mode(SLEEP_MODE_IDLE);
-  noInterrupts();
-  digitalWrite(2, LOW);
-  sleep_enable();
-  interrupts();
-  sleep_cpu();
-  sleep_disable();
-}
-*/
 
 int Protocol() {
   int a;
@@ -422,94 +203,251 @@ int Protocol() {
       c = Serial1.read()-48;
     }
     a = (10 * a) + c;
-   }
-   return a;
+  }
+  return a;
 }
 
 void loop() {
 
-Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
-Serial1.println("");
+  //Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
+  //Serial1.println("");
 
-Serial.println("Please select a 3 digit protocol code to begin");
-Serial.println("");
-
-while (Serial1.available()<3 && Serial.available()<3) {
-//  Serial1.print(Serial1.available());
-//  Serial.print(Serial1.available());
-//  Serial.println(Serial.available());
-//  delay(1000);
-//  idle();
-}
-
-protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
-Serial.print(protocol);
-
-switch(protocol) {
-  case 999:        // NULL RETURN
+  Serial.println("Please select a 3 digit protocol code to begin");
   Serial.println("");
-  Serial.println("nothing happens - please use bluetooth for serial communication!");
-  Serial1.println("");
-  Serial1.println("nothing happens");
-  break;
-  
+
+  int num = 3;
+
+
+  /*
+FOOLING AROUND
+   
+   int num = 3;
+   
+   Serial1.print("$$$");
+   delay(100);
+   Serial1.available();
+   
+   while(1) {}
+   
+   
+   for (x=0;x<num;x++) {
+   Serial1.print(Serial1.available());
+   }
+   */
+
+  while (Serial1.available()<num && Serial.available()<num) {
+    //  Serial1.print(Serial1.available());
+    //  Serial.print(Serial1.available());
+    //  Serial.println(Serial.available());
+    //  delay(1000);
+    //  idle();
+  }
+
+  protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
+  //protocol = 1; // Retreive the 3 digit protocol code 000 - 999
+  //Serial.print(protocol);
+
+  switch(protocol) {
+  case 999:        // END TRANSMISSION
+    break;
+
+  case 998:        // NULL RETURN
+    Serial.println("");
+    Serial.println("nothing happens - please use bluetooth for serial communication!");
+    Serial1.println("");
+    Serial1.println("nothing happens");
+    break;
+
   case 000:        // CALIBRATION
-  calibration();
-  break;
+    calibration();
+    break;
 
   case 001:        // TEMP, HUM, CO2
-  Serial1.println();
-  Serial.println();
-  temp();
-  relh();
-  Co2();
-  delay(1000);
-  Serial1.println();
-  Serial.println();
-  break;
+    //  Serial1.println();
+    //Begin JSON file printed to bluetooth on Serial1
+    Serial1.print("{\"device_version\": 1,");
+
+    Serial.println();
+    temp();
+    relh();
+    Co2();
+    dirkf();
+    delay(1000);
+    Serial.println();
+
+    //end JSON file printed to bluetooth on Serial1
+    Serial1.print("}");
+    break;
 
   case 002:        // DIRK-F
-  dirkf();
-  break;
+    Co2_evolution();
+    break;
 
   case 003:        // BASIC FLUORESCENCE
-  basicfluor();    
-  break;
+    basicfluor();    
+    break;
 
   case 004:        // WASP
-  wasp();
-  break;
-    
+    eeprom();
+    break;
+
   case 005:        // eeprom tests
-  eeprom();
-  break;
-  
-  case 006:        // CO2 manual calibration
-  co2cal();
+    CO2cal();
+    break;
+  }
 
 }
-}
 
-void co2cal() {
+void CO2cal() {
   Serial.print("place detector in fresh air (not in house or building) for 30 seconds, then press any button. Make sure sensor environment is steady and calm!");
   Serial1.print("place detector in fresh air (not in house or building) for 30 seconds, then press any button.  Make sure sensor environment is steady and calm!");
-  while (Serial1.available()<1 && Serial.available()<1) {}
+  while (Serial1.available()<1 && Serial.available()<1) {
+  }
   Serial.print("please wait about 6 seconds");
   Serial1.print("please wait about 6 seconds");
-  digitalWriteFast(co2calibration, HIGH);
+  digitalWriteFast(CO2calibration, HIGH);
   delay(6000);
-  digitalWriteFast(co2calibration, LOW);
+  digitalWriteFast(CO2calibration, LOW);
   Serial.print("place detector in 0% CO2 air for 30 seconds, then press any button.  Make sure sensor environment is steady and calm!");
   Serial1.print("place detector in 0% CO2 air for 30 seconds, then press any button.  Make sure sensor environment is steady and calm!");
-  while (Serial1.available()<2 && Serial.available()<2) {}
+  while (Serial1.available()<2 && Serial.available()<2) {
+  }
   Serial.print("please wait about 20 seconds");
   Serial1.print("please wait about 20 seconds");
-  digitalWriteFast(co2calibration, HIGH);
+  digitalWriteFast(CO2calibration, HIGH);
   delay(20000);
-  digitalWriteFast(co2calibration, LOW);
+  digitalWriteFast(CO2calibration, LOW);
   Serial.print("calibration complete!");
   Serial1.print("calibration complete!");
 }
+
+void Co2_evolution() {
+  //  measure every second, compare current measurement to previous measurement.  If delta is <x, then stop.
+  //  save the dif between measurement 1 and 2 (call CO2_slope), save measurement at final point (call CO2_final), save all points (call CO2_raw)
+  // create a raw file based on 300 seconds measurement to stop, then fill in ramaining
+  // data with the final value...
+
+  int* co2_raw;
+  int co2_maxsize = 150;
+  int co2_start; // first CO2 measurement
+  int co2_end;
+  float co2_drop;
+  int co2_slope;
+  int co2_2; // second CO2 measurement
+  int delta = 20; // measured in ppm
+  int delta_min = 1; // minimum difference to end measurement, in ppm
+  int co2_time = 1; // measured in seconds
+  int c = 0; // counter
+  int valCO2_prev;
+  int valCO2_prev2;
+
+  co2_raw = (int*)malloc(co2_maxsize*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle
+
+  analogWrite(saturatinglight1_intensity1, 1); // set saturating light intensity
+  digitalWriteFast(saturatinglight1_intensity_switch, LOW); // turn intensity 1 on
+  digitalWriteFast(saturatinglight1, HIGH);
+  
+  for (x=0;x<co2_maxsize;x++) {
+    requestCo2(readCO2);
+    valCO2_prev2 = valCO2_prev;
+    valCO2_prev = valCO2;
+    valCO2 = getCo2(response);
+    Serial.print(valCO2);
+    Serial.print(",");
+    delta = (valCO2_prev2-valCO2_prev)+(valCO2_prev - valCO2);
+    Serial.println(delta);
+    c = c+1;
+    if (c == 1) {
+      co2_start = valCO2;
+    }
+    else if (c == 2) {
+      co2_2 = valCO2;
+    }
+/*
+    else if (delta <= delta_min) {
+      co2_end = valCO2;
+      co2_drop = (co2_start-co2_end)/co2_start;
+      Serial.println("baseline is reached!");
+      Serial.print("it took this many seconds: ");
+      Serial.println(x);
+      Serial.print("CO2 dropped from ");
+      Serial.print(co2_start);
+      Serial.print(" to ");
+      Serial.print(co2_end);
+      Serial.print(" a % drop of ");    
+      Serial.println(co2_drop, 3);
+      break;
+    }
+*/
+    else if (c == co2_maxsize-1) {
+      co2_end = valCO2;
+      co2_drop = (co2_start-co2_end)/co2_start;
+      Serial.print("maximum measurement time exceeded!  Try a larger leaf, a smaller space, or check that the CO2 detector is working properly.");
+      Serial.print("it took this many seconds: ");
+      Serial.println(x);
+      Serial.print("CO2 dropped from ");
+      Serial.print(co2_start);
+      Serial.print(" to ");
+      Serial.print(co2_end);
+      Serial.print(" a % drop of ");    
+      Serial.println(co2_drop, 3);
+    }
+    delay(2000);
+  }
+  Serial.print(x); 
+  digitalWriteFast(saturatinglight1, LOW);
+  analogWrite(saturatinglight1_intensity1, 0); // set saturating light intensity
+}
+
+void Co2() {
+  requestCo2(readCO2);
+  valCO2 = getCo2(response);
+  Serial.print("Co2 ppm = ");
+  Serial.println(valCO2);
+  Serial1.print("\"co2_content\": ");
+  Serial1.print(valCO2);  
+  Serial1.print(",");
+  delay(100);
+}
+
+void requestCo2(byte packet[]) {
+  while(!Serial3.available()) { //keep sending request until we start to get a response
+    Serial3.write(readCO2,7);
+    delay(50);
+  }
+  int timeout=0;  //set a time out counter
+  while(Serial3.available() < 7 ) //Wait to get a 7 byte response
+  {
+    timeout++;  
+    if(timeout > 10) {   //if it takes to long there was probably an error
+      while(Serial3.available())  //flush whatever we have
+          Serial3.read();
+      break;                        //exit and try again
+    }
+    delay(50);
+  }
+  for (int i=0; i < 7; i++) {
+    response[i] = Serial3.read();
+  }  
+}
+
+unsigned long getCo2(byte packet[]) {
+  int high = packet[3];                        //high byte for value is 4th byte in packet in the packet
+  int low = packet[4];                         //low byte for value is 5th byte in the packet
+  unsigned long val = high*256 + low;                //Combine high byte and low byte with this formula to get value
+  return val* valMultiplier;
+}
+
+int numDigits(int number) {
+  int digits = 0;
+  if (number < 0) digits = 1; // remove this line if '-' counts as a digit
+  while (number) {
+    number /= 10;
+    digits++;
+  }
+  return digits;
+}
+
 
 void relh() {
   Wire.beginTransmission(0x40); // 7 bit address
@@ -524,11 +462,12 @@ void relh() {
   rhval = byte1;
   rhval<<=8; // shift byte 1 to bits 1 - 8
   rhval+=byte2; // put byte 2 into bits 9 - 16
-  Serial1.print("Relative humidity in %: ");
-  Serial.print("Relative humidity in %: ");
+  Serial.print("relative humidity in %: ");
   rh = 125*(rhval/pow(2,16))-6;
-  Serial1.println(rh);
   Serial.println(rh);
+  Serial1.print("\"relative_humidity\": ");
+  Serial1.print(rh);  
+  Serial1.print(",");
 }
 
 void temp() {
@@ -544,80 +483,33 @@ void temp() {
   tempval = byte1;
   tempval<<=8; // shift byte 1 to bits 1 - 8
   tempval+=byte2; // put byte 2 into bits 9 - 16
-  Serial1.print("Temperature in Celsius: ");
   Serial.print("Temperature in Celsius: ");
   temperature = 175.72*(tempval/pow(2,16))-46.85;
-  Serial1.println(temperature);
   Serial.println(temperature);
-}
-
-void Co2() {
-  requestCo2(readCO2);
-  unsigned long valCO2 = getCo2(response);
-  Serial1.print("Co2 ppm = ");
-  Serial1.println(valCO2);
-  Serial.print("Co2 ppm = ");
-  Serial.println(valCO2);
-  delay(2000);
-}
-
-void requestCo2(byte packet[]) {
-  while(!Serial3.available()) { //keep sending request until we start to get a response
-    Serial3.write(readCO2,7);
-    delay(50);
-  }
-  int timeout=0;  //set a time out counter
-  while(Serial3.available() < 7 ) //Wait to get a 7 byte response
-  {
-    timeout++;  
-    if(timeout > 10) {   //if it takes to long there was probably an error
-        while(Serial3.available())  //flush whatever we have
-          Serial3.read();
-          break;                        //exit and try again
-      }
-      delay(50);
-  }
-  for (int i=0; i < 7; i++) {
-    response[i] = Serial3.read();
-  }  
-}
-
-unsigned long getCo2(byte packet[]) {
-    int high = packet[3];                        //high byte for value is 4th byte in packet in the packet
-    int low = packet[4];                         //low byte for value is 5th byte in the packet
-    unsigned long val = high*256 + low;                //Combine high byte and low byte with this formula to get value
-    return val* valMultiplier;
-}
-
-int numDigits(int number) {
-    int digits = 0;
-    if (number < 0) digits = 1; // remove this line if '-' counts as a digit
-    while (number) {
-        number /= 10;
-        digits++;
-    }
-    return digits;
+  Serial1.print("\"temperature\": ");
+  Serial1.print(temperature);  
+  Serial1.print(",");
 }
 
 void eeprom() {
-  
+
   int joe = 395;
   char joe2 [10];
   itoa(joe, joe2, 10);
-  
+
   int digs = numDigits(joe);
   for (i=0;i<digs;i++) {
-//    joe2[i] = (char) joe/pow(10,(i-1));
-//    joe = joe - joe2[i]*pow(10,(i-1));
+    //    joe2[i] = (char) joe/pow(10,(i-1));
+    //    joe = joe - joe2[i]*pow(10,(i-1));
     Serial1.println(joe2[i]);
   }
   Serial1.println("");
   Serial1.println(joe);
-//  joe2[5] = joe/100000;
-//  joe2[4] = joe/10000;
- // joe2[3] = joe/1000;
- // joe2[2] = joe/100;
- // joe2[1] = joe/10;
+  //  joe2[5] = joe/100000;
+  //  joe2[4] = joe/10000;
+  // joe2[3] = joe/1000;
+  // joe2[2] = joe/100;
+  // joe2[1] = joe/10;
   Serial1.println(joe);
   Serial1.println(numDigits(joe));
   delay(50);
@@ -639,14 +531,14 @@ void eeprom() {
   Serial1.println(jack);
 
 }
-  
+
 void calibration() {
-  
+
   analogReadAveraging(cmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
   Serial1.print("<RUNTIME>");
   Serial1.print("5");
   Serial1.println("</RUNTIME>");
-  
+
 
   Serial1.println("Place the shiny side of the calibration piece face up in the photosynq, and close the lid.");
   Serial1.println("When you're done, press any key to continue");
@@ -660,7 +552,8 @@ void calibration() {
 
   Serial1.println("");
   Serial1.println("Now place the black side of the calibration piece face up in the photosynq, and close the lid.");
-  Serial1.println("");  Serial1.println("");
+  Serial1.println("");  
+  Serial1.println("");
 
   Serial1.println("When you're done, press any key to continue");
   Serial1.flush();
@@ -672,45 +565,7 @@ void calibration() {
   calibrationtape();
   Serial1.println("Calibration finished!");
   Serial1.println("");
-//  cal = 2;
 }
-
-/*
-    if (cal == 2) {
- delay(50);
- Serial1.println("Proceeding with normal measurement protocol");
- Serial1.println("Place the sample in front of the light guide and press any key to continue");
- Serial1.flush();
- while (Serial1.read() <= 0) {
- }
- Serial1.println("Thanks - running protocol...");
- while (1) {
- calibrationsample(); // order matters here - calibrationsample() must be BEFORE basicflour()
- Serial1.println("Now running DIRKF");
- dirkf();
- //       dcalculations();
- //        Uncomment below for Basic Fluor or WASP methods
- //        Serial1.println("Now running Basic Fluor");
- //        basicfluor();
- //        bcalculations();
- //        Serial1.println("Now running WASP");
- //        wasp();
- //        wcalculations();
- Serial1.println("");        
- Serial1.println("Press any key to take another measurement, or press reset button to calibrate or start a new file");
- while (Serial1.read() <= 0) {
- }
- }      
- }
- 
- else if (cal > 2) {
- delay(50);
- Serial1.println("That's not a 1 or a 2!  Please enter either 1 for yes, or 2 for no");
- cal = 0;
- }
- }
- }
- */
 
 void calibrationrebel() {
 
@@ -849,104 +704,48 @@ void calibrationtape() {
 
   //CALCULATE AND SAVE CALIBRATION DATA TO EEPROM (convert to integer and save decimal places by x10,000)
 
-Serial1.println("Rebel tape value: ");
-savecalibration(rebeltapevalue, 0);
-Serial1.print("<CAL1>");
-callcalibration(0);
-Serial1.println("</CAL1>");
-Serial1.println("");
+  Serial1.println("Rebel tape value: ");
+  savecalibration(rebeltapevalue, 0);
+  Serial1.print("<CAL1>");
+  callcalibration(0);
+  Serial1.println("</CAL1>");
+  Serial1.println("");
 
-Serial1.println("Rebel tin value: ");
-savecalibration(rebeltinvalue, 10);
-Serial1.print("<CAL2>");
-callcalibration(10);
-Serial1.println("</CAL2>");
-Serial1.println("");
+  Serial1.println("Rebel tin value: ");
+  savecalibration(rebeltinvalue, 10);
+  Serial1.print("<CAL2>");
+  callcalibration(10);
+  Serial1.println("</CAL2>");
+  Serial1.println("");
 
-Serial1.println("IR tape value: ");
-savecalibration(irtapevalue, 20);
-Serial1.print("<CAL3>");
-callcalibration(20);
-Serial1.println("</CAL3>");
-Serial1.println("");
+  Serial1.println("IR tape value: ");
+  savecalibration(irtapevalue, 20);
+  Serial1.print("<CAL3>");
+  callcalibration(20);
+  Serial1.println("</CAL3>");
+  Serial1.println("");
 
-Serial1.println("IR tin value: ");
-savecalibration(irtinvalue, 30);
-Serial1.print("<CAL4>");
-callcalibration(30);
-Serial1.println("</CAL4>");
-Serial1.println("");
+  Serial1.println("IR tin value: ");
+  savecalibration(irtinvalue, 30);
+  Serial1.print("<CAL4>");
+  callcalibration(30);
+  Serial1.println("</CAL4>");
+  Serial1.println("");
 
-Serial1.println("Rebel slope value: ");
-savecalibration(rebelslope, 40);
-Serial1.print("<CAL5>");
-callcalibration(40);
-Serial1.println("</CAL5>");
-Serial1.println("");
+  Serial1.println("Rebel slope value: ");
+  savecalibration(rebelslope, 40);
+  Serial1.print("<CAL5>");
+  callcalibration(40);
+  Serial1.println("</CAL5>");
+  Serial1.println("");
 
-Serial1.println("IR slope value: ");
-savecalibration(irslope, 50);
-Serial1.print("<CAL6>");
-callcalibration(50);
-Serial1.println("</CAL6>");
-Serial1.println("");
+  Serial1.println("IR slope value: ");
+  savecalibration(irslope, 50);
+  Serial1.print("<CAL6>");
+  callcalibration(50);
+  Serial1.println("</CAL6>");
+  Serial1.println("");
 
-/*
-  file.open("RTAPE.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(rebeltapevalue, 8);
-  file.close();
-
-  file.open("RTIN.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(rebeltinvalue, 8);
-  file.close();
-
-  file.open("ITAPE.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(irtapevalue, 8);
-  file.close();
-
-  file.open("ITIN.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(irtinvalue, 8);
-  file.close();
-
-  file.open("RSLOP.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(rebelslope, 8);
-  file.close();
-
-  file.open("ISLOP.CSV", O_CREAT | O_WRITE);
-  file.seekSet(0);
-  file.print(irslope, 8);
-  file.close();
-
-  Serial1.print("IR slope: ");  
-  Serial1.print("<IRSLOPE>");    
-  Serial1.print(irslope, 8);
-  Serial1.println("</IRSLOPE>");    
-  Serial1.print("rebel slope: "); 
-  Serial1.print("<REBELSLOPE>");    
-  Serial1.println(rebelslope, 8);
-  Serial1.println("</REBELSLOPE>");    
-  Serial1.print("ir tin value: ");  
-  Serial1.print("<IRTIN>");    
-  Serial1.println(irtinvalue, 8);
-  Serial1.println("</IRTIN>");    
-  Serial1.print("ir tape value: ");  
-  Serial1.print("<IRTAPE>");    
-  Serial1.println(irtapevalue, 8);
-  Serial1.println("</IRTAPE>");    
-  Serial1.print("rebel tin value: ");  
-  Serial1.print("<REBELTIN>");    
-  Serial1.println(rebeltinvalue, 8);
-  Serial1.println("</REBELTIN>");    
-  Serial1.print("rebel tape value: ");  
-  Serial1.print("<REBELTAPE>");    
-  Serial1.println(rebeltapevalue, 8);
-  Serial1.println("</REBELTAPE>");    
-*/
 }
 
 
@@ -979,120 +778,30 @@ void calibrationsample() {
   for (i=0;i<calpulsecycles;i++) {
     irsamplevalue += caldatasample[i]; // totals all of the analogReads taken
   }
-  //  Serial1.println(irsamplevalue);
   irsamplevalue = (float) irsamplevalue;
   irsamplevalue = (irsamplevalue / calpulsecycles); 
   for (i=0;i<calpulsecycles;i++) { // Print the results!
-    Serial1.print(caldatasample[i]);
-    Serial1.print(", ");
-    Serial1.print(" ");  
   }
-  Serial1.println(" ");    
-  Serial1.print("the baseline sample reflectance value from calibration:  ");
-  Serial1.print("<CAL0>");
-  Serial1.print(irsamplevalue, 4);
-  Serial1.println("</CAL0>");
 
-  // RETRIEVE STORED TIN AND TAPE CALIBRATION VALUES AND CALCULATE BASELINE VALUE
-  
-  /*
-  int c;
-  char local[12];
-
-  Serial1.println("Calibration values pulled from SD Card");
-
-  file.open("ISLOP.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  irslope = strtod(local, NULL);
-  Serial1.println(irslope, 8);
-  file.close();
-
-  file.open("RSLOP.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  rebelslope = strtod(local, NULL);
-  Serial1.println(rebelslope, 8);
-  file.close();
-
-  file.open("ITIN.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  irtinvalue = strtod(local, NULL);
-  Serial1.println(irtinvalue, 8);
-  file.close();
-
-  file.open("ITAPE.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  irtapevalue = strtod(local, NULL);
-  Serial1.println(irtapevalue, 8);
-  file.close();
-
-  file.open("RTIN.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  rebeltinvalue = strtod(local, NULL);
-  Serial1.println(rebeltinvalue, 8);
-  file.close();
-
-  file.open("RTAPE.CSV", O_READ);
-  i = 0; // reset counter just in case
-  while ((c = file.read()) > 0) {
-    local[i] = (char) c;
-    i++;
-  }
-  i = 0; // reset counter
-  rebeltapevalue = strtod(local, NULL);
-  Serial1.println(rebeltapevalue, 8);
-
-  file.close();
-  sub1.close();
-
-*/
-
-  // CALL AND SAVE CALIBRATION VALUES FROM EEPROM AND RUN IR CALIBRATION ON CURRENT SAMPLE
-  Serial1.print("<CAL1>");
-  rebeltapevalue = callcalibration(0);
-  Serial1.println("</CAL1>");
-  Serial1.print("<CAL2>");
-  rebeltinvalue = callcalibration(10);
-  Serial1.println("</CAL2>");
-  Serial1.print("<CAL3>");
-  irtapevalue = callcalibration(20);
-  Serial1.println("</CAL3>");
-  Serial1.print("<CAL4>");
-  irtinvalue = callcalibration(30);
-  Serial1.println("</CAL4>");
-  Serial1.print("<CAL5>");
-  rebelslope = callcalibration(40);
-  Serial1.println("</CAL5>");
-  Serial1.print("<CAL6>");
-  irslope = callcalibration(50);
-  Serial1.println("</CAL6>");
-  
   // CALCULATE BASELINE VALUE
   baseline = (rebeltapevalue+((irsamplevalue-irtapevalue)/irslope)*rebelslope);
+
+  Serial1.print("\"ir_low:\"");
+  Serial1.print(irtapevalue);
+  Serial1.print(",");
+  Serial1.print("\"ir_high:\"");
+  Serial1.print(irtinvalue);
+  Serial1.print(",");
+  Serial1.print("\"led_low:\"");
+  Serial1.print(rebeltapevalue);
+  Serial1.print(",");
+  Serial1.print("\"led_high:\"");
+  Serial1.print(rebeltapevalue);
+  Serial1.print(",");
+  Serial1.print("\"baseline\"");
+  Serial1.print(baseline);
+  Serial1.print(",");
+
 }
 
 void basicfluor() {
@@ -1104,7 +813,7 @@ void basicfluor() {
   analogWrite(saturatinglight1_intensity1, 255); // set saturating light intensity
   analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
   digitalWriteFast(saturatinglight1_intensity_switch, LOW); // tu rnintensity 1 on
-  
+
   analogReadAveraging(bmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
   Serial1.print("<RUNTIME>");
   Serial1.print(brunlength*brepeatrun);
@@ -1112,19 +821,8 @@ void basicfluor() {
 
   for (q=0;q<brepeatrun;q++) {
 
-/*
-    strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-    strcat(filenamelocal, basicfluorending); // add the variable's extension defined in header
-    sub1.open(filenamedir, O_READ);
-    file.open(dir, filenamelocal, O_CREAT | O_WRITE | O_APPEND);
-    strcpy(filenamelocal,filename); // reset the localfilename variable;
-*/
-
-    // SAVE CURRENT TIME TO SD CARD
-//    printTime();
-
-Serial1.println("check this out");
-Serial1.println((brunlength/(bcyclelength))*sizeof(int));
+    Serial1.println("check this out");
+    Serial1.println((brunlength/(bcyclelength))*sizeof(int));
 
     bdatasample = (int*)malloc((brunlength/(bcyclelength))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
 
@@ -1143,13 +841,10 @@ Serial1.println((brunlength/(bcyclelength))*sizeof(int));
     z = 0; // reset counter z
 
     free(bdatasample); // release the memory allocated for the data
-    file.println("");
-    file.close(); // close out the file
-    sub1.close(); // close out the directory (you MUST do this - if you don't, the file won't save the data!)
 
     //delay(30000); // wait 30 seconds for things to mix around
     bcalculations();
-    
+
     Serial1.print("<END>");
   }
 }
@@ -1178,8 +873,8 @@ void bpulseoff() {
   bdatasample[z] = data1-baseline; 
   Serial1.print(bdatasample[z]);
   Serial1.print(",");
-//  file.print(bdatasample[z]);
-//  file.print(",");  
+  //  file.print(bdatasample[z]);
+  //  file.print(",");  
   data1 = 0; // reset data1 for the next round
   z=z+1;
 }
@@ -1211,25 +906,6 @@ void bcalculations() {
     Serial1.print(",");
   }
   Serial1.println("");
-
-/*
-  Serial1.println("ALL DATA IN CURRENT DIRECTORY - BASELINE ADJUSTED VALUES");
-
-  int16_t c;
-  sub1.open(filenamedir, O_READ);
-  strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-  strcat(filenamelocal, waspending);
-  Serial1.print("file directory: ");
-  Serial1.println(filenamedir);
-  Serial1.print("file name: ");
-  Serial1.println(filenamelocal);
-  file.open(dir, filenamelocal, O_READ);
-  while ((c = file.read()) > 0) Serial1.write((char)c); // copy data to the Serial port
-  strcpy(filenamelocal,filename); // reset the localfilename variable;
-
-  file.close(); // close out the file
-  sub1.close(); // close out the director (you MUST do this - if you don't, the file won't save the data!)
-*/
 
   totaltimecheck = end1 - start1orig;
   caltotaltimecheck = calend1 - calstart1orig;
@@ -1280,61 +956,27 @@ void bcalculations() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void dirkf() {
   // Flash the LED in a cycle with defined ON and OFF times, and take analogRead measurements as fast as possible on the ON cycle
-  
+
   calibrationsample();
-  
+
   // Set saturating flash intensities via intensity1 and intensity2 (0 - 255)
-//  analogWrite(saturatinglight1_intensity1, 1); // set saturating light intensity
-//  analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
-//  digitalWriteFast(saturatinglight1_intensity_switch, LOW); // tu rnintensity 1 on
+  //  analogWrite(saturatinglight1_intensity1, 1); // set saturating light intensity
+  //  analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
+  //  digitalWriteFast(saturatinglight1_intensity_switch, LOW); // tu rnintensity 1 on
 
   analogReadAveraging(dmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
-  Serial1.print("<RUNTIME>");
-  Serial1.print(drunlength*drepeatrun);
-  Serial1.println("</RUNTIME>");  
-  
-  /*
-    Serial1.print("<PROTOCOLTIME>");
-   printTime();
-   Serial1.print("</PROTOCOLTIME>");
-   Serial1.println("");
-   */
-Serial1.println("check this out");
-Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
 
   ddatasample1 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
   ddatasample2 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
   ddatasample3 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
   ddatasample4 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
 
-// TURN ACTINIC LIGHT ON
+  // TURN ACTINIC LIGHT ON
   digitalWriteFast(actiniclight1, HIGH);  
 
   for (x=0;x<drepeatrun;x++) {
-
-    /*
-    strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-     strcat(filenamelocal, dirkfending); // add the variable's extension defined in header
-     sub1.open(filenamedir, O_READ);
-     file.open(dir, filenamelocal, O_CREAT | O_WRITE | O_APPEND);
-     strcpy(filenamelocal,filename); // reset the localfilename variable;
-     */
 
     // START TIMERS WITH PROPER SEPARATION BETWEEN THEM
     starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
@@ -1347,10 +989,10 @@ Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
     timer1.begin(dpulse2,dcyclelength); // Second pulse, just before actinic turns back on
     delayMicroseconds(dpulselengthon+30); // wait for dpulse2 to end before saving data - Important!  If too short, Teensy will freeze occassionally
     timer2.begin(ddatasave,dcyclelength); // Save data from each pulse
-    
+
     // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
     delay(drunlength*1000+10);
-    
+
     end1 = micros();
 
     // STOP AND RESET COUNTERS
@@ -1364,40 +1006,34 @@ Serial1.println((drunlength*1000000/(2*dcyclelength))*sizeof(int));
     digitalWriteFast(saturatinglight1, LOW);
     digitalWriteFast(actiniclight1, LOW);
 
-    //    file.close(); // close out the file
-    //    sub1.close(); // close out the directory (you MUST do this - if you don't, the file won't save the data!)
-
     delay(ddelayruns); // wait a little bit
   }
-  
+
   dcalculations();
 
-  Serial1.print("<END>");
+  x=0; // Reset counter
+  dpulse1count = 0;
+  dpulse2count = 0;
+  dpulse1noactcount = 0;
+  i=0;
 
-    x=0; // Reset counter
-    dpulse1count = 0;
-    dpulse2count = 0;
-    dpulse1noactcount = 0;
-    i=0;
-    
-    delay(100);
-    free(ddatasample1); // release the memory allocated for the data
-    delay(100);
-    free(ddatasample2); // release the memory allocated for the data
-    delay(100);
-    free(ddatasample3); // release the memory allocated for the data
-    delay(100);
-    free(ddatasample4); // release the memory allocated for the data
-    delay(100);
+  delay(100);
+  free(ddatasample1); // release the memory allocated for the data
+  delay(100);
+  free(ddatasample2); // release the memory allocated for the data
+  delay(100);
+  free(ddatasample3); // release the memory allocated for the data
+  delay(100);
+  free(ddatasample4); // release the memory allocated for the data
+  delay(100);
 }
 
 void dpulse1() {
-  //    Serial1.print(z);
   start1 = micros();
   digitalWriteFast(measuringlight1, HIGH);
-  // GOT STUCK HERE WITH NO SATURATING LIGHT ON - AFTER MEASURING LIGHT WAS ON
   if (dsaturatingcycleon == dpulse1count) {
-    digitalWriteFast(saturatinglight1, HIGH);  // Turn saturating light on   
+    digitalWriteFast(saturatinglight1, HIGH);  // Turn saturating light on
+    manualadjust = 210;
   }  
   data0 = analogRead(detector1);
   start1=start1+dpulselengthon;
@@ -1407,21 +1043,20 @@ void dpulse1() {
   digitalWriteFast(actiniclight1, LOW); // Turn actinic off
   data1 = data0;
   dpulse1count++;
-//  Serial1.println(dpulse1count);
+  //  Serial1.println(dpulse1count);
 }
 
 void dpulse2() {
-  //    Serial1.print(z);
   start1 = micros();
   digitalWriteFast(measuringlight1, HIGH);
-  // GOT STUCK HERE, AFTER MEASURING LIGHT WAS ON BUT WHILE THE ACTINIC WAS STILL OFF
-  data0 = analogRead(detector1);
+  data1 = analogRead(detector1);
   start1=start1+dpulselengthon;
   while (micros()<start1) {
   }
   digitalWriteFast(measuringlight1, LOW);
   if (dsaturatingcycleoff == dpulse2count) {
     digitalWriteFast(saturatinglight1, LOW);  // Turn saturating light back on if it was off
+    manualadjust = 110;
   }
   digitalWriteFast(actiniclight1, HIGH); // Turn actinic back on
   data2 = data0;
@@ -1429,568 +1064,79 @@ void dpulse2() {
 }
 
 void ddatasave() {
-  //  start3 = micros();
-  /*
-  file.print(data1-baseline);
-   file.print(",");
-   file.print(data2-baseline);
-   file.print(",");
-   file.print(data3-baseline);
-   file.print(",");
-   file.print(data4-baseline);
-   file.print(",");
-   file.println();
-   */
-    
-   if (dpulse1count%2 == 1) {
-     ddatasample1[(dpulse1count-1)/2] = data1;
-     ddatasample2[(dpulse1count-1)/2] = data2;
-   }
-   if (dpulse1count%2 == 0) {
-     ddatasample3[(dpulse1count-1)/2] = data1;
-     ddatasample4[(dpulse1count-1)/2] = data2;
-   }
 
-//  Serial1.print(ddatasample1[dpulse2count]);
-//  Serial1.print(",");
-
-/*
-  Serial1.print(data1-baseline);
-  Serial1.print(",");
-  Serial1.print(data2-baseline);
-  Serial1.print(",");
-  Serial1.print(data3-baseline);
-  Serial1.print(",");
-  Serial1.print(data4-baseline);
-  Serial1.print(",");
-  Serial1.println();
-*/
-  //  Serial1.println(data1-baseline);
-  //  Serial1.println (data1);
-  //  Serial1.println(data2-baseline);  
-  //  Serial1.println (data2);
-  //  end3=micros();
-  //  Serial1.println(end3-start3);
+  if (dpulse1count%2 == 1) {
+    ddatasample1[(dpulse1count-1)/2] = data1-manualadjust;
+    ddatasample2[(dpulse1count-1)/2] = data2-manualadjust;
+  }
+  if (dpulse1count%2 == 0) {
+    ddatasample3[(dpulse1count-1)/2] = data1-manualadjust;
+    ddatasample4[(dpulse1count-1)/2] = data2-manualadjust;
+  }
 }
 
 // USER PRINTOUT OF TEST RESULTS
 void dcalculations() {
 
-  
-  Serial1.println("");
-  Serial1.println("DATA");
-  Serial1.print("<VARIABLE1>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample1[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample1[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE1>");
-  Serial1.print("<VARIABLE1NAME>");
-  Serial1.print("F1 data");
-  Serial1.println("</VARIABLE1NAME>");
+  Serial.println(",");
 
-  Serial1.print("<VARIABLE2>");
   for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample2[i]);
-    Serial1.print(",");
+    Serial.print(ddatasample2[i]);
+    Serial.print(",");
   }
-  Serial1.println("</VARIABLE2>");
-  Serial1.print("<VARIABLE2NAME>");
-  Serial1.print("F2 data");
-  Serial1.println("</VARIABLE2NAME>");
+  Serial.println(",");
 
-  Serial1.print("<VARIABLE3>");
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample3[i]);
-    Serial1.print(",");
-  }
-  Serial1.println("</VARIABLE3>");
-  Serial1.print("<VARIABLE3NAME>");
-  Serial1.print("F3 data");
-  Serial1.println("</VARIABLE3NAME>");
-
-  Serial1.print("<VARIABLE4>");
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial1.print(ddatasample4[i]);
-    Serial1.print(",");
-  }
-  Serial1.println("</VARIABLE4>");
-  Serial1.print("<VARIABLE4NAME>");
-  Serial1.print("F4 data");
-  Serial1.println("</VARIABLE4NAME>");
-
-  Serial1.print("<VARIABLE5>");
   for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
     Fs += ddatasample3[i];
   }
   Fs = Fs / (dsaturatingcycleon/2-edge);
-  Serial1.print(Fs);
-  Serial1.println("</VARIABLE5>");
-  Serial1.print("<VARIABLE5NAME>");
-  Serial1.print("Fs");
-  Serial1.println("</VARIABLE5NAME>");
 
-  Serial1.print("<VARIABLE6>");
   for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
     Fd += ddatasample2[i];
   }
   Fd = Fd / (dsaturatingcycleon/2-edge);
-  Serial1.print(Fd);
-  Serial1.println("</VARIABLE6>");
-  Serial1.print("<VARIABLE6NAME>");
-  Serial1.print("Fd");
-  Serial1.println("</VARIABLE6NAME>");
 
-  Serial1.print("<VARIABLE7>");
   for (i=dsaturatingcycleon/2+edge;i<(dsaturatingcycleoff/2-edge);i++) { // Print the results!
     Fm += ddatasample3[i];
   }
   Fm = Fm / (dsaturatingcycleoff/2-dsaturatingcycleon/2-2*edge);
-  Serial1.print(Fm);
-  Serial1.println("</VARIABLE7>");
-  Serial1.print("<VARIABLE7NAME>");
-  Serial1.print("Fm");
-  Serial1.println("</VARIABLE7NAME>");
 
-  Serial1.print("<VARIABLE8>");
   Phi2 = (Fm-Fs)/Fm;
+
+  Serial1.print("\"phi2_raw\": [");
+
+  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
+    Serial.print(ddatasample3[i]);
+    Serial.print(",");
+    Serial1.print(ddatasample3[i]);
+    if (i<(dpulse2count/2)-1) {
+      Serial1.print(",");
+    }
+    else {
+    }
+  }
+  Serial.println(",");
+
+  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
+    Serial.print(ddatasample4[i]);
+    Serial.print(",");
+  }
+  Serial.println();
+  Serial1.print("],");
+  Serial1.print(" \"photosynthetic_efficiency_phi2)\": ");
   Serial1.print(Phi2,3);
-  Serial1.println("</VARIABLE8>");
-  Serial1.print("<VARIABLE8NAME>");
-  Serial1.print("Phi2");
-  Serial1.println("</VARIABLE8NAME>");
-
-  Serial1.print("<VARIABLE9>");
-  invFsinvFd = (1/Fs-1/Fd);
-  Serial1.print(invFsinvFd,6);
-  Serial1.println("</VARIABLE9>");
-  Serial1.print("<VARIABLE9NAME>");
-  Serial1.print("1/Fs-1/Fd");
-  Serial1.println("</VARIABLE9NAME>");
-  
-  /*
-  Serial1.println("ALL DATA IN CURRENT DIRECTORY - BASELINE ADJUSTED VALUES");
-   int16_t c;
-   sub1.open(filenamedir, O_READ);
-   strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-   strcat(filenamelocal, dirkfending);
-   Serial1.print("file directory: ");
-   Serial1.println(filenamedir);
-   Serial1.print("file name: ");
-   Serial1.println(filenamelocal);
-   file.open(dir, filenamelocal, O_READ);
-   Serial1.print("<DATA>");  
-   while ((c = file.read()) > 0) Serial1.write((char)c); // copy data to the Serial port
-   Serial1.print("</DATA>");
-   strcpy(filenamelocal,filename); // reset the localfilename variable;
-   Serial1.println();
-   
-   file.close(); // close out the file
-   sub1.close(); // close out the directory (you MUST do this - if you don't, the file won't save the data!)
-   
-   */
-
-  /*
-const char* variable1name = "Fs"; // Fs
-   const char* variable2name = "Fm"; // Fm (peak value during saturation)
-   const char* variable3name = "Fd"; // Fd (value when actinic light is off
-   const char* variable4name = "Fv"; // == Fs-Fo
-   const char* variable5name = "Phi2"; // == Fv/Fm
-   const char* variable6name = "1/Fs-1/Fd"; // == 1/Fs-1/Fd
-   */
-
-  Serial1.println("");
-  Serial1.println("Size of the baseline:  ");
-  Serial1.print("<BASELINE>");
-  Serial1.print(baseline,8);  
-  Serial1.println("</BASELINE>");  
-  Serial1.println("");
-
-  Serial1.print("The calibration value using the reflective side for the calibration LED and measuring LED are:  ");
-  Serial1.print(rebeltinvalue);
-  Serial1.print(" and ");
-  Serial1.println(irtinvalue);
-  Serial1.print("The calibration value using the black side for the calibration LED and measuring LED are:  ");
-  Serial1.print(rebeltapevalue);
-  Serial1.print(" and ");
-  Serial1.println(irtapevalue);
-
-  totaltimecheck = end1 - start1orig;
-  caltotaltimecheck = calend1 - calstart1orig;
-
-  Serial1.print("Actual run length (measuring pulses):  ");
-  Serial1.println(drepeatrun*(end1-starttimer0-100-30));
-
-  Serial1.print("Expected run length (measuring pulses):  ");
-  Serial1.println((drunlength*1000000)*drepeatrun);
-
-  Serial1.println();  
-
-  Serial1.print("Actual run length (calibration pulses):  ");
-  Serial1.println(caltotaltimecheck);
-
-  delay(50);
-  
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void wasp() {
-  // Flash the LED in a cycle with defined ON and OFF times, and take analogRead measurements as fast as possible on the ON cycle
-
-  calibrationsample();
-
-  analogReadAveraging(wmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
-  Serial1.print("<RUNTIME>");
-  Serial1.println(wcyclelength1*wnumberpulses1+wcyclelength2*wnumberpulses2+wcyclelength3*wnumberpulses3);
-  Serial1.print("</RUNTIME>");
-
-  for (y=0;y<wrepeatrun;y++) {
-
-/*
-    strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-    strcat(filenamelocal, waspending); // add the variable's extension defined in header
-    sub1.open(filenamedir, O_READ);
-    file.open(dir, filenamelocal, O_CREAT | O_WRITE | O_APPEND);
-    strcpy(filenamelocal,filename); // reset the localfilename variable;
-
-    // SAVE CURRENT TIME TO SD CARD
-    printTime();
-*/ 
-
-    wdatasample = (int*)malloc((wcyclelength1*wnumberpulses1+wcyclelength2*wnumberpulses2+wcyclelength3*wnumberpulses3)*sizeof(int)); // NOTE! change the number value based on the number of analogReads() per measurement.  create the array of proper size to save one value for all each ON/OFF cycle   
-
-
-    // ADJUST TIMERS FOR SET 1
-    //    PITimer0.period(wcyclelength1);
-    //    PITimer1.period(wcyclelength1);
-    //    PITimer2.period(wcyclelength1*wnumberpulses1);
-
-    // START TIMERS FOR SET 1 
-    starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
-    starttimer1 = starttimer0+wpulselengthon1;
-    while (micros()<starttimer0) {
-    }
-    timer0.begin(wpulseon,wcyclelength1); // LED on.  Takes about 1us to call "start" function in PITimer plus 5us per analogRead()
-    while (micros()<starttimer1) {
-    }
-    timer1.begin(wpulseoff,wcyclelength1); // LED off.
-    timer2.begin(wstoptimers,wcyclelength1); // turn off timers after runlength time
-
-    // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
-    delay(wnumberpulses1*wcyclelength1*1000+10);
-    z = 0; // reset counter z
-
-    // ADJUST TIMERS FOR SET 2
-    //    PITimer0.period(wcyclelength2);
-    //    PITimer1.period(wcyclelength2);
-    //    PITimer2.period(wcyclelength2*wnumberpulses2);
-
-    // START TIMERS FOR SET 2
-    starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
-    starttimer1 = starttimer0+wpulselengthon2;
-    while (micros()<starttimer0) {
-    }
-    timer0.begin(wpulseon,wcyclelength2); // LED on.  Takes about 1us to call "start" function in PITimer plus 5us per analogRead()
-    while (micros()<starttimer1) {
-    }
-    timer1.begin(wpulseoff,wcyclelength2); // LED off.
-    timer2.begin(wstoptimers,wcyclelength2*wnumberpulses2); // turn off timers after runlength time
-
-    // WAIT FOR TIMERS TO END
-    delay(wnumberpulses2*wcyclelength2*1000+10);
-    z = 0; // reset counter z
-
-    // ADJUST TIMERS FOR SET 3
-    //    PITimer0.period(wcyclelength3);
-    //    PITimer1.period(wcyclelength3);
-    //    PITimer2.period(wcyclelength3*wnumberpulses3);
-
-    // START TIMERS FOR SET 3 
-    starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
-    starttimer1 = starttimer0+wpulselengthon3;
-    while (micros()<starttimer0) {
-    }
-    timer0.begin(wpulseon,wcyclelength3); // LED on.  Takes about 1us to call "start" function in PITimer plus 5us per analogRead()
-    while (micros()<starttimer1) {
-    }
-    timer1.begin(wpulseoff,wcyclelength3); // LED off.
-    timer2.begin(wstoptimers,wcyclelength3*wnumberpulses3); // turn off timers after runlength time
-
-    // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
-    delay(wnumberpulses3*wcyclelength3*1000+10);
-    z = 0; // reset counter z
-
-    free(wdatasample); // release the memory allocated for the data
-    file.println("");
-//    file.close(); // close out the file
-//    sub1.close(); // close out the director (you MUST do this - if you don't, the file won't save the data!)
-
-    // delay(300000); // wait 5 minutes between measurements
-
-    wcalculations();
-    
-  }
-}
-
-void wpulseon() {
-  //  Serial1.print(z);
-  digitalWriteFast(measuringlight1, HIGH);
-  data1 = analogRead(detector1);
-  data2 = analogRead(detector1);
-  data3 = analogRead(detector1);
-  data4 = analogRead(detector1);
-  i = 0;
-}
-
-void wpulseoff() {
-
-  // NOTE! for very short OFF cycles, just store the data in the datasample[], and write to 
-  // the SD card at the end.  If OFF cycle is long enough (50us or more), then you can write
-  // directly to the SD card.  The advantage is you are limited to ~1500 data points for
-  // datasample[] before it becomes too big for the memory to hold.
-
-  digitalWriteFast(measuringlight1, LOW);
-  wdatasampleaverage1 += data1;
-  wdatasampleaverage2 += data2;
-  wdatasampleaverage3 += data3;
-  wdatasampleaverage4 += data4;
-  wdatasample[z] = ((data1+data2+data3+data4)/4);
-  Serial1.println(wdatasample[z]);
-  Serial1.println(',');
-//  file.print(wdatasample[z]);
-//  file.print(",");  
-  data1 = 0; // reset data1 for the next round
-  data2 = 0; // reset data1 for the next round
-  data3 = 0; // reset data1 for the next round
-  data4 = 0; // reset data1 for the next round
-  z=z+1;
-}
-
-
-void wstoptimers() { // Stop timers, close file and directory on SD card, free memory from datasample[], turn off lights, reset counter variables, move to next row in .csv file, 
-  timer0.end();
-  timer1.end();
-  timer2.end();
-  end1 = micros();
-  digitalWriteFast(measuringlight1, LOW);
-  digitalWriteFast(calibratinglight1, LOW);
-  digitalWriteFast(saturatinglight1, LOW);
-  z=0; // reset counters
-  i=0;
-  Serial1.print("Total run time is ~: ");
-  Serial1.println(end1-starttimer0);
-  Serial1.println("");
-  Serial1.println("Average values for data measurements 1,2,3 and 4:  ");
-  Serial1.println(wdatasampleaverage1*3/(wnumberpulses1+wnumberpulses2+wnumberpulses3));
-  Serial1.println(wdatasampleaverage2*3/(wnumberpulses1+wnumberpulses2+wnumberpulses3));
-  Serial1.println(wdatasampleaverage3*3/(wnumberpulses1+wnumberpulses2+wnumberpulses3));
-  Serial1.println(wdatasampleaverage4*3/(wnumberpulses1+wnumberpulses2+wnumberpulses3));
-  Serial1.println("");
-  wdatasampleaverage1 = 0;
-  wdatasampleaverage2 = 0;
-  wdatasampleaverage3 = 0;
-  wdatasampleaverage4 = 0;
-}
-
-// USER PRINTOUT OF TEST RESULTS
-void wcalculations() {
-
-  Serial1.println("DATA - RAW ANALOG VALUES IN uV");
-  for (i=0;i<(wcyclelength1*wnumberpulses1+wcyclelength2*wnumberpulses2+wcyclelength3*wnumberpulses3);i++) {
-    wdatasample[i] = 1000000*((reference*wdatasample[i])/(analogresolutionvalue*wmeasurements)); 
-  }
-  for (i=0;i<(wcyclelength1*wnumberpulses1+wcyclelength2*wnumberpulses2+wcyclelength3*wnumberpulses3);i++) { // Print the results!
-    Serial1.print(wdatasample[i], 8);
-    Serial1.print(",");
-  }
-  Serial1.println("");
-
-/*
-  Serial1.println("ALL DATA IN CURRENT DIRECTORY - BASELINE ADJUSTED VALUES");
-
-  int16_t c;
-  sub1.open(filenamedir, O_READ);
-  strcpy(filenamelocal,filename); // set the local filename variable with the extension for this subroutine.
-  strcat(filenamelocal, waspending);
-  Serial1.print("file directory: ");
-  Serial1.println(filenamedir);
-  Serial1.print("file name: ");
-  Serial1.println(filenamelocal);
-  file.open(dir, filenamelocal, O_READ);
-  while ((c = file.read()) > 0) Serial1.write((char)c); // copy data to the Serial port
-  strcpy(filenamelocal,filename); // reset the localfilename variable;
-
-  file.close(); // close out the file
-  sub1.close(); // close out the director (you MUST do this - if you don't, the file won't save the data!)
-*/
-
-  totaltimecheck = end1 - start1orig;
-  caltotaltimecheck = calend1 - calstart1orig;
-
-  Serial1.println("");
-  Serial1.print("Size of the baseline:  ");
-  Serial1.print("<BASELINE>");
-  Serial1.println(baseline, 8);
-  Serial1.print("</BASELINE>");
-
-  totaltimecheck = end1 - start1orig;
-  caltotaltimecheck = calend1 - calstart1orig;
-
-  Serial1.println("");
-  Serial1.println("GENERAL INFORMATION");
-  Serial1.println("");
-
-  Serial1.print("total run length (measuring pulses):  ");
-  Serial1.println(totaltimecheck);
-
-  Serial1.print("expected run length(measuring pulses):  ");
-  Serial1.println(wcyclelength1*wnumberpulses1+wcyclelength2*wnumberpulses2+wcyclelength3*wnumberpulses3);
-
-  Serial1.print("total run length (calibration pulses):  ");
-  Serial1.println(caltotaltimecheck);
-
-  Serial1.println("");
-  Serial1.println("CALIBRATION DATA");
-  Serial1.println("");
-
-  Serial1.print("The baseline from the sample is:  ");
-  Serial1.println(baseline);
-  Serial1.print("The calibration value using the reflective side for the calibration LED and measuring LED are:  ");
-  Serial1.print(rebeltinvalue);
-  Serial1.print(" and ");
-  Serial1.println(irtinvalue);
-  Serial1.print("The calibration value using the black side for the calibration LED and measuring LED are:  ");
-  Serial1.print(rebeltapevalue);
-  Serial1.print(" and ");
-  Serial1.println(irtapevalue);
-
-  delay(50);
+  Serial1.print(",");
+  Serial1.print(" \"relative_chlorophyll_content\": ");
+  Serial1.print(Fs);
+  Serial1.print(",");
+  Serial1.print(" \"baseline\": ");
+  Serial1.print(baseline);
 
 }
-
-
-/*  code to process time sync messages from the Serial port   */
-/*
-#define TIME_MSG_LEN  11   // time sync to PC is HEADER followed by unix time_t as ten ascii digits
-#define TIME_HEADER  'T'   // Header tag for Serial time sync message
-
-time_t processSyncMessage() {
-  // return the time if a valid sync message is received on the Serial port.
-  while(Serial1.available() >=  TIME_MSG_LEN ){  // time message consists of a header and ten ascii digits
-    char c = Serial1.read() ; 
-    Serial1.print(c);  
-    if(c == TIME_HEADER ) {       
-      time_t pctime = 0;
-      for(int i=0; i < TIME_MSG_LEN -1; i++){   
-        c = Serial1.read();          
-        if( c >= '0' && c <= '9'){   
-          pctime = (10 * pctime) + (c - '0') ; // convert digits to a number    
-        }
-      }   
-      return pctime;
-      Serial1.println("this is pc time");
-      Serial1.println(pctime);
-    }  
-  }
-  return 0;
-  i=0; // reset i
-}
-
-// PRINT CURRENT TIME TO DISPLAY IN Serial PORT
-void SerialPrintClock(){
-  Serial1.print(month());
-  Serial1.print("/");
-  Serial1.print(day());
-  Serial1.print("/");
-  Serial1.print(year()); 
-  Serial1.print(" ");
-  Serial1.print(hour());
-  SerialprintDigits(minute());
-  SerialprintDigits(second());
-  Serial1.println(); 
-}
-
-void SerialprintDigits(int digits){
-  // utility function for digital clock display: prints preceding colon and leading 0
-  Serial1.print(":");
-  if(digits < 10)
-    Serial1.print('0');
-  Serial1.print(digits);
-}
-
-/*
-void fileprintDigits(int digits){
- // utility function for digital clock display: prints preceding colon and leading 0
- file.print(":");
- if(digits < 10)
- file.print('0');
- file.print(minute());
- }
- */
-/*
-void printTime () {
-  
-  file.print(month());
-   file.print("/");
-   file.print(day());
-   file.print("/");
-   file.print(year()); 
-   file.print(" ");
-   file.print(hour());
-   file.print(":");
-   if(minute() < 10)
-   file.print('0');
-   file.print(minute());
-   file.print(":");
-   if(second() < 10)
-   file.print('0');
-   file.print(second());
-   file.print(","); 
-   
-
-  Serial1.print(month());
-  Serial1.print("/");
-  Serial1.print(day());
-  Serial1.print("/");
-  Serial1.print(year()); 
-  Serial1.print(" ");
-  Serial1.print(hour());
-  Serial1.print(":");
-  if(minute() < 10)
-    Serial1.print('0');
-  Serial1.print(minute());
-  Serial1.print(":");
-  if(second() < 10)
-    Serial1.print('0');
-  Serial1.print(second());
-}
-*/
 
 int savecalibration(float calval, int loc) {
   char str [10];
@@ -1999,7 +1145,7 @@ int savecalibration(float calval, int loc) {
   itoa(calval, str, 10);
   for (i=0;i<10;i++) {
     EEPROM.write(loc+i,str[i]);
-//    Serial1.print(str[i]);
+    //    Serial1.print(str[i]);
     char temp = EEPROM.read(loc+i);
   }
   Serial1.println(str);
@@ -2016,6 +1162,7 @@ int callcalibration(int loc) {
   Serial1.print(calval,4);
   return calval;
 }
+
 
 
 
