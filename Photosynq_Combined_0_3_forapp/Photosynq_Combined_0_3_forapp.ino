@@ -175,6 +175,7 @@ void setup() {
   Serial3.begin(9600);
   Wire.begin();
   delay(wait);
+  delay(3000);
 
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(measuringlight2, OUTPUT); // set pin to output
@@ -786,19 +787,19 @@ void calibrationsample() {
   // CALCULATE BASELINE VALUE
   baseline = (rebeltapevalue+((irsamplevalue-irtapevalue)/irslope)*rebelslope);
 
-  Serial1.print("\"ir_low:\"");
+  Serial1.print("\"ir_low\":");
   Serial1.print(irtapevalue);
   Serial1.print(",");
-  Serial1.print("\"ir_high:\"");
+  Serial1.print("\"ir_high\":");
   Serial1.print(irtinvalue);
   Serial1.print(",");
-  Serial1.print("\"led_low:\"");
+  Serial1.print("\"led_low\":");
   Serial1.print(rebeltapevalue);
   Serial1.print(",");
-  Serial1.print("\"led_high:\"");
+  Serial1.print("\"led_high\":");
   Serial1.print(rebeltapevalue);
   Serial1.print(",");
-  Serial1.print("\"baseline\"");
+  Serial1.print("\"baseline\":");
   Serial1.print(baseline);
   Serial1.print(",");
 
@@ -1127,10 +1128,10 @@ void dcalculations() {
   }
   Serial.println();
   Serial1.print("],");
-  Serial1.print(" \"photosynthetic_efficiency_phi2)\": ");
+  Serial1.print(" \"photosynthetic_efficiency_phi2\": ");
   Serial1.print(Phi2,3);
   Serial1.print(",");
-  Serial1.print(" \"relative_chlorophyll_content\": ");
+  Serial1.print(" \"fs\": ");
   Serial1.print(Fs);
   Serial1.print(",");
   Serial1.print(" \"baseline\": ");

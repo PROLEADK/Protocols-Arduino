@@ -74,7 +74,8 @@ int x;
 void setup() {
   delay(500);
   Serial.begin(115200); // set baud rate for Serial communication to computer via USB
-  
+
+  pinMode(13, OUTPUT);
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(measuringlight2, OUTPUT); // set pin to output
   pinMode(measuringlight_pwm, OUTPUT); // set pin to output  
@@ -86,7 +87,7 @@ void setup() {
   pinMode(calibratinglight1_pwm, OUTPUT); // set pin to output  
 //  pinMode(actiniclight1, OUTPUT); // set pin to output
   analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
-  pinMode(detector1, INTERNAL);
+  pinMode(detector1, EXTERNAL);
   analogReadRes(analogresolution);
   analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
 }
@@ -105,11 +106,88 @@ void setup() {
 
 void loop() {
 // testsats();
-testlights();
+//testlights();
+simpletest();
+//measuring();
+}
+
+void measuring() {
+  Serial.println("turn on 1");
+  analogWrite(measuringlight_pwm,200);
+  digitalWriteFast(measuringlight1, HIGH);
+  digitalWriteFast(13,HIGH);
+////  digitalWriteFast(measuringlight2, LOW);
+  delay(1500);
+  Serial.println("turn off 1");
+//  analogWrite(measuringlight_pwm,20);
+
+////  analogWrite(measuringlight_pwm,150);
+  digitalWriteFast(measuringlight1, LOW);
+  digitalWriteFast(13,LOW);
+////  digitalWriteFast(measuringlight2, HIGH);
+  delay(1500);
+}
+
+void simpletest() {
+  Serial.println("measuring lights - low intensity, 1,2");
+  analogWrite(measuringlight_pwm,0);
+  delay(500);
+  digitalWriteFast(measuringlight1, HIGH);
+  delay(1000);
+  digitalWriteFast(measuringlight1, LOW);
+  digitalWriteFast(measuringlight2, HIGH);
+  delay(1000);
+  digitalWriteFast(measuringlight2, LOW);
+  Serial.println("measuring lights - high intensity, 1,2");
+  analogWrite(measuringlight_pwm,255);
+  delay(500);
+  digitalWriteFast(measuringlight1, HIGH);
+  delay(1000);
+  digitalWriteFast(measuringlight1, LOW);
+  digitalWriteFast(measuringlight2, HIGH);
+  delay(1000);
+  digitalWriteFast(measuringlight2, LOW);
+
+  analogWrite(saturatinglight1_intensity1, 2); // set saturating light intensity
+  analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
+  delay(500);
+  digitalWriteFast(saturatinglight1_intensity_switch, HIGH);
+  Serial.println("saturating light - intensity 1 - 255");
+  delay(500);
+  digitalWriteFast(saturatinglight1, HIGH);
+  delay(1000);
+  digitalWriteFast(saturatinglight1, LOW);
+  delay(500);  
+  digitalWriteFast(saturatinglight1_intensity_switch, LOW);
+  Serial.println("saturating light - intensity 2 - 2");
+  delay(500);
+  digitalWriteFast(saturatinglight1, HIGH);
+  delay(1000);
+  digitalWriteFast(saturatinglight1, LOW);
+  delay(500);
+
+  Serial.println("calibrating light - low intensity - 2");
+  analogWrite(calibratinglight1_pwm,2);
+  delay(500);
+  digitalWriteFast(calibratinglight1, HIGH);
+  delay(1000);
+  digitalWriteFast(calibratinglight1, LOW);
+  delay(500);
+
+  Serial.println("calibrating light - high intensity - 255");
+  analogWrite(calibratinglight1_pwm,255);
+  delay(500);
+  digitalWriteFast(calibratinglight1, HIGH);
+  delay(1000);
+  digitalWriteFast(calibratinglight1, LOW);
+  delay(500);
+
 }
 
 void testsats() {
   
+
+/*  
 digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
 
 for (x=0;x<255;x++) {
@@ -121,8 +199,9 @@ for (x=0;x<255;x++) {
   digitalWriteFast(saturatinglight1, LOW);
 }
 
+delay(1000);
+
 digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
-x=0;
 delay(1000);
 
 for (x=0;x<255;x++) {
@@ -136,12 +215,102 @@ for (x=0;x<255;x++) {
 
 delay(1000);
 
+analogWrite(saturatinglight1_intensity1, 0); // set saturating light intensity
+analogWrite(saturatinglight1_intensity2, 0); // set saturating light intensity
+delay(100);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
+
+
+for (x=0;x<255;x++) {
+  delay(15);
+  digitalWriteFast(saturatinglight1, HIGH);
+  delay(1);
+  digitalWriteFast(saturatinglight1, LOW);
+}
+*/
+
+
+analogWrite(saturatinglight1_intensity1, 255); // set saturating light intensity
+delay(500);
+analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
+delay(500);
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1, LOW);
+delay(500);
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1, LOW);
+delay(500);
+
+delay(2000);
+
+analogWrite(saturatinglight1_intensity1, 255); // set saturating light intensity
+delay(500);
+analogWrite(saturatinglight1_intensity2, 255); // set saturating light intensity
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 2 on
+delay(500);
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1, LOW);
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 1 on
+delay(500);
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1, LOW);
+delay(500);
+
+
+delay(2000);
+
+/*
+delay(1000);
+
+analogWrite(saturatinglight1_intensity1, 1); // set saturating light intensity
+analogWrite(saturatinglight1_intensity2, 1); // set saturating light intensity
+delay(500);
+
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
+delay(500);
+
+digitalWriteFast(saturatinglight1, LOW);
+delay(2000);
+
+analogWrite(saturatinglight1_intensity1, 255); // set saturating light intensity
+analogWrite(saturatinglight1_intensity2, 0); // set saturating light intensity
+delay(500);
+
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
+digitalWriteFast(saturatinglight1, HIGH);
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, HIGH); // intensity 2 on
+delay(500);
+digitalWriteFast(saturatinglight1_intensity_switch, LOW); // intensity 1 on
+delay(500);
+
+digitalWriteFast(saturatinglight1, LOW);
+delay(2000);
+
+*/
+
 }
 
 void testlights() {
 
-analogWrite(saturatinglight1_intensity1, pwmmed); // set saturating light intensity
-analogWrite(saturatinglight1_intensity2, pwmhigh); // set saturating light intensity
+analogWrite(saturatinglight1_intensity1, pwmlow); // set saturating light intensity
   
 digitalWriteFast(saturatinglight1_intensity_switch, LOW); // turn intensity 1 on
 pulse1(measuringlight_pwm, measuringlight1, pwmhigh);
