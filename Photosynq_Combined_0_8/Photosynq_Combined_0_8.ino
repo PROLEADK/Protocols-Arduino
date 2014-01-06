@@ -1,3 +1,9 @@
+
+// implement MarkTs suggestion - comparing the smaller values (not huge values) when running micros()
+// you cant't start the 2nd interrupt during the first!  It has to be done in the main loop
+
+
+
 /*
 DESCRIPTION:
  This file is used to measure pulse modulated fluorescence (PMF) using a saturating pulse and a measuring pulse.  The measuring pulse LED (for example, Rebel Luxeon Orange) can itself produce some infra-red
@@ -44,6 +50,13 @@ DESCRIPTION:
 // tmp006, wire, and tcs all have to happen at the same time, adjust addresses and decide how to use the tcs / tmp libraries if possible
 // Figure out low power mode
 
+// TO DO:
+// Turn tihs whole things into a library, to simplify the code
+// Covert the calibration code into the new format
+// Enable multiple (10) pulses and a code to define which pulse kicks when
+// Move as many global variables as possible to local variables
+
+#define DEBUG 1  // uncomment to add debug features
 
 // SD CARD ENABLE AND SET
 #include <Time.h>   // enable real time clock library
@@ -53,13 +66,32 @@ DESCRIPTION:
 #include <Adafruit_Sensor.h>
 #include <Adafruit_TMP006.h>
 #include <Adafruit_TCS34725.h>
-
+#include <PhotosynqLibrary.h>
 
 //#include <sleep.h>
 
-// SHARED VARIABLES
+// PIN DEFINITIONS AND TEENSY SETTINGS
+float reference = 1.2; // The reference (AREF) supplied to the ADC - currently set to INTERNAL = 1.2V
+int analogresolution = 16; // Set the resolution of the analog to digital converter (max 16 bit, 13 bit usable)  
+int measuringlight1 = 15; // Teensy pin for measuring light
+int measuringlight2 = 16; // Teensy pin for measuring light
+int measuringlight3 = 11; // Teensy pin for measuring light
+int measuringlight4 = 12  ; // Teensy pin for measuring light
+int actiniclight1 = 20;
+int actiniclight2 = 2;
+int calibratinglight1 = 14;
+int calibratinglight2 = 10;
+//int actiniclight1 = 12; // Teensy pin for actinic light - set same as measuringlight2
 
-char filename[13] = "ALGAE"; // Base filename used for data files and directories on the SD Card
+int measuringlight_pwm = 23;
+int calibratinglight_pwm = 9;
+int actiniclight_intensity2 = 3;
+int actiniclight_intensity1 = 4;
+int actiniclight_intensity_switch = 5;
+int detector1 = A10; // Teensy analog pin for detector
+int detector2 = A11; // Teensy analog pin for detector
+
+// SHARED VARIABLES
 char* protocolversion = "001"; // Current long term support version of this file
 const char* variable1name = "Fs"; // Fs
 const char* variable2name = "Fm"; // Fm (peak value during saturation)
@@ -73,68 +105,50 @@ float Fd;
 float Fm;
 float Phi2;
 float invFsinvFd;
+int cycle = 0; // current cycle number (start counting at 0!)
+int pulse = 0; // current pulse number
+volatile int off = 0; // counter for 'off' pulse
+volatile int on = 0; // counter for 'on' pulse
 
-// DIRKF VARIABLES
-int drepeatrun = 1; // number of times the measurement is repeated
-int ddelayruns = 0; // millisecond delay between each repeated run
-int dmeasurements = 3; // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
-int drunlength = 2; // in seconds... minimum = cyclelength
-volatile unsigned long dpulselengthon = 30; // pulse length in us... minimum = 6us
-volatile float dcyclelength = 10000; // time between cycles of pulse/actinicoff/pulse/actinic on in us... minimum = pulselengthon + 7.5us
-volatile int dactinicoff = 500; // in us... length of time actinic is turned off
-volatile int dsaturatingcycleon = 0; // The cycle number in which the saturating light turns on (set = 0 for no saturating light) - NOTE! This number is twice the number of the stored value (so this counts 200 cycles to produce a graph with only 100 points, because values are saved in alternating cycles)... so if you expect to have 100 graphed points and you want saturating to start at 25 and end at 50, then set it here to start at 50 and end at 100.
-volatile int dsaturatingcycleoff = 0; //The cycle number in which the saturating light turns off
-const char* dirkfending = "-D.CSV"; // filename ending for the basicfluor subroutine - just make sure it's no more than 6 digits total including the .CSV
-int edge = 2; // The number of values to cut off from the front and back edges of Fm, Fs, Fd.  For example, if Fm starts at 25 and ends at 50, edge = 2 causes it to start at 27 and end at 48.
-int* ddatasample1;
-int* ddatasample2; 
-int* ddatasample3;
-int* ddatasample4;
+// HARDWARE NOTES
+/*
+Optical:
+RISE TIME, MEASURING: 0.4us
+FALL TIME, Measuring: 2.5us
 
-//BASIC FLUORESCENCE VARIABLES
-int brepeatrun = 1;
-int bmeasurements = 4; // # of measurements per pulse (min 1 measurement per 6us pulselengthon)
-unsigned long bpulselengthon = 25; // pulse length in us... minimum = 6us
-float bcyclelength = .01; // in seconds... minimum = pulselengthon + 7.5us
-float brunlength = 1.5; // in seconds... minimum = cyclelength
-const char* basicfluorending = "-B.CSV"; // filename ending for the basicfluor subroutine - just make sure it's no more than 6 digits total including the .CSV
-int bsaturatingcycleon = 0; //The cycle number in which the saturating light turns on (set = 0 for no saturating light)
-int bsaturatingcycleoff = 1; //The cycle number in which the saturating light turns off
-int* bdatasample;
+RISE TIME Actinic: <1us
+FALL TIME Actinic: delayed by 15us, 25us fall time
+
+Electrical:
+measuring is OK
+Actinic fall time: 5 - 10us
+
+Other:
+using namespace - <.2us
+digitalWriteFast - <.1us
+analogread (single average) - 4 - 6us
+noise due to detector reference impacted by actinic pulse - 6 detector units (.3mv)
+USB as power supply DOES NOT WORK - causes significant sags when using actinic lights
+
+*/
+
+// QUESTIONS FOR 
+// So repeats and averages will create additional rows which can parse the data...
+// take picture of populated photosynq, and name all of the measuring lights
+// What's delta_a???
 
 // KEY CALIBRATION VARIABLES
 unsigned long calpulsecycles = 50; // Number of times the "pulselengthon" and "pulselengthoff" cycle during calibration (on/off is 1 cycle)
-// data for measuring and saturating pulses --> to calculate total time=pulsecycles*(pulselengthon + pulselengthoff)
+// data for measuring and actinic pulses --> to calculate total time=pulsecycles*(pulselengthon + pulselengthoff)
 unsigned long calpulselengthon = 30; // Pulse LED on length for calibration in uS (minimum = 5us based on a single ~4us analogRead - +5us for each additional analogRead measurement in the pulse).
 unsigned long calpulselengthoff = 49970; // Pulse LED off length for calibration in uS (minimum = 20us + any additional operations which you may want to call during that time).
 unsigned long cmeasurements = 4; // # of measurements per pulse (min 1 measurement per 6us pulselengthon)
-
-// PIN DEFINITIONS AND TEENSY SETTINGS
-float reference = 1.2; // The reference (AREF) supplied to the ADC - currently set to INTERNAL = 1.2V
-int analogresolution = 16; // Set the resolution of the analog to digital converter (max 16 bit, 13 bit usable)  
-int measuringlight1 = 15; // Teensy pin for measuring light
-int measuringlight2 = 16; // Teensy pin for measuring light
-int measuringlight3 = 11; // Teensy pin for measuring light
-int measuringlight4 = 12  ; // Teensy pin for measuring light
-int saturatinglight1 = 20;
-int saturatinglight2 = 2;
-int calibratinglight1 = 14;
-int calibratinglight2 = 10;
-int actiniclight1 = 12; // Teensy pin for actinic light - set same as measuringlight2
-
-int measuringlight_pwm = 23;
-int calibratinglight_pwm = 9;
-int saturatinglight_intensity2 = 3;
-int saturatinglight_intensity1 = 4;
-int saturatinglight_intensity_switch = 5;
-int detector1 = A10; // Teensy analog pin for detector
-int detector2 = A11; // Teensy analog pin for detector
 
 // HTU21D Temp/Humidity variables
 #define temphumid_address 0x40 // HTU21d Temp/hum I2C sensor address
 int sck = 19; // clock pin
 int sda = 18; // data pin
-int wait = 200; // typical delay to let device finish working before requesting the data
+int wait2 = 200; // typical delay to let device finish working before requesting the data
 unsigned int tempval;
 unsigned int rhval;
 float temperature;
@@ -156,7 +170,7 @@ Adafruit_TMP006 tmp006;
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_700MS, TCS34725_GAIN_1X);
 
 // INTERNAL VARIABLES, COUNTERS, ETC.
-volatile unsigned long start1,start1orig,end1, start3, end3, calstart1orig, calend1, start5, start6, start7, end5;
+volatile unsigned long start1,start2, start1orig,end1, start3, end3, calstart1orig, calend1, start5, start6, start7, end5;
 unsigned long pulselengthoncheck, pulselengthoffcheck, pulsecyclescheck, totaltimecheck, caltotaltimecheck;
 volatile float data1f, data2f, data3f, data4f, irtinvalue, irtapevalue, rebeltapevalue, rebeltinvalue, irsamplevalue, rebelsamplevalue, baselineir, dataaverage, caldataaverage1, caldataaverage2, rebelslope, irslope, baseline = 0;
 char filenamedir[13];
@@ -167,11 +181,66 @@ int* caldatatape;
 int* caldatatin; 
 int* caldatasample;
 int* rebeldatasample;
-int val=0, cal=0, cal2=0, cal3=0, val2=0, flag=0, flag2=0, keypress=0, protocol, protocols;
+int val=0, cal=0, cal2=0, cal3=0, val2=0, flag=0, flag2=0, keypress=0, protocol_value;
 IntervalTimer timer0, timer1, timer2;
 char c;
 
 void setup() {
+
+
+///////////////////////// DIRK /////////////////////////////////////
+dirk.repeats =             1;                         // number of times to repeat the entire run (so if averages = 6 and repeats = 3, total runs = 18, total outputted finished data = 3)
+dirk.wait =                1;                      // seconds wait time between repeats
+dirk.averages =            1;                          // number of runs to average
+dirk.measurements =        3;                          // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
+dirk.meas_light =          measuringlight2; // 520 blue
+dirk.act_light =           actiniclight1;   // any
+dirk.red_light =           calibratinglight1;
+dirk.alt1_light =          measuringlight2;
+dirk.alt2_light =          measuringlight2;
+dirk.detector =            detector2;
+dirk.pulsesize =           20;                         // measured in microseconds
+dirk.actintensity1 =       20;                         // intensity at LOW setting below
+dirk.actintensity2 =       255;                        // intensity at HIGH setting below
+dirk.measintensity =       255;                        // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
+dirk.pulses[0] =           100;              // Maximum pulses per cycle 100
+dirk.pulses[1] =           100;              // Maximum pulses per cycle 100
+dirk.pulses[2] =           100;              // Maximum pulses per cycle 100
+dirk.pulses[3] =           0;              // Maximum pulses per cycle 100
+dirk.pulsedistance [0][1] = 1000;     // measured in us. Minimum 200us
+dirk.pulsedistance [1][1] = 1000;     // measured in us. Minimum 200us
+dirk.pulsedistance [2][1] = 1000;     // measured in us. Minimum 200us
+dirk.pulsedistance [3][1] = 1000;     // measured in us. Minimum 200us
+dirk.act [0] = 2;     // measured in us. Minimum 200us
+dirk.act [1] = HIGH;     // measured in us. Minimum 200us
+dirk.act [2] = 2;     // measured in us. Minimum 200us
+dirk.act [3] = 2;     // measured in us. Minimum 200us
+dirk.alt1 [0] = LOW;     // measured in us. Minimum 200us
+dirk.alt1 [1] = LOW;     // measured in us. Minimum 200us
+dirk.alt1 [2] = LOW;     // measured in us. Minimum 200us
+dirk.alt1 [3] = LOW;     // measured in us. Minimum 200us
+dirk.alt2 [0] = LOW;     // measured in us. Minimum 200us
+dirk.alt2 [1] = LOW;     // measured in us. Minimum 200us
+dirk.alt2 [2] = LOW;     // measured in us. Minimum 200us
+dirk.alt2 [3] = LOW;     // measured in us. Minimum 200us
+dirk.red [0] = LOW;     // measured in us. Minimum 200us
+dirk.red [1] = LOW;     // measured in us. Minimum 200us
+dirk.red [2] = LOW;     // measured in us. Minimum 200us
+dirk.red [3] = LOW;     // measured in us. Minimum 200us
+dirk.total_cycles = sizeof(dirk.pulses)/sizeof(dirk.pulses[0])-1;// (start counting at 0!)
+  
+  
+  
+  
+  
+  
+  
+  
+  
+// IMPROVEMENTS!
+// Be able to choose the number of pulses and which ones to save measurements on, and organize those measurements as part of the array
+// Work on ifdef array... 10 pulses where you can set something (maybe a 001010111 or something) which defines which pules are 'active' and which are 'off'... then save data in array also
+
   delay(3000);
   Serial.begin(115200); // set baud rate for Serial communication to computer via USB
   Serial.println("Serial works");
@@ -179,7 +248,7 @@ void setup() {
   Serial.println("Serial1 works");
   Serial3.begin(9600);
   Serial.println("Serial3 works");
-  Wire.begin(); // This causes the saturating light not to flash, and 
+  Wire.begin(); // This causes the actinic light not to flash, and 
   Serial.println("Wire works");
   // TCS and tmp006 require additional work to get them to work with the other wire libraries
   //  tcs.begin();
@@ -189,18 +258,19 @@ void setup() {
   //  if (! tmp006.begin()) {
   //    Serial.println("No IR temperature sensor found (TMP006)");
   //    }
+
   pinMode(measuringlight1, OUTPUT); // set pin to output
   pinMode(measuringlight2, OUTPUT); // set pin to output
   pinMode(measuringlight3, OUTPUT); //
   pinMode(measuringlight4, OUTPUT); //
-  pinMode(saturatinglight1, OUTPUT); // set pin to output
-  pinMode(saturatinglight2, OUTPUT); // set pin to output
+  pinMode(actiniclight1, OUTPUT); // set pin to output
+  pinMode(actiniclight2, OUTPUT); // set pin to output
   pinMode(calibratinglight1, OUTPUT); // set pin to output  
   pinMode(calibratinglight2, OUTPUT); // set pin to output  
   pinMode(measuringlight_pwm, OUTPUT); // set pin to output  
-  pinMode(saturatinglight_intensity2, OUTPUT); // set pin to output
-  pinMode(saturatinglight_intensity1, OUTPUT); // set pin to output
-  pinMode(saturatinglight_intensity_switch, OUTPUT); // set pin to output
+  pinMode(actiniclight_intensity2, OUTPUT); // set pin to output
+  pinMode(actiniclight_intensity1, OUTPUT); // set pin to output
+  pinMode(actiniclight_intensity_switch, OUTPUT); // set pin to output
   pinMode(calibratinglight_pwm, OUTPUT); // set pin to output  
   pinMode(actiniclight1, OUTPUT); // set pin to output (currently unset)
   analogReadAveraging(1); // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u
@@ -209,9 +279,34 @@ void setup() {
   analogReadRes(analogresolution);
   analogresolutionvalue = pow(2,analogresolution); // calculate the max analogread value of the resolution setting
   Serial.println("All LEDs and Detectors are powered up!");
+  analogWriteFrequency(3, 375000);
+  analogWriteFrequency(5, 375000); // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
 }
 
-int Protocol() {
+int countdown(int _wait) {
+  for (z=0;z<_wait;z++) {
+    #ifdef DEBUG
+    Serial.print(_wait);
+    Serial.print(",");
+    Serial.print(z);
+    #endif
+    Serial.print("Time remaining (press 1 to skip): ");
+    Serial.println(_wait-z);
+    delay(1000);
+    if (Serial.available()>0) {
+      #ifdef DEBUG
+      Serial.println("You pressed a button!");
+      #endif
+      delay(5);                                                                                    // if multiple buttons were pressed, make sure they all get into the serial cache...
+      z = _wait;
+      while (Serial.available()>0) {                                                                   //flush the buffer in case multiple buttons were pressed
+        Serial.read();
+      }
+    }
+  }
+}
+
+int calc_Protocol() {
   int a = 0;
   int c = 0;
   for (i=0;i<3;i++){
@@ -227,23 +322,34 @@ int Protocol() {
 }
 
 void loop() {
-  Serial.println("Hello, welcome to Photosynq!");
 
-  //Serial1.println("Please select a 3 digit protocol code to begin a new protocol");
-  //Serial1.println("");
+Serial.print("total cycles are: ");
+Serial.println(dirk.total_cycles);
+Serial.print("sizeof pulses are: ");
+Serial.println(sizeof(dirk.pulses));
+Serial.print("sizeof pulses 0: ");
+Serial.println(sizeof(dirk.pulses[0]));
+Serial.print("total cycles: ");
+Serial.println(dirk.total_cycles);
+Serial.print("pulses in final cycle: ");
+Serial.println(dirk.pulses[dirk.total_cycles]);
+  
+
+  Serial.println();
   Serial.println("Please select a 3 digit protocol code to begin");
   Serial.println("(002 for light testing)");
   Serial.println("(001 for DIRKF / PMF, RGB light, and CO2 measurement)");  
   Serial.println("");
 
-  int num = 3;
-
-  while (Serial1.available()<num && Serial.available()<num) {
+  while (Serial1.available()<3 && Serial.available()<3) {
   }
-  protocol = Protocol(); // Retreive the 3 digit protocol code 000 - 999
-  Serial.print(protocol);
+  protocol_value = calc_Protocol(); // Retreive the 3 digit protocol code 000 - 999
+  #ifdef DEBUG
+  Serial.print("you selected protocol number: ");
+  Serial.println(protocol_value);
+  #endif
 
-  switch(protocol) {
+  switch(protocol_value) {
   case 999:        // END TRANSMISSION
     break;
   case 998:        // NULL RETURN
@@ -253,34 +359,13 @@ void loop() {
     Serial1.println("nothing happens");
     break;
   case 000:        // CALIBRATION
-    digitalWriteFast(calibratinglight_pwm, 255);
     calibration();
     break;
-  case 001:        // DIRK-F
-    //  Serial1.println();
-    //Begin JSON file printed to bluetooth on Serial1
-    Serial1.print("{\"device_version\": 1,");
-    Serial.println();
-    dirkf();
-    Serial.println();
-    //end JSON file printed to bluetooth on Serial1
-    Serial1.print("}");
+  case 001:        // ps1
+    protocol_main(dirk);
     break;
-  case 003:        // LEAF TEMP
-    ps1();
-    break;
-  case 004:        // TEMP / RH
-    temp();
-    relh();
-    break;
-  case 005:        // LIGHT METER
-    lightmeter();
-    break;
-  case 006:        // CO2 CALIBRATION
-    CO2cal();
-    break;
-  case 007:        // eeprom tests
-    Co2();
+  case 002:        // ps1
+    lighttests();
     break;
   case 010:        // eeprom tests
     leaftemp();
@@ -289,9 +374,9 @@ void loop() {
     lightmeter();
     break;
   case 012:        // eeprom tests
-    ps1();
+//    ps1();
     break;
-  case 002:        // eeprom tests
+  case 013:        // eeprom tests
     lighttests();
     break;
   }
@@ -300,11 +385,11 @@ void loop() {
 void lighttests() {
 
   int choose = 0;
-  analogWrite(saturatinglight_intensity2, 255);
-  analogWrite(saturatinglight_intensity1, 255);
+  analogWrite(actiniclight_intensity2, 255);
+  analogWrite(actiniclight_intensity1, 255);
   analogWrite(calibratinglight_pwm, 255);
   analogWrite(measuringlight_pwm, 255);
-  digitalWriteFast(saturatinglight_intensity_switch, HIGH);
+  digitalWriteFast(actiniclight_intensity_switch, HIGH);
 
   while (choose!=999) {
 
@@ -313,8 +398,8 @@ void lighttests() {
     Serial.println("016 - measuring light 2 (main board)");
     Serial.println("011 - measuring light 3 (add on board)");
     Serial.println("012 - measuring light 4 (add on board)");
-    Serial.println("020 - saturating light 1 (main board)");
-    Serial.println("002 - saturating light 2 (add on board)");
+    Serial.println("020 - actinic light 1 (main board)");
+    Serial.println("002 - actinic light 2 (add on board)");
     Serial.println("014 - calibrating light 1 (main board)");
     Serial.println("010 - calibrating light 2 (add on board)");
     Serial.println("A10 - detector 1 (main board)");
@@ -324,24 +409,24 @@ void lighttests() {
     while (Serial.available()<3) {
     }
 
-    choose = Protocol();
+    choose = calc_Protocol();
     Serial.println(choose);
 
     if (choose<30) {
-      Serial.println("First saturating intensty switch high, then saturating intensity switch low");
+      Serial.println("First actinic intensty switch high, then actinic intensity switch low");
       delay(1000);
       for (y=0;y<2;y++) {
         for (x=0;x<256;x++) {
           Serial.println(x);
           analogWrite(measuringlight_pwm, x);
           analogWrite(calibratinglight_pwm, x);
-          analogWrite(saturatinglight_intensity1, x);
-          analogWrite(saturatinglight_intensity2, x);
+          analogWrite(actiniclight_intensity1, x);
+          analogWrite(actiniclight_intensity2, x);
           if (y==0) {
-            digitalWriteFast(saturatinglight_intensity_switch, HIGH);
+            digitalWriteFast(actiniclight_intensity_switch, HIGH);
           }
           else {
-            digitalWriteFast(saturatinglight_intensity_switch, LOW);
+            digitalWriteFast(actiniclight_intensity_switch, LOW);
           }
           delay(2);
           digitalWriteFast(choose, HIGH);
@@ -352,13 +437,13 @@ void lighttests() {
           Serial.println(x);
           analogWrite(measuringlight_pwm, x);
           analogWrite(calibratinglight_pwm, x);
-          analogWrite(saturatinglight_intensity1, x);
-          analogWrite(saturatinglight_intensity2, x);
+          analogWrite(actiniclight_intensity1, x);
+          analogWrite(actiniclight_intensity2, x);
           if (y==0) {
-            digitalWriteFast(saturatinglight_intensity_switch, HIGH);
+            digitalWriteFast(actiniclight_intensity_switch, HIGH);
           }
           else {
-            digitalWriteFast(saturatinglight_intensity_switch, LOW);
+            digitalWriteFast(actiniclight_intensity_switch, LOW);
           }
           delay(2);
           digitalWriteFast(choose, HIGH);
@@ -371,14 +456,14 @@ void lighttests() {
       switch (choose) {
 
       case 1710:
-        for (x=0;x<500;x++) {
+        for (x=0;x<5000;x++) {
           Serial.println(analogRead(A10));
           delay(10);
         }
         break;
 
       case 1711:
-        for (x=0;x<500;x++) {
+        for (x=0;x<5000;x++) {
           Serial.println(analogRead(A11));
           delay(10);
         }
@@ -405,25 +490,6 @@ void lightmeter() {
   lux = (lux1+lux2+lux3)/3;
   colorTemp = (colorTemp1+colorTemp2+colorTemp3)/3;
 
-  Serial.print("Color Temp: "); 
-  Serial.print(colorTemp, DEC); 
-  Serial.print(" K - ");
-  Serial.print("Lux: "); 
-  Serial.print(lux, DEC); 
-  Serial.print(" - ");
-  Serial.print("R: "); 
-  Serial.print(r, DEC); 
-  Serial.print(" ");
-  Serial.print("G: "); 
-  Serial.print(g, DEC); 
-  Serial.print(" ");
-  Serial.print("B: "); 
-  Serial.print(b, DEC); 
-  Serial.print(" ");
-  Serial.print("C: "); 
-  Serial.print(c, DEC); 
-  Serial.print(" ");
-  Serial.println(" ");
   Serial1.print("\"light_intensity\": ");
   Serial1.print(lux, DEC);
   Serial1.print(",");
@@ -438,6 +504,20 @@ void lightmeter() {
   Serial1.print(",");
   //  Serial1.print("\cyan\": ");
   //  Serial1.print(c, DEC);
+  Serial.print("\"light_intensity\": ");
+  Serial.print(lux, DEC);
+  Serial.print(",");
+  Serial.print("\"red\": ");
+  Serial.print(r, DEC);
+  Serial.print(",");
+  Serial.print("\"green\": ");
+  Serial.print(g, DEC);
+  Serial.print(",");
+  Serial.print("\"blue\": ");
+  Serial.print(b, DEC);
+  Serial.print(",");
+  //  Serial.print("\cyan\": ");
+  //  Serial.print(c, DEC);
 }
 
 void leaftemp() {
@@ -499,9 +579,9 @@ void Co2_evolution() {
 
   co2_raw = (int*)malloc(co2_maxsize*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle
 
-  analogWrite(saturatinglight_intensity1, 1); // set saturating light intensity
-  digitalWriteFast(saturatinglight_intensity_switch, LOW); // turn intensity 1 on
-  digitalWriteFast(saturatinglight1, HIGH);
+  analogWrite(actiniclight_intensity1, 1); // set actinic light intensity
+  digitalWriteFast(actiniclight_intensity_switch, LOW); // turn intensity 1 on
+  digitalWriteFast(actiniclight1, HIGH);
 
   for (x=0;x<co2_maxsize;x++) {
     requestCo2(readCO2);
@@ -551,18 +631,19 @@ void Co2_evolution() {
     delay(2000);
   }
   Serial.print(x); 
-  digitalWriteFast(saturatinglight1, LOW);
-  analogWrite(saturatinglight_intensity1, 0); // set saturating light intensity
+  digitalWriteFast(actiniclight1, LOW);
+  analogWrite(actiniclight_intensity1, 0); // set actinic light intensity
 }
 
 void Co2() {
   requestCo2(readCO2);
   valCO2 = getCo2(response);
-  Serial.print("Co2 ppm = ");
-  Serial.println(valCO2);
   Serial1.print("\"co2_content\": ");
   Serial1.print(valCO2);  
   Serial1.print(",");
+  Serial.print("\"co2_content\": ");
+  Serial.print(valCO2);  
+  Serial.print(",");
   delay(100);
 }
 
@@ -608,7 +689,7 @@ void relh() {
   Wire.beginTransmission(0x40); // 7 bit address
   Wire.send(0xF5); // trigger temp measurement
   Wire.endTransmission();
-  delay(wait);
+  delay(wait2);
 
   // Print response and convert to Celsius:
   Wire.requestFrom(0x40, 2);
@@ -617,19 +698,20 @@ void relh() {
   rhval = byte1;
   rhval<<=8; // shift byte 1 to bits 1 - 8
   rhval+=byte2; // put byte 2 into bits 9 - 16
-  Serial.print("relative humidity in %: ");
   rh = 125*(rhval/pow(2,16))-6;
-  Serial.println(rh);
   Serial1.print("\"relative_humidity\": ");
   Serial1.print(rh);  
   Serial1.print(",");
+  Serial.print("\"relative_humidity\": ");
+  Serial.print(rh);  
+  Serial.print(",");
 }
 
 void temp() {
   Wire.beginTransmission(0x40); // 7 bit address
   Wire.send(0xF3); // trigger temp measurement
   Wire.endTransmission();
-  delay(wait);
+  delay(wait2);
 
   // Print response and convert to Celsius:
   Wire.requestFrom(0x40, 2);
@@ -638,12 +720,13 @@ void temp() {
   tempval = byte1;
   tempval<<=8; // shift byte 1 to bits 1 - 8
   tempval+=byte2; // put byte 2 into bits 9 - 16
-  Serial.print("Temperature in Celsius: ");
   temperature = 175.72*(tempval/pow(2,16))-46.85;
-  Serial.println(temperature);
   Serial1.print("\"temperature\": ");
   Serial1.print(temperature);  
   Serial1.print(",");
+  Serial.print("\"temperature\": ");
+  Serial.print(temperature);  
+  Serial.print(",");
 }
 
 void eeprom() {
@@ -912,7 +995,6 @@ void calibrationtape() {
 
 }
 
-
 void calibrationsample() {
 
   // CALIBRATION SAMPLE
@@ -979,6 +1061,23 @@ void calibrationsample() {
   Serial1.print(baseline);
   Serial1.print(",");
 
+  Serial.print("\"ir_low\":");
+  Serial.print(irtapevalue);
+  Serial.print(",");
+  Serial.print("\"ir_high\":");
+  Serial.print(irtinvalue);
+  Serial.print(",");
+  Serial.print("\"led_low\":");
+  Serial.print(rebeltapevalue);
+  Serial.print(",");
+  Serial.print("\"led_high\":");
+  Serial.print(rebeltinvalue);
+  Serial.print(",");
+  Serial.print("\"baseline\":");
+  Serial.print(baseline);
+  Serial.print(",");
+
+/*
   Serial.println("calibration values");
   Serial.println(irtapevalue);
   Serial.println(irtinvalue);
@@ -989,190 +1088,10 @@ void calibrationsample() {
   Serial.println(irsamplevalue);
   Serial.println("baseline:");
   Serial.println(baseline);
+*/
 }
 
-void dirkf() {
-  // Flash the LED in a cycle with defined ON and OFF times, and take analogRead measurements as fast as possible on the ON cycle
-
-  calibrationsample();
-
-  analogWrite(saturatinglight_intensity1, 255); // set saturating light intensity
-  analogWrite(saturatinglight_intensity2, 255); // set saturating light intensity
-  digitalWriteFast(calibratinglight_pwm, 255); // set calibrating light intensity
-  analogWrite(measuringlight_pwm, 2); // set measuring light intensity
-  digitalWriteFast(saturatinglight_intensity_switch, LOW); // turn intensity 1 on
-
-  analogReadAveraging(dmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
-
-  ddatasample1 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample2 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample3 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample4 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-
-  // TURN ACTINIC LIGHT ON
-  //  digitalWriteFast(actiniclight1, HIGH);  
-
-  for (x=0;x<drepeatrun;x++) {
-
-    // START TIMERS WITH PROPER SEPARATION BETWEEN THEM
-    starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
-    starttimer1 = starttimer0+dactinicoff;
-    while (micros()<starttimer0) {
-    }
-    timer0.begin(dpulse1,dcyclelength); // First pulse before actinic turns off
-    while (micros()<starttimer1) {
-    }
-    timer1.begin(dpulse2,dcyclelength); // Second pulse, just before actinic turns back on
-    delayMicroseconds(dpulselengthon+30); // wait for dpulse2 to end before saving data - Important!  If too short, Teensy will freeze occassionally
-    timer2.begin(ddatasave,dcyclelength); // Save data from each pulse
-
-    // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
-    delay(drunlength*1000+10);
-
-    end1 = micros();
-
-    // STOP AND RESET COUNTERS
-    timer0.end();
-    timer1.end();
-    timer2.end();
-
-    // MAKE SURE ANY REMAINING LIGHTS TURN OFF
-    digitalWriteFast(measuringlight1, LOW);
-    digitalWriteFast(calibratinglight1, LOW);
-    digitalWriteFast(saturatinglight1, LOW);
-    //    digitalWriteFast(actiniclight1, LOW);
-
-    delay(ddelayruns); // wait a little bit
-  }
-
-  dcalculations();
-
-  x=0; // Reset counter
-  dpulse1count = 0;
-  dpulse2count = 0;
-  dpulse1noactcount = 0;
-  i=0;
-
-  delay(100);
-  free(ddatasample1); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample2); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample3); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample4); // release the memory allocated for the data
-  delay(100);
-}
-
-void dpulse1() {
-  start1 = micros();
-  digitalWriteFast(measuringlight1, HIGH);
-  if (dsaturatingcycleon == dpulse1count) {
-    digitalWriteFast(saturatinglight1, HIGH);  // Turn saturating light on
-  }  
-  data0 = analogRead(detector1);
-  start1=start1+dpulselengthon;
-  while (micros()<start1) {
-  }
-  digitalWriteFast(measuringlight1, LOW);
-  //  digitalWriteFast(actiniclight1, LOW); // Turn actinic off
-  data1 = data0;
-  dpulse1count++;
-  //  Serial1.println(dpulse1count);
-}
-
-void dpulse2() {
-  start1 = micros();
-  digitalWriteFast(measuringlight1, HIGH);
-  data1 = analogRead(detector1);
-  start1=start1+dpulselengthon;
-  while (micros()<start1) {
-  }
-  digitalWriteFast(measuringlight1, LOW);
-  if (dsaturatingcycleoff == dpulse2count) {
-    digitalWriteFast(saturatinglight1, LOW);  // Turn saturating light back on if it was off
-  }
-  //  digitalWriteFast(actiniclight1, HIGH); // Turn actinic back on
-  data2 = data0;
-  dpulse2count++;
-}
-
-void ddatasave() {
-
-  if (dpulse1count%2 == 1) {
-    ddatasample1[(dpulse1count-1)/2] = data1;
-    ddatasample2[(dpulse1count-1)/2] = data2;
-  }
-  if (dpulse1count%2 == 0) {
-    ddatasample3[(dpulse1count-1)/2] = data1;
-    ddatasample4[(dpulse1count-1)/2] = data2;
-  }
-}
-
-// USER PRINTOUT OF TEST RESULTS
-void dcalculations() {
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample1[i]);
-    Serial.print(",");
-  }
-  Serial.println(",");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample2[i]);
-    Serial.print(",");
-  }
-  Serial.println(",");
-
-  for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
-    Fs += ddatasample3[i];
-  }
-  Fs = Fs / (dsaturatingcycleon/2-edge);
-
-  for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
-    Fd += ddatasample2[i];
-  }
-  Fd = Fd / (dsaturatingcycleon/2-edge);
-
-  for (i=dsaturatingcycleon/2+edge;i<(dsaturatingcycleoff/2-edge);i++) { // Print the results!
-    Fm += ddatasample3[i];
-  }
-  Fm = Fm / (dsaturatingcycleoff/2-dsaturatingcycleon/2-2*edge);
-
-  Phi2 = (Fm-Fs)/Fm;
-
-  Serial1.print("\"phi2_raw\": [");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample3[i]);
-    Serial.print(",");
-    Serial1.print(ddatasample3[i]);
-    if (i<(dpulse2count/2)-1) {
-      Serial1.print(",");
-    }
-    else {
-    }
-  }
-  Serial.println(",");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample4[i]);
-    Serial.print(",");
-  }
-  Serial.println();
-  Serial1.print("],");
-  Serial1.print(" \"photosynthetic_efficiency_phi2\": ");
-  Serial1.print(Phi2,3);
-  Serial1.print(",");
-  Serial1.print(" \"fs\": ");
-  Serial1.print(Fs);
-  //  Serial1.print(",");
-  //  Serial1.print(" \"baseline\": ");
-  //  Serial1.print(baseline);
-
-}
-
-int savecalibration(float calval, int loc) {
+void savecalibration(float calval, int loc) {
   char str [10];
   calval = calval*1000000;
   calval = (int) calval;
@@ -1193,8 +1112,18 @@ int callcalibration(int loc) {
   }
   calval = atoi(temp);
   calval = calval / 1000000;
+  #ifdef DEBUG
   Serial.print(calval,4);
+  #endif
   return calval;
+}  
+
+int protocol_runtime(volatile int protocol_pulses[], volatile int protocol_pulsedistance[][2], volatile int protocol_total_cycles) {
+  int total_time = 0;
+  for (x=0;x<protocol_total_cycles;x++) {
+    total_time += protocol_pulses[x]*(protocol_pulsedistance[x][0]+protocol_pulsedistance[x][1]);
+  }
+  return total_time;
 }
 
 
@@ -1205,333 +1134,177 @@ int callcalibration(int loc) {
 
 
 
-void ps1() {
-  // Flash the LED in a cycle with defined ON and OFF times, and take analogRead measurements as fast as possible on the ON cycle
 
-  calibrationsample();
 
-  analogWrite(saturatinglight_intensity1, 50); // set saturating light intensity
-  analogWrite(saturatinglight_intensity2, 50); // set saturating light intensity
-  digitalWriteFast(calibratinglight_pwm, 255); // set calibrating light intensity
-  analogWrite(measuringlight_pwm, 2); // set measuring light intensity
-  digitalWriteFast(saturatinglight_intensity_switch, LOW); // turn intensity 1 on
 
-  analogReadAveraging(dmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
 
-  ddatasample1 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample2 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample3 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
-  ddatasample4 = (int*)malloc((drunlength*1000000/(dcyclelength*2))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
 
-  // TURN ACTINIC LIGHT ON
-  digitalWriteFast(actiniclight1, HIGH);  
 
-  for (x=0;x<drepeatrun;x++) {
+int protocol_main(protocols p) {
+  for (x=0;x<p.repeats;x++) {                                                                        // Repeat the entire measurement this many times  
+    Serial1.print("{\"device_version\": 1,");                                                    //Begin JSON file printed to bluetooth on Serial ports
+    Serial.print("{\"device_version\": 1,");
+    Serial1.print("\"protocol\": ");
+    Serial.print("\"protocol\": ");
+    Serial1.print("\"dirk\",");
+    Serial.print("\"dirk\",");    
+    for (y=0;y<p.averages;y++) {                                                                     // Average this many measurements together to yield a single measurement output
+      while ((cycle < p.total_cycles | pulse != p.pulses[p.total_cycles]) && p.pulses[cycle] != 0) {                      // Keep doing the following until the last pulse of the last cycle...
+        if (cycle == 0 && pulse == 0) {                                                                // if it's the beginning of a measurement, then...
+          Serial1.print("\"average\": ");                                                                // Start the beginning of this variable in JSON format
+          Serial1.print(y);                                                                            // Start the beginning of this variable in JSON format
+          Serial1.print(",");                                                                            // Start the beginning of this variable in JSON format
+          Serial.print("\"average\": ");                                                                // Start the beginning of this variable in JSON format
+          Serial.print(y);                                                                            // Start the beginning of this variable in JSON format
+          Serial.print(",");
+          Serial1.print("\"repeats\": ");                                                                // Start the beginning of this variable in JSON format
+          Serial1.print(x);                                                                            // Start the beginning of this variable in JSON format
+          Serial1.print(",");                                                                            // Start the beginning of this variable in JSON format
+          Serial.print("\"repeats\": ");                                                                // Start the beginning of this variable in JSON format
+          Serial.print(x);                                                                            // Start the beginning of this variable in JSON format
+          Serial.print(",");          // Start the beginning of this variable in JSON format
+//          calibrationsample();                                                                         // Run calibration
+          analogReadAveraging(p.measurements);                                                       // set analog averaging (ie ADC takes one signal per ~3u)
+          digitalWriteFast(calibratinglight_pwm, 255);                                                 // turn on calibrating light pwm
+          analogWrite(actiniclight_intensity1, p.actintensity1);                                     // set intensities for each of the lights
+          analogWrite(actiniclight_intensity2, p.actintensity2);
+          analogWrite(p.meas_light, p.measintensity);
+          digitalWriteFast(p.meas_light, LOW);                                                        // make sure the measuring light doesn't flash at the beginning
+          delay(5);                                                                                    // wait a few milliseconds so that the actinic pulse presets can stabilize
 
-    // START TIMERS WITH PROPER SEPARATION BETWEEN THEM
-    starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
-    starttimer1 = starttimer0+dactinicoff;
-    while (micros()<starttimer0) {
-    }
-    timer0.begin(dpulse1,dcyclelength); // First pulse before actinic turns off
-    while (micros()<starttimer1) {
-    }
-    timer1.begin(dpulse2,dcyclelength); // Second pulse, just before actinic turns back on
-    delayMicroseconds(dpulselengthon+30); // wait for dpulse2 to end before saving data - Important!  If too short, Teensy will freeze occassionally
-    timer2.begin(ddatasave,dcyclelength); // Save data from each pulse
+          Serial1.print("\"raw\": [");                                                                // Start the beginning of this variable in JSON format
+          Serial.print("\"raw\": [");
+          #ifdef ARRAY
+          Serial1.print("[");                                                                        //uncomment if using an array of multiple pulses
+          Serial.print("[");
+          #endif
+          starttimer0 = micros();
+          timer0.begin(p.pulse1not,p.pulsedistance[cycle][0]);                                       // Begin firsts pulse
+          while (micros()-starttimer0 < p.pulsesize) {}                                               // wait a full pulse size, then...                                                                                          
+          timer1.begin(p.pulse2not,p.pulsedistance[cycle][0]);                                       // Begin second pulse
+          #ifdef DEBUG
+          Serial.println(starttimer0);
+          #endif
+        }  
+        while ((on == 0 | off == 0)) {}                                                                   // if ALL pulses happened, then...
+        noInterrupts();                                                                            // turn off interrupts because we're checking volatile variables set in the interrupts
+        on = 0;                                                                                    // reset pulse counters
+        off = 0;    
+        pulse++;                                                                                     // progress the pulse counter
+        #ifdef DEBUG
+        Serial.print("$pulse reset$");
+        Serial.print(p.total_cycles);
+        Serial.print(",");  
+        Serial.print(cycle);
+        Serial.print(",");
+        Serial.print(p.pulses[cycle]);
+        Serial.print(",");
+        Serial.print(pulse);
+        Serial.print(",");
+        Serial.print(on);
+        Serial.print(",");
+        Serial.print(off);
+        Serial.print(",");
+        Serial.print(micros());
+        Serial.print(",");
+        #endif
 
-    // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
-    delay(drunlength*1000+10);
+        #ifdef ARRAY
+        Serial.print("[");                                                                                                  // if array, then include additional brackets for JSON
+        Serial1.print("[");
+        #endif
 
-    end1 = micros();
+        Serial.print(data1);                                                                                                  // Output data in JSON format to serial, bluetooth
+        Serial1.print(data1);
 
-    // STOP AND RESET COUNTERS
-    timer0.end();
+        #ifdef ARRAY
+        Serial1.print("]");                                                                                                  // make a for loop based on the number 1s in the defined 001011101 for print statements
+        #endif
+        interrupts();
+
+        if ((cycle < p.total_cycles) | (pulse < p.pulses[p.total_cycles])) {                                        // Add a comma between lists if it's not the last measurement
+          Serial.print(",");      
+          Serial1.print(",");
+        }      
+        
+        if (pulse == p.pulses[cycle]) {                                                             // if it's the last pulse of a cycle...
+          pulse = 0;
+          noInterrupts();
+          on = 0;                                                                                    // ...reset pulse counters
+          off = 0;  
+          interrupts();
+          cycle++;                                                                                   // ...move to next cycle
+          #ifdef DEBUG
+          Serial.print("!cycle reset!");
+          #endif
+        }
+      }
+    Serial.print("],");
+    Serial1.print("],");
+    timer0.end();                                                                                // if it's the last cycle and last pulse, then... stop the timers
     timer1.end();
-    timer2.end();
-
-    // MAKE SURE ANY REMAINING LIGHTS TURN OFF
-    digitalWriteFast(measuringlight3, LOW);
-    digitalWriteFast(calibratinglight1, LOW);
-    //    digitalWriteFast(saturatinglight1, LOW);
-    digitalWriteFast(actiniclight1, LOW);
-
-    delay(ddelayruns); // wait a little bit
+    digitalWriteFast(p.meas_light, LOW);                                                      // ..make sure remaining lights are off
+    digitalWriteFast(p.act_light, LOW);
+    digitalWriteFast(p.alt1_light, LOW);
+    digitalWriteFast(p.alt2_light, LOW);
+    digitalWriteFast(p.red_light, LOW);
+    cycle = 0;                                                                                  // ...and reset counters
+    pulse = 0;
+    on = 0;
+    off = 0;
   }
-
-  ps1_calculations();
-
-  x=0; // Reset counter
-  dpulse1count = 0;
-  dpulse2count = 0;
-  dpulse1noactcount = 0;
-  i=0;
-
-  delay(100);
-  free(ddatasample1); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample2); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample3); // release the memory allocated for the data
-  delay(100);
-  free(ddatasample4); // release the memory allocated for the data
-  delay(100);
+  Serial.print("\"end\":1");
+  Serial.println("}");
+  Serial1.print("\"end\":1");
+  Serial1.println("}");
+  countdown(p.wait);
 }
-
-void ps1_pulse1() {
-  start1 = micros();
-  digitalWriteFast(measuringlight3, HIGH);
-  //  if (dsaturatingcycleon == dpulse1count) {
-  //    digitalWriteFast(saturatinglight1, HIGH);  // Turn saturating light on
-  //  }  
-  data0 = analogRead(detector1);
-  start1=start1+dpulselengthon;
-  while (micros()<start1) {
-  }
-  digitalWriteFast(measuringlight3, LOW);
-  //  digitalWriteFast(actiniclight1, LOW); // Turn actinic off
-  data1 = data0;
-  dpulse1count++;
-  //  Serial1.println(dpulse1count);
-}
-
-void psi_pulse2() {
-  start1 = micros();
-  digitalWriteFast(measuringlight3, HIGH);
-  data1 = analogRead(detector1);
-  start1=start1+dpulselengthon;
-  while (micros()<start1) {
-  }
-  digitalWriteFast(measuringlight3, LOW);
-  //  if (dsaturatingcycleoff == dpulse2count) {
-  //    digitalWriteFast(saturatinglight1, LOW);  // Turn saturating light back on if it was off
-  //  }
-  //  digitalWriteFast(actiniclight1, HIGH); // Turn actinic back on
-  data2 = data0;
-  dpulse2count++;
-}
-
-void psi_datasave() {
-
-  if (dpulse1count%2 == 1) {
-    ddatasample1[(dpulse1count-1)/2] = data1-baseline;
-    ddatasample2[(dpulse1count-1)/2] = data2-baseline;
-  }
-  if (dpulse1count%2 == 0) {
-    ddatasample3[(dpulse1count-1)/2] = data1-baseline;
-    ddatasample4[(dpulse1count-1)/2] = data2-baseline;
-  }
-}
-
-// USER PRINTOUT OF TEST RESULTS
-void ps1_calculations() {
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample1[i]);
-    Serial.print(",");
-  }
-  Serial.println(",");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample2[i]);
-    Serial.print(",");
-  }
-  Serial.println(",");
-
-  for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
-    Fs += ddatasample3[i];
-  }
-  Fs = Fs / (dsaturatingcycleon/2-edge);
-
-  for (i=edge;i<(dsaturatingcycleon/2-edge);i++) { // Print the results!
-    Fd += ddatasample2[i];
-  }
-  Fd = Fd / (dsaturatingcycleon/2-edge);
-
-  for (i=dsaturatingcycleon/2+edge;i<(dsaturatingcycleoff/2-edge);i++) { // Print the results!
-    Fm += ddatasample3[i];
-  }
-  Fm = Fm / (dsaturatingcycleoff/2-dsaturatingcycleon/2-2*edge);
-
-  Phi2 = (Fm-Fs)/Fm;
-
-  Serial1.print("\"phi2_raw\": [");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample3[i]);
-    Serial.print(",");
-    Serial1.print(ddatasample3[i]);
-    if (i<(dpulse2count/2)-1) {
-      Serial1.print(",");
-    }
-    else {
-    }
-  }
-  Serial.println(",");
-
-  for (i=0;i<(dpulse2count/2);i++) { // Print the results!
-    Serial.print(ddatasample4[i]);
-    Serial.print(",");
-  }
-  Serial.println();
-  Serial1.print("],");
-  Serial1.print(" \"photosynthetic_efficiency_phi2\": ");
-  Serial1.print(Phi2,3);
-  Serial1.print(",");
-  Serial1.print(" \"fs\": ");
-  Serial1.print(Fs);
-  //  Serial1.print(",");
-  //  Serial1.print(" \"baseline\": ");
-  //  Serial1.print(baseline);
 }
 
 /*
+void pulse1not () {
+  digitalWriteFast(13, HIGH);
+}
 
- void basicfluor() {
- // Flash the LED in a cycle with defined ON and OFF times, and take analogRead measurements as fast as possible on the ON cycle
- 
- calibrationsample();
- 
- // Set saturating flash intensities via intensity1 and intensity2 (0 - 255)
- analogWrite(saturatinglight_intensity1, 255); // set saturating light intensity
- analogWrite(saturatinglight_intensity2, 255); // set saturating light intensity
- analogWrite(measuringlight_pwm, 255); // set saturating light intensity
- digitalWriteFast(saturatinglight_intensity_switch, LOW); // turn intensity 1 on
- 
- analogReadAveraging(bmeasurements); // set analog averaging (ie ADC takes one signal per ~3u)
- 
- for (q=0;q<brepeatrun;q++) {
- 
- Serial1.println("check this out");
- Serial1.println((brunlength/(bcyclelength))*sizeof(int));
- 
- bdatasample = (int*)malloc((brunlength/(bcyclelength))*sizeof(int)); // create the array of proper size to save one value for all each ON/OFF cycle   
- 
- starttimer0 = micros()+100; // This is some arbitrary reasonable value to give the Arduino time before starting
- starttimer1 = starttimer0+bpulselengthon;
- while (micros()<starttimer0) {
- }
- timer0.begin(bpulseon, bcyclelength*1000000); // LED on.  Takes about 1us to call "start" function in PITimer plus 5us per analogRead()
- while (micros()<starttimer1) {
- }
- timer1.begin(bpulseoff, bcyclelength*1000000); // LED off.
- timer2.begin(bstoptimers, brunlength*1000000); // turn off timers after runlength time
- 
- // WAIT FOR TIMERS TO END (give it runlength plus a 10ms to be safe)
- delay(brunlength*1000+10);
- z = 0; // reset counter z
- 
- free(bdatasample); // release the memory allocated for the data
- 
- //delay(30000); // wait 30 seconds for things to mix around
- bcalculations();
- 
- Serial1.print("<END>");
- }
- }
- 
- void bpulseon() {
- //    Serial1.print(z);
- if (z==(bsaturatingcycleon-1)) { // turn on saturating light at beginning of measuring light
- digitalWriteFast(saturatinglight1, HIGH);
- }
- digitalWriteFast(measuringlight1, HIGH);
- data1 = analogRead(detector1);
- i = 0;
- }
- 
- void bpulseoff() {
- 
- // NOTE! for very short OFF cycles, just store the data in the datasample[], and write to 
- // the SD card at the end.  If OFF cycle is long enough (50us or more), then you can write
- // directly to the SD card.  The advantage is you are limited to ~1500 data points for
- // datasample[] before it becomes too big for the memory to hold.
- 
- digitalWriteFast(measuringlight1, LOW);
- if (z==(bsaturatingcycleoff-1)) { // turn off saturating light at end of measuring light pulse
- digitalWriteFast(saturatinglight1, LOW);
- }
- bdatasample[z] = data1-baseline; 
- Serial1.print(bdatasample[z]);
- Serial1.print(",");
- //  file.print(bdatasample[z]);
- //  file.print(",");  
- data1 = 0; // reset data1 for the next round
- z=z+1;
- }
- 
- void bstoptimers() { // Stop timers, close file and directory on SD card, free memory from datasample[], turn off lights, reset counter variables, move to next row in .csv file, 
- timer0.end();
- timer1.end();
- timer2.end();
- end1 = micros();
- digitalWriteFast(measuringlight1, LOW);
- digitalWriteFast(calibratinglight1, LOW);
- digitalWriteFast(saturatinglight1, LOW);
- z=0; // reset counters
- i=0;
- Serial1.println("");
- Serial1.print("Total run time is ~: ");
- Serial1.println(end1-starttimer0);
- }
- 
- // USER PRINTOUT OF TEST RESULTS
- void bcalculations() {
- 
- Serial1.println("DATA - RAW ANALOG VALUES IN uV");
- for (i=0;i<(brunlength/bcyclelength);i++) {
- bdatasample[i] = 1000000*((reference*bdatasample[i])/(analogresolutionvalue*bmeasurements)); 
- }
- for (i=0;i<(brunlength/bcyclelength);i++) { // Print the results!
- Serial1.print(bdatasample[i], 8);
- Serial1.print(",");
- }
- Serial1.println("");
- 
- totaltimecheck = end1 - start1orig;
- caltotaltimecheck = calend1 - calstart1orig;
- 
- Serial1.println("");
- Serial1.print("Size of the baseline:  ");
- Serial1.print("<BASELINE>");
- Serial1.println(baseline, 8);
- Serial1.print("</BASELINE>");
- 
- totaltimecheck = end1 - start1orig;
- caltotaltimecheck = calend1 - calstart1orig;
- 
- Serial1.println("");
- Serial1.println("GENERAL INFORMATION");
- Serial1.println("");
- 
- Serial1.print("total run length (measuring pulses):  ");
- Serial1.println(totaltimecheck);
- 
- Serial1.print("expected run length(measuring pulses):  ");
- Serial1.println(brunlength/bcyclelength);
- 
- Serial1.print("total run length (calibration pulses):  ");
- Serial1.println(caltotaltimecheck);
- 
- Serial1.println("");
- Serial1.println("CALIBRATION DATA");
- Serial1.println("");
- 
- 
- Serial1.print("The baseline from the sample is:  ");
- Serial1.println(baseline);
- Serial1.print("The calibration value using the reflective side for the calibration LED and measuring LED are:  ");
- Serial1.print(rebeltinvalue);
- Serial1.print(" and ");
- Serial1.println(irtinvalue);
- Serial1.print("The calibration value using the black side for the calibration LED and measuring LED are:  ");
- Serial1.print(rebeltapevalue);
- Serial1.print(" and ");
- Serial1.println(irtapevalue);
- 
- delay(50);
- 
- }
- */
+void pulse2not () {
+  digitalWriteFast(13, LOW);
+}
+*/
 
+/*
+void pulse1(protocols p) {
+  digitalWriteFast(meas_light, HIGH);
+  if (pulse == 0) {                                                                            // if it's the first pulse of a cycle, then change sat, act, far red, alt1 and alt2 values as per array's set at beginning of the file
+    if (act[cycle] == 2) {
+      digitalWriteFast(act_light, LOW);
+        #ifdef DEBUG
+        Serial.print("light off");
+        #endif
+    }
+    else {
+      digitalWriteFast(actiniclight_intensity_switch, act[cycle]);
+      digitalWriteFast(act_light, HIGH);
+        #ifdef DEBUG
+        Serial.print("light on");
+        #endif
+    }
+    digitalWriteFast(alt1_light, alt1[cycle]);    
+    digitalWriteFast(alt2_light, alt2[cycle]);
+    digitalWriteFast(red_light, red[cycle]);
+  }  
+  data1 = analogRead(detector);
+  on=1;
+  #ifdef DEBUG
+  Serial.print("pulse on");
+  #endif
+}
 
+void pulse2() {
+  digitalWriteFast(meas_light, LOW);
+  off=1;
+  #ifdef DEBUG
+  Serial.print("pulse off");
+  #endif
+}
+
+*/
