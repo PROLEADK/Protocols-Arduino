@@ -128,7 +128,8 @@ int detector1 = A10;                                                          //
 int detector2 = A11;                                                          // Teensy analog pin for detector
 
 //////////////////////Shared Variables///////////////////////////
-volatile int data1=0, off = 0, on = 0;
+volatile long data1=0;
+volatile int off = 0, on = 0;
 volatile unsigned long meas_number = 0;                                       // counter to cycle through measurement lights 1 - 4 during the run
 int analogresolutionvalue;
 int i=0,j=0, k=0,z=0,y=0,q=0,x=0,p=0;                                         // Used as a counters
@@ -408,7 +409,7 @@ void loop() {
     meas1_baseline =      measuringlight2_baseline;
     act_light =           actiniclight1;       // any
     detector =            detector2;
-    pulsesize =           20;                  // us, length of pulse must be <100us
+    pulsesize =           10;                  // us, length of pulse must be <100us
     pulsedistance =       10000;                // distance between pulses
     actintensity1 =       100;                  // intensity at LOW setting below
     actintensity2 =       255;                 // intensity at HIGH setting below
@@ -432,45 +433,6 @@ void loop() {
     act [0] =             LOW;                   // keep on low until we get the new detector           
     act [2] =             LOW;  
     total_cycles =        sizeof(pulses)/sizeof(pulses[0])-1;        // (start counting at 0!)
-    digitalWrite(sample_and_hold, LOW);
-    break;
-
-
-  case 20:                                    //////////////////// DIRK ////////////////////////
-    protocol_name =       "dirk20";
-    repeats =             1;                    // number of times to repeat the entire run (so if averages = 6 and repeats = 3, total runs = 18, total outputted finished data = 3)
-    wait =                0;                   // seconds wait time between repeats
-    averages =            1;                    // number of runs to average
-    measurements =        3;                    // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
-    meas1_light =         measuringlight2;     // 520 cyan
-    meas1_baseline =      measuringlight2_baseline;
-    act_light =           actiniclight1;       // any
-    detector =            detector2;
-    pulsesize =           20;                  // us, length of pulse must be <100us
-    pulsedistance =       10000;                // distance between pulses
-    actintensity1 =       100;                  // intensity at LOW setting below
-    actintensity2 =       255;                 // intensity at HIGH setting below
-    measintensity =       255;                 // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
-    calintensity =        255;                 // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
-    pulses[0] =           100;
-    pulses[1] =           100;
-    pulses[2] =           100;
-    measlights [0][0] =   1; 
-    measlights [0][1] =   1; 
-    measlights [0][2] =   1;
-    measlights [0][3] =   1; 
-    measlights [1][0] =   1; 
-    measlights [1][1] =   1;
-    measlights [1][2] =   1; 
-    measlights [1][3] =   1;
-    measlights [2][0] =   1; 
-    measlights [2][1] =   1;
-    measlights [2][2] =   1;
-    measlights [2][3] =   1; 
-    act [0] =             LOW;                   // keep on low until we get the new detector           
-    act [2] =             LOW;  
-    total_cycles =        sizeof(pulses)/sizeof(pulses[0])-1;        // (start counting at 0!)
-    digitalWrite(sample_and_hold, LOW);
     break;
 
   case 3:                                              //////////////////// CHLOROPHYLL SPAD ////////////////////////  NOTE not currently adjusted for fluorescence due to the 650 flash - this would require an additional calibration but it's ok, the impact is very small and consistent in the same direction
@@ -877,7 +839,14 @@ void loop() {
 #endif
         }  
         while (on == 0 | off == 0) {
-        }                                                                           // if ALL pulses happened, then...
+        }                                                                          // if ALL pulses happened, then...
+//        int max_val = 20;
+//        for (i=0;i<max_val;i++) {
+//          data1 += (analogRead(detector)-baseline);                                          // save the detector reading as data1, and subtract of the baseline (if there is no baseline then baseline is automatically set = 0)
+//        }
+//        data1 = data1/max_val;
+//        digitalWriteFast(sample_and_hold, LOW);
+
         switch (measlights[cycle][meas_number%4]) {                                 // set the baseline for the next measuring light
         case 1:
           baseline = meas1_baseline;
@@ -1158,6 +1127,11 @@ void loop() {
 }
 
 void pulse1() {
+
+//int start1;
+//start1 = micros();
+digitalWriteFast(sample_and_hold, HIGH);
+
 #ifdef DEBUG
   Serial.print(measlights[cycle][meas_number%4]);
   Serial.println(",");    
@@ -1206,7 +1180,6 @@ void pulse1() {
     digitalWriteFast(alt2_light, alt2[cycle]);
     digitalWriteFast(red_light, red[cycle]);
   }
-  data1 = analogRead(detector)-baseline;                                          // save the detector reading as data1, and subtract of the baseline (if there is no baseline then baseline is automatically set = 0)
   on=1;
 #ifdef DEBUG
   Serial.print("pulse on");
@@ -1219,6 +1192,8 @@ void pulse2() {
   digitalWriteFast(meas3_light, LOW);
   digitalWriteFast(meas4_light, LOW);
   off=1;
+  digitalWriteFast(sample_and_hold, LOW);
+
 #ifdef DEBUG
   Serial.print("pulse off");
 #endif
