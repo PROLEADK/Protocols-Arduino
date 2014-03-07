@@ -8,6 +8,7 @@
 */
 
 /*  
+<<<<<<< HEAD
 {"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}
 {"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":200,"calintensity":255,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]}
 {"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]}
@@ -15,6 +16,15 @@
 {"protocol_name":"baseline_sample","measurement_groups":1,"repeats":1,"wait":0,"cal_true":2,"analog_averages":12,"pulsesize":75,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":255,"calintensity":255,"pulses":[400],"detectors":[[34,34,34,34]],"measlights":[[14,15,16,20]]}
 
 [{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]},{"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":200,"calintensity":255,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]},{"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]},{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+=======
+{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}
+{"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":200,"calintensity":255,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]}
+{"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]}
+{"protocol_name":"calibration","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_wait":1000,"repeats":6,"wait":10,"cal_true":1,"analog_averages":12,"pulsesize":75,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":255,"calintensity":255,"pulses":[400],"detectors":[[34,34,34,34]],"measlights":[[14,15,16,20]]}
+{"protocol_name":"baseline_sample","measurement_groups":1,"repeats":1,"wait":0,"cal_true":2,"analog_averages":12,"pulsesize":75,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":255,"calintensity":255,"pulses":[400],"detectors":[[34,34,34,34]],"measlights":[[14,15,16,20]]}
+
+[{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]},{"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":200,"calintensity":255,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]},{"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]},{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
 
 
 */
@@ -310,7 +320,11 @@ void loop() {
   delay(500);                                                                   // 
 
   int measurement_groups = 1;                                                   // the number of times to repeat the entire measurement (all protocols)
+<<<<<<< HEAD
   unsigned long measurement_groups_delay = 0;                                    // number of milliseconds to wait between measurements
+=======
+  unsigned long measurement_groups_wait = 0;                                    // number of milliseconds to wait between measurements
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
   volatile unsigned long meas_number = 0;                                       // counter to cycle through measurement lights 1 - 4 during the run
 
   // these variables could be pulled from the JSON... however, because pulling from JSON is slow, it's better to create a int to save them into at the beginning of a protocol run and use the int instead of the raw hashTable.getLong type call 
@@ -401,7 +415,11 @@ Serial.println(json);
   int repeats =             hashTable.getLong("repeats");                               // number of times to repeat this particular protocol
   int wait =                hashTable.getLong("wait");                                    // seconds wait time between 'repeats'
   measurement_groups =      hashTable.getLong("measurement_groups");
+<<<<<<< HEAD
   measurement_groups_delay = hashTable.getLong("measurement_groups_delay");
+=======
+  measurement_groups_wait = hashTable.getLong("measurement_groups_wait");
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
   int analog_averages =     hashTable.getLong("analog_averages");                          // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
   int act_light =           hashTable.getLong("act_light");   // any
   int alt1_light =          hashTable.getLong("alt1_light");   // any
@@ -500,7 +518,11 @@ Serial.println(json);
       
     /*
     Test protocol:
+<<<<<<< HEAD
 [{"protocol_name":"fluorescence","environmental":[["relative_humidity",1,0],["temperature",1,2],["co2",1,1],["light_intensity",1,0],["contactless_temperature",1,1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+=======
+[{"protocol_name":"fluorescence","environmental":[["relative_humidity",1,0],["temperature",1,2],["co2",1,1],["light_intensity",1,0],["contactless_temperature",1,1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
 
     options for relative humidity, temperature, contactless temperature. light_intensity,co2
     0 - off
@@ -820,7 +842,11 @@ Serial.println(json);
 
     /*
     Test protocol:
+<<<<<<< HEAD
 [{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["light_intensity",0],["contactless_temperature",0]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+=======
+[{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["light_intensity",0],["contactless_temperature",0]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_wait":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}]
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
 
     options for relative humidity, temperature, contactless temperature. light_intensity,co2
     0 - off
@@ -998,7 +1024,11 @@ Serial.println(json);
     if (y != measurement_groups-1) {                                                      // add commas between measurement groups (clusters of measurements)
       Serial.println(",");
       Serial1.println(",");
+<<<<<<< HEAD
       delay(measurement_groups_delay);                                                   // delay between measurements
+=======
+      delay(measurement_groups_wait);                                                   // delay between measurements
+>>>>>>> d0c7c3ad6f8f72509a3387b53421e3c88124cd92
     }
     else if (y == measurement_groups-1) {                                                 // add closed bracket at end of entire measurement group (clusters of measurements)
       Serial.println("]");
