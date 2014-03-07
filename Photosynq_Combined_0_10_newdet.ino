@@ -123,7 +123,6 @@ int calibratinglight_pwm = 9;
 int actiniclight_intensity2 = 3;
 int actiniclight_intensity1 = 4;
 int actiniclight_intensity_switch = 5;
-int sample_and_hold = 6;                                                      // Sample and hold pin for new detector design
 int detector1 = A10;                                                          // Teensy analog pin for detector
 int detector2 = A11;                                                          // Teensy analog pin for detector
 
@@ -199,8 +198,8 @@ int cal_wait = 15;                                                      // wait 
 
 //////////////////// USER MODIFIABLE VARIABLES ////////////////////////////
 String protocol_name;                                                    // protocol name printed to JSON and stored in online database
-int repeats;   			                                         // number of times to repeat the entire run 
-int wait;                  	                                         // seconds wait time between repeats
+int repeats;   			                                    		     // number of times to repeat the entire run 
+int wait;                  	                               		          // seconds wait time between repeats
 int averages;                                                            // number of runs to average
 int measurements;                                                        // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
 int meas1_light;                                                         // light associated with the 1st measurement pulse (for example, actiniclight1, measuringlight1, calibratinglight2, etc.)
@@ -249,12 +248,12 @@ int measlights [10][4] = {
 int act [10] = {
   2,2,2,2,2,2,2,2,2,2};                                   // 2 is off.  "LOW" is actintensity1, "HIGH" is actintensity2.  May use this for combined actinic / saturation pulses  .  NOTE! You may set the intensity at any value during the run even if it's not preset - however, the LED intensity rise time is a few milliseconds.  The rise time on the preset values is in the nanoseconds range.
 int alt1 [10] = {
-  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};              // If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
+  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};              					// If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
 int alt2 [10] = {
-  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};              // If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
+  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};              				// If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
 int red [10] = {
-  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};               // If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
-int total_cycles;	                                                // Total number of cycles - note first cycle is cycle 0
+  LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};               				// If set to measuring or calibrating light, "HIGH" is on and "LOW" is off. If set to actinic light, LOW is actintensity1, HIGH is actintensity2. 
+int total_cycles;	                                               		 // Total number of cycles - note first cycle is cycle 0
 int cal_true = 0;                                                       // identify this as a calibration routine (0 = false, 1 = re-calibrate, 2 = calibrate to sample)
 int cal_pulses = 400;                                                   // number of total pulses in the calibration routine
 
@@ -303,7 +302,6 @@ void setup() {
   Serial.println("Serial3 works");
   delay(500);
   tmp006.begin();                                                              // this opens wire.begin as well, and initializes tmp006, tcs light sensor, and htu21D.  by default, contactless leaf temp measurement takes 4 seconds to complete
-//  tcs.begin();
 
   pinMode(measuringlight1, OUTPUT);                                             // set appropriate pins to output
   pinMode(measuringlight2, OUTPUT);
@@ -318,7 +316,6 @@ void setup() {
   pinMode(actiniclight_intensity1, OUTPUT);
   pinMode(actiniclight_intensity_switch, OUTPUT);
   pinMode(calibratinglight_pwm, OUTPUT);
-  pinMode(sample_and_hold, OUTPUT); 
   analogReadAveraging(1);                                                       // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u) - this gets changed later by each protocol
   pinMode(detector1, EXTERNAL);                                                 // use external reference for the detectors
   pinMode(detector2, EXTERNAL);
@@ -341,14 +338,14 @@ void loop() {
   }
   while (Serial1.available()<3 && Serial.available()<3) {
   }
-  protocol_number = calc_Protocol();                    // Retreive the 3 digit protocol code 000 - 999
+  protocol_number = calc_Protocol();                    						// Retreive the 3 digit protocol code 000 - 999
 #ifdef DEBUG
   Serial.print("you selected protocol number: ");
   Serial.println(protocol_number);
 #endif
 
-  recall_all();                                        // recall and save the data from the EEPROM
-  if (baseline_flag == 1) {                            // calculate baseline values from saved EEPROM data only if the previous run was a sample baseline run (otherwise leave baseline == 0)
+  recall_all();                                        							// recall and save the data from the EEPROM
+  if (baseline_flag == 1) {                           							 // calculate baseline values from saved EEPROM data only if the previous run was a sample baseline run (otherwise leave baseline == 0)
     cal_baseline();
   }
 
@@ -409,7 +406,7 @@ void loop() {
     act_light =           actiniclight1;       // any
     detector =            detector2;
     pulsesize =           20;                  // us, length of pulse must be <100us
-    pulsedistance =       10000;                // distance between pulses
+    pulsedistance =       1000;                // distance between pulses
     actintensity1 =       100;                  // intensity at LOW setting below
     actintensity2 =       255;                 // intensity at HIGH setting below
     measintensity =       255;                 // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
@@ -432,45 +429,6 @@ void loop() {
     act [0] =             LOW;                   // keep on low until we get the new detector           
     act [2] =             LOW;  
     total_cycles =        sizeof(pulses)/sizeof(pulses[0])-1;        // (start counting at 0!)
-    digitalWrite(sample_and_hold, LOW);
-    break;
-
-
-  case 20:                                    //////////////////// DIRK ////////////////////////
-    protocol_name =       "dirk20";
-    repeats =             1;                    // number of times to repeat the entire run (so if averages = 6 and repeats = 3, total runs = 18, total outputted finished data = 3)
-    wait =                0;                   // seconds wait time between repeats
-    averages =            1;                    // number of runs to average
-    measurements =        3;                    // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
-    meas1_light =         measuringlight2;     // 520 cyan
-    meas1_baseline =      measuringlight2_baseline;
-    act_light =           actiniclight1;       // any
-    detector =            detector2;
-    pulsesize =           20;                  // us, length of pulse must be <100us
-    pulsedistance =       10000;                // distance between pulses
-    actintensity1 =       100;                  // intensity at LOW setting below
-    actintensity2 =       255;                 // intensity at HIGH setting below
-    measintensity =       255;                 // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
-    calintensity =        255;                 // 255 is max intensity during pulses, 0 is minimum // for additional adjustment, change resistor values on the board
-    pulses[0] =           100;
-    pulses[1] =           100;
-    pulses[2] =           100;
-    measlights [0][0] =   1; 
-    measlights [0][1] =   1; 
-    measlights [0][2] =   1;
-    measlights [0][3] =   1; 
-    measlights [1][0] =   1; 
-    measlights [1][1] =   1;
-    measlights [1][2] =   1; 
-    measlights [1][3] =   1;
-    measlights [2][0] =   1; 
-    measlights [2][1] =   1;
-    measlights [2][2] =   1;
-    measlights [2][3] =   1; 
-    act [0] =             LOW;                   // keep on low until we get the new detector           
-    act [2] =             LOW;  
-    total_cycles =        sizeof(pulses)/sizeof(pulses[0])-1;        // (start counting at 0!)
-    digitalWrite(sample_and_hold, LOW);
     break;
 
   case 3:                                              //////////////////// CHLOROPHYLL SPAD ////////////////////////  NOTE not currently adjusted for fluorescence due to the 650 flash - this would require an additional calibration but it's ok, the impact is very small and consistent in the same direction
@@ -729,8 +687,8 @@ void loop() {
 #endif
 
   for (x=0;x<repeats;x++) {                                                       // Repeat the entire measurement this many times  
-    if (cal_true != 2) {
-      Serial1.print("{\"device_id\": ");                                          //Begin JSON file printed to bluetooth on Serial ports
+    if (cal_true != 2) {                                                          //Begin JSON file printed to bluetooth on Serial ports
+      Serial1.print("{\"device_id\": ");
       Serial.print("{\"device_id\": ");
       Serial1.print(device_id);
       Serial.print(device_id);
@@ -824,7 +782,14 @@ void loop() {
       }
     }
 
-/*
+/* averages - integrate and save with 3.1
+ * change the case switch statement determining measuring and actinic lights before the while loop waiting for off/on to happen... 
+ * add detector to that new switch statement
+ * create new detector string to determine which detectors are getting called at 0,1,2,3
+*/
+
+So first
+
     else if (cal_true == 0) {
       lightmeter();                                                                                // initiate environmental measurements
       relh(0);
@@ -832,7 +797,6 @@ void loop() {
       Co2(0);
       leaftemp();
     }
-*/
 
     for (y=0;y<averages;y++) {                                                                        // Average this many measurements together to yield a single measurement output
       while ((cycle < total_cycles | pulse != pulses[total_cycles]) && pulses[cycle] != 0) {          // Keep doing the following until the last pulse of the last cycle...
@@ -1412,15 +1376,6 @@ void tmp006_calibration() {
   Serial.println("Finished calibration - new values saved!");
 }
 
-
-/*
-  prompt user to put device against object of known temperature (min, max)
- take 1 minute of readings, average
- prompt user to put device against different object of known temperature (min, max)
- take 1 minute of readings, average
- State how out of calibration the device was (ie what used to be 21C is now 32C...)
- */
-
 void lightmeter() {
   // Based on Adafruit's example code 'TCS34725', added averaging of 3 measurements
   uint16_t r, g, b, c, colorTemp, colorTemp1, colorTemp2, colorTemp3, lux, lux1, lux2, lux3;
@@ -1670,8 +1625,8 @@ void temp(int quiet) {
   Serial.print(",");
 }
 
-/*
-void relh2(int quiet) {
+/* void relh2(int quiet) {
+
   Wire.beginTransmission(0x40); // 7 bit address
   delay(wait2);
   Wire.send(0xF5); // trigger temp measurement
@@ -1923,19 +1878,6 @@ float getFloatFromSerialMonitor(){                                              
   return f; 
 }
 
-
-/*
-make reading, compare to htu21d,...
- 
- set cal_s equal to something pulled from eeprom
- during calibration routine, just walk around until you're close enough or x passes have gone by
- then save value to eeprom
- 
- if tmp006>htu21d, then tmp006_calibration steps down by .05
- if tmp006<htu21d, then tmp006_calibration steps up by .05
- if tmp00
- */
-
 double readObjTempC_mod(void) {
   double Tdie = tmp006.readRawDieTemperature();
   double Vobj = tmp006.readRawVoltage();
@@ -1974,7 +1916,6 @@ double readObjTempC_mod(void) {
   Tobj -= 273.15; // Kelvin -> *C
   return Tobj;
 }
-
 
 
 
