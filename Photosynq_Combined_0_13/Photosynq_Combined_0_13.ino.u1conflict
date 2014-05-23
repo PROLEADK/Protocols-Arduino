@@ -8,9 +8,9 @@
 */
 
 /*  
-{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":20,"actintensity2":20,"measintensity":20,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}
-{"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":20,"calintensity":20,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]}
-{"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":20,"actintensity2":20,"measintensity":20,"calintensity":20,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]}
+{"protocol_name":"fluorescence","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[1,1,1,1],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":10000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[50,50,50,50],"detectors":[[34,34,34,34],[34,34,34,34],[34,34,34,34],[34,34,34,34]],"measlights":[[15,15,15,15],[15,15,15,15],[15,15,15,15],[15,15,15,15]],"act":[2,1,2,2]}
+{"protocol_name":"chlorophyll_spad","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"baselines":[0,0,0,0],"measurement_groups":1,"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":10,"pulsesize":25,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":200,"calintensity":255,"pulses":[500],"detectors":[[35,35,35,35]],"measlights":[[14,20,14,20]]}
+{"protocol_name":"dirk","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_delay":1000,"repeats":1,"wait":0,"cal_true":0,"analog_averages":3,"act_light":20,"pulsesize":25,"pulsedistance":3000,"actintensity1":100,"actintensity2":255,"measintensity":255,"calintensity":255,"pulses":[100,100,100],"detectors":[[35,35,35,35],[35,35,35,35],[35,35,35,35]],"measlights":[[16,16,16,16],[16,16,16,16],[16,16,16,16]]"act":[1,2,1]}
 {"protocol_name":"calibration","environmental":[["relative_humidity",1],["temperature",1],["contactless_temperature",1],["light_intensity",1]],"measurement_groups":1,"baselines":[0,0,0,0],"measurement_groups_delay":1000,"repeats":6,"wait":10,"cal_true":1,"analog_averages":12,"pulsesize":75,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":255,"calintensity":255,"pulses":[400],"detectors":[[34,34,34,34]],"measlights":[[14,15,16,20]]}
 {"protocol_name":"baseline_sample","measurement_groups":1,"repeats":1,"wait":0,"cal_true":2,"analog_averages":12,"pulsesize":75,"pulsedistance":3000,"actintensity1":1,"actintensity2":1,"measintensity":255,"calintensity":255,"pulses":[400],"detectors":[[34,34,34,34]],"measlights":[[14,15,16,20]]}
 
@@ -108,8 +108,8 @@
 
 //#define DEBUG 1  // uncomment to add full debug features
 //#define DEBUGSIMPLE 1  // uncomment to add partial debug features
-#define NEWDET 1
-//#define OLDDET 1
+//#define NEWDET 1
+#define OLDDET 1
 
 
 #include <Time.h>                                                             // enable real time clock library
@@ -334,10 +334,6 @@ while (Serial.peek() != 91) {                           // wait till we see a "[
     Serial.read();                                      // flush the '9'
     Serial.println("MultispeQ Ready");
     Serial1.println("MultispeQ Ready");
-  }
-  if (Serial.peek() == 56) {
-    Serial.read();
-    lighttests();
   }
 }
   Serial.read();                                       // flush the "["
@@ -1083,9 +1079,9 @@ void lighttests() {
           else {
             digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, LOW);
           }
-          delay(10);
+          delay(2);
           digitalWriteFast(choose, HIGH);
-          delay(10);
+          delay(2);
           digitalWriteFast(choose, LOW);
         }
         for (x=256;x>0;x--) {
@@ -1100,9 +1096,9 @@ void lighttests() {
           else {
             digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, LOW);
           }
-          delay(10);
+          delay(2);
           digitalWriteFast(choose, HIGH);
-          delay(10);
+          delay(2);
           digitalWriteFast(choose, LOW);
         }
       }
