@@ -33,12 +33,6 @@ NEXT DAC UPDATES:
  create actual PAR - find the ri 
  
  
- - changed json structure to {..."sample":[[{...},{...}...],[{...}...]...]}, moved common variables to the part before "sample" except the calibration values
- - changed 'repeats' to 'averages' so 'averages' are all automatically internally averaged before being sent off to the app.  If averages == 1, no data is saved on the device (that means there's no limit to the number of data points).- now there is no limit to the number of measurement lights in an array (previously limited to 4)
- - all environmental variables are also averaged within a protocol, and can be entered using the 'environmental':[...] token in the incoming JSON.  This allows environmental variables to be taken at the beginning or end of the measurement
- - All information relating to the spectroscopic measurements can now be transferred to the device through a JSON
- - calibration only works on samples with the same pulse sizes (gain) and light intensities!!!
- - an additional calibration for ndvi/spad has been added.  Both calibrations have 3 phases (reflective, dull, blank) and it's not necessary
 
 so we're going to create a new input variable... called actinic_background and actinic_background_delay.
 
