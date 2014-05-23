@@ -16,7 +16,11 @@ http://www.pjrc.com/teensy/td_download.html
 
 3. Open additional libraries zip file for required libraries.  Unzip the files into the 'libraries' folder located in your arduino install location.  Some modifications have been made to these libraries, so you must REPLACE any existing libraries of the same name if you have them.  I would suggest saving the old versions of these before replacing, as other programs may not work after the replace.
 
-4. You should now be able to plug your Photosynq device into a computer using a standard micro USB to USB cable.  Open the Arduino IDE and go to Tools --> Board.  Select "Teensy 3.1" from the list.  Load the protocol by pressing the upload button.  Then go to tools --> serial port and select the port which contains the teensy.  Once that is checked, open the Arduino Serial Monitor (tools --> serial monitor).  You can copy and paste protocols through the serial port to run a measurement, or enter one of the following options for testing:
+4. You should now be able to plug your Photosynq device into a computer using a standard micro USB to USB cable.  
+
+5. Download the most current protocol file and file folder (see top of this readme for the name) and place in your arduino sketchbook folder.  Make sure you place both the folder and the .ino file of the same name (for example, photosynq-21.ino and folder named photosynq-21) in the sketchbook folder!
+
+6. Open the arduino software.  Open the Arduino IDE and go to Tools --> Board.  Select "Teensy 3.1" from the list.  Load the protocol by going to file-->sketchbook, and once loaded press the upload button - this flashes the MultispeQ with the new firmware.  Then go to tools --> serial port and select the port which contains the teensy.  Once that is checked, open the Arduino Serial Monitor (tools --> serial monitor).  You can copy and paste protocols through the serial port to run a measurement, or enter one of the following options for testing:
 '9' print MultispeQ Ready
 '8' run light tests and sensor tests
 '7' power off lights
