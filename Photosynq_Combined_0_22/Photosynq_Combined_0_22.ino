@@ -2304,7 +2304,7 @@ long user_enter_long(long timeout) {
   Serial1.setTimeout(1000);
 }
 
-double dbl(long timeout) {
+double user_enter_dbl(long timeout) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
   Serial.println("I made it");
