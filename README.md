@@ -26,23 +26,23 @@ http://www.pjrc.com/teensy/td_download.html
 * 1002 - Configure bluetooth.
 * 1005 - show saved calibration information
 * 1006 - calibrate light sensor
-1007 - Device info
-1004 - Battery level
-1001 - Power off
-1003 - Power off/on lights only
-15 - measuring light 1 (main board)");
-16 - measuring light 2 (main board)");
-11 - measuring light 3 (add on board)");
-12 - measuring light 4 (add on board)");
-20 - actinic light 1 (main board)");
-2 - actinic light 2 (add on board)");
-14 - calibrating light 1 (main board)");
-10 - calibrating light 2 (add on board)");
-34 - detector 1 (main board)");
-35 - detector 2 (add on board)");
-101 - light detector testing (press any key to exit after entering))");
-105 - light detector testing RAW SIGNAL (press any key to exit after entering))");
-102 - CO2 testing (press any key to exit after entering))");
+* 1007 - Device info
+* 1004 - Battery level
+* 1001 - Power off
+* 1003 - Power off/on lights only
+* 15 - measuring light 1 (main board)");
+* 16 - measuring light 2 (main board)");
+* 11 - measuring light 3 (add on board)");
+* 12 - measuring light 4 (add on board)");
+* 20 - actinic light 1 (main board)");
+* 2 - actinic light 2 (add on board)");
+* 14 - calibrating light 1 (main board)");
+* 10 - calibrating light 2 (add on board)");
+* 34 - detector 1 (main board)");
+* 35 - detector 2 (add on board)");
+* 101 - light detector testing (press any key to exit after entering))");
+* 105 - light detector testing RAW SIGNAL (press any key to exit after entering))");
+* 102 - CO2 testing (press any key to exit after entering))");
 
 FINAL NOTE: Teensy 3.1 sometimes has Serial connection problems in Windows.  If you are using windows and you cannot get the teensy to appear on list of serial devices in Arduino or you keep losing the connection, try unplugging the device, waiting at least 5 seconds, then plugging it back in.  Hopefully that works.  Otherwise, you could try switching USB locations or sometimes the cables themselves are bad.
 
