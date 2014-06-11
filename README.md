@@ -1,7 +1,7 @@
 Protocols-Arduino
 =================
 
-***Most Current Protocol File: Arduino\_Combined\_21***
+***Most Current Protocol File: Arduino\_Combined\_23***
 
 This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON, parses the JSON and inteprets what to do (flash lights, measure CO2, etc.), takes the measurement as specified, then sends back the data also as a JSON.
 
