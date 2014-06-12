@@ -44,7 +44,7 @@ http://www.pjrc.com/teensy/td_download.html
 * 105 - light detector testing RAW SIGNAL (press any key to exit after entering))");
 * 102 - CO2 testing (press any key to exit after entering))");
 
-FINAL NOTE: Teensy 3.1 sometimes has Serial connection problems in Windows.  If you are using windows and you cannot get the teensy to appear on list of serial devices in Arduino or you keep losing the connection, try unplugging the device, waiting at least 5 seconds, then plugging it back in.  Hopefully that works.  Otherwise, you could try switching USB locations or sometimes the cables themselves are bad.
+FINAL NOTE: Teensy 3.1 sometimes has Serial connection problems in Windows.  If you are using windows and you cannot get the teensy to appear on list of serial devices in Arduino or you keep losing the connection, try unplugging the device, waiting at least 5 seconds, then power the device on with power button, plug the usb back in.  Hopefully that works.  Otherwise, you could try switching USB locations or sometimes the cables themselves are bad.
 
 
 _Feel free to contact me at gbathree at gmail dot com with questions._
