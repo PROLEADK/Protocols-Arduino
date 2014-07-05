@@ -1,7 +1,7 @@
 Protocols-Arduino
 =================
 
-***Most Current Protocol File: Arduino\_Combined\_23***
+***Most Current Protocol File: Arduino\_Combined\_28***
 
 This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON, parses the JSON and inteprets what to do (flash lights, measure CO2, etc.), takes the measurement as specified, then sends back the data also as a JSON.
 
@@ -22,14 +22,21 @@ http://www.pjrc.com/teensy/td_download.html
 
 6. Open the arduino software.  Open the Arduino IDE and go to Tools --> Board.  Select "Teensy 3.1" from the list.  Load the protocol by going to file-->sketchbook, and once loaded press the upload button - this flashes the MultispeQ with the new firmware.  Then go to tools --> serial port and select the port which contains the teensy.  Once that is checked, open the Arduino Serial Monitor (tools --> serial monitor).  You can copy and paste protocols through the serial port to run a measurement, or enter one of the following options for testing:
 
-* 1000 - MultispeQ ready
-* 1002 - Configure bluetooth.
-* 1005 - show saved calibration information
-* 1006 - calibrate light sensor
-* 1007 - Device info
-* 1004 - Battery level
-* 1001 - Power off
-* 1003 - Power off/on lights only
+
+* case 1000:     // print "MultispeQ Ready" to USB and Bluetooth
+* case 1001:     // power off completely (if USB connected, only batteries
+* case 1002:     // configure bluetooth name and baud rate
+* case 1003:     // power down lights (TL1963) only
+* case 1004:     // show battery level and associated values
+* case 1005:     // print all calibration data
+* case 1006*:     // add calibration values for tcs light sensor to actual PAR values     
+* case 1007:     // view device info
+* case 1008*:     // add calibration values for offset  
+* case 1011**:     // add calibration values for the lights     
+* case 1012**:     // add factor calibration values for of lights    
+* case 1013:     // view and set device info      
+* case 1014**:     // add calibration values for the baseline  
+* case 1015**:     // add calibration values for the spad blanks
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
@@ -43,6 +50,9 @@ http://www.pjrc.com/teensy/td_download.html
 * 101 - light detector testing (press any key to exit after entering))");
 * 105 - light detector testing RAW SIGNAL (press any key to exit after entering))");
 * 102 - CO2 testing (press any key to exit after entering))");
+
+*requires new menu items in chrome app
+**requires wizard with new protocols and macros to generate calibration values
 
 FINAL NOTE: Teensy 3.1 sometimes has Serial connection problems in Windows.  If you are using windows and you cannot get the teensy to appear on list of serial devices in Arduino or you keep losing the connection, try unplugging the device, waiting at least 5 seconds, then power the device on with power button, plug the usb back in.  Hopefully that works.  Otherwise, you could try switching USB locations or sometimes the cables themselves are bad.
 
