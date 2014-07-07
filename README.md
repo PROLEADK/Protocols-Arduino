@@ -14,7 +14,7 @@ http://arduino.cc/en/Main/Software.
 http://www.pjrc.com/teensy/td_download.html
 (NOTE: installing teensyduino in Linux is a little trickier - make sure to follow the directions completely!)
 
-3. Open additional libraries zip file (https://github.com/Photosynq/Protocols-Arduino/blob/master/additional%20libraries.zip?raw=true) for required libraries.  Unzip the files into the 'libraries' folder located in your arduino install location.  Some modifications have been made to these libraries, so you must REPLACE any existing libraries of the same name if you have them.  I would suggest saving the old versions of these before replacing, as other programs may not work after the replace.
+3. Open additional libraries zip file (https://github.com/Photosynq/Protocols-Arduino/blob/master/additional%20libraries.zip?raw=true) for required libraries.  Unzip the files into the 'libraries' folder located in your arduino install location (in windows that's the c drive NOT in the my documents folder).  Some modifications have been made to these libraries, so you must REPLACE any existing libraries of the same name if you have them.  I would suggest saving the old versions of these before replacing, as other programs may not work after the replace.
 
 4. You should now be able to plug your Photosynq device into a computer using a standard micro USB to USB cable.  
 
