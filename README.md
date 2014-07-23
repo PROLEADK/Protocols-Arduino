@@ -1,9 +1,9 @@
 Protocols-Arduino
 =================
 
-***Most Current Protocol File: Arduino\_Combined\_28***
+***Most Current Protocol File: Arduino\_Combined\_29***
 
-This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON, parses the JSON and inteprets what to do (flash lights, measure CO2, etc.), takes the measurement as specified, then sends back the data also as a JSON.
+This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON (the "Protocol JSON"), parses the JSON and inteprets what to do (flash lights, measure CO2, etc.), takes the measurement as specified, then sends back the data also as a JSON (the "Data JSON").
 
 ***INSTALLING ARDUINO IDE, TEENSYDUINO AND APPROPRIATE LIBRARIES TO CONTRIBUTE/FORK PROTOCOLS-ARDUINO***
 
@@ -50,6 +50,9 @@ http://www.pjrc.com/teensy/td_download.html
 * 101 - light detector testing (press any key to exit after entering))");
 * 105 - light detector testing RAW SIGNAL (press any key to exit after entering))");
 * 102 - CO2 testing (press any key to exit after entering))");
+* 103 - relative humidity (press any key to exit after entering))");
+* 104 - temperature (press any key to exit after entering))");
+* 106 - contactless temperature testing (press any key to exit after entering - EXPERIMENTAL not implemented yet))");
 
 *requires new menu items in chrome app
 **requires wizard with new protocols and macros to generate calibration values
