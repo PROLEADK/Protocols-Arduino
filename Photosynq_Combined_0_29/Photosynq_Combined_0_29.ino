@@ -1,17 +1,14 @@
 /////////////////////CHANGE LOG/////////////////////
 /*
-
-Most recent updates (24):
-- added bluetooth reprogramming
-- added light_tests_all at 100+
-
-Most recent updates (25):{
-- adding fixed offset due to detector 
-- added 1009+ which allows user to save the conversion factor from tcs to actinic light
-- added 99+ which copies incoming tcs value and converts it to actinic value
-- added 98+ which allows user to enter a dac value for the actinic, and sets actinic dac to that value
-- added calibrations for each light, so you can convert the DAC value to uE... in the long run this will be helpful so users can know for their measuring lights, actinic, etc.
-  what the actual uE levels are, and they can identify when the LEDs themselves have changed.
+Most recent updates (29):{
+- cleaned up calling and printing calibrations, made simplifying print function
+- added other1 and other2 calibration save locations for user defined information
+- now you can 'get' calibrations by calling them in the protocol JSON - this info is then used in the macro to apply baselines or whatever, this includes:
+  - get_ir_baseline
+  - get_tcs_cal
+  - get_lights_cal
+  - get_blank_cal
+  - get_other_cal
 
 Most recent updates (28):{
 - prevents data from measurement light '0' from being saved - this allows users to have long pauses in their scripts if necessary without overloading the data output
@@ -131,6 +128,8 @@ For more details on hardware, apps, and other related software, go to https://gi
 //#include <stdlib.h>
 #include <SoftwareSerial.h>
 //#include <algorithm>
+#include "EEPROMAnything.h"
+
 
 //////////////////////DEVICE ID FIRMWARE VERSION////////////////////////
 float device_id = 0;
@@ -159,14 +158,17 @@ float firmware_version = 0;
 int _meas_light;															 // measuring light to be used during the interrupt
 int serial_buffer_size = 5000;                                        // max size of the incoming jsons
 int max_jsons = 15;                                                   // max number of protocols per measurement
-int all_pins [13] = {0,15,16,11,12,2,20,14,10,34,35,36,37};
-float calibration_slope [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_yint [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_slope_factory [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_yint_factory [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_baseline_slope_850 [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_baseline_slope_605 [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
-float calibration_spad_blank [13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+float all_pins [26] = {15,16,11,12,2,20,14,10,34,35,36,37,38,3,4,9,24,25,26,27,28,29,30,31,32,33};
+float calibration_slope [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_yint [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_slope_factory [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_yint_factory [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_baseline_slope [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_baseline_yint [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_blank1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_blank2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_other1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_other2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int averages = 1;
 int pwr_off_state = 0;
 int pwr_off_lights_state = 0;
@@ -184,8 +186,8 @@ int analogresolutionvalue;
 IntervalTimer timer0, timer1, timer2;
 volatile long data1 = 0;
 int act_background_light = 13;
-double light_y_intercept = 0;
-double light_slope = 3;
+float light_y_intercept = 0;
+float light_slope = 3;
 float offset_34 = 0;                                                          // create detector offset variables
 float offset_35 = 0;
 float slope_34 = 0;
@@ -369,6 +371,60 @@ void batt_level() {
   Serial1.println();
 }
 
+void get_calibration(float slope[], float yint[],float _slope, float _yint, JsonArray cal,String name) {
+  if (cal.getLong(0) > 0) {                                                          // if get_ir_baseline is true, then...
+    Serial.print("\"");
+    Serial.print(name);
+    Serial.print("\": [");
+    Serial1.print("\"");
+    Serial1.print(name);
+    Serial1.print("\": [");
+    for (int z = 0;z<cal.getLength();z++) {                                          // check each pins in the get_ir_baseline array, and for each pin...
+      Serial.print("[");
+      Serial.print(cal.getLong(z));                                                  // print the pin name
+      Serial.print(","); 
+      Serial1.print("[");
+      Serial1.print(cal.getLong(z));                                                  // print the pin name
+      Serial1.print(","); 
+      for (int i = 0;i<sizeof(all_pins)/sizeof(int);i++) {                          // look through available pins, pull out the baseline slope and yint associated with requested pin
+        if (all_pins[i] == cal.getLong(z)) {
+          if (_slope == 0) {                                                        // if this is an array, then print this way...
+            Serial.print(slope[i]);
+            Serial1.print(slope[i]);
+            if (yint [0] != 0) {                                                        
+              Serial.print(",");
+              Serial.print(yint[i]);                                                // ignore second value if it's 0
+              Serial1.print(",");
+              Serial1.print(yint[i]);                                                // ignore second value if it's 0
+            }
+          }
+          else if (_slope != 0) {                                                       // if it's just a single value, then print this way...
+            Serial.print(_slope);
+            Serial1.print(_slope);
+            if (yint [0] != 0) {
+              Serial.print(",");
+              Serial.print(_yint);                                                  // ignore second value if it's 0
+              Serial1.print(",");
+              Serial1.print(_yint);                                                  // ignore second value if it's 0
+            }
+          }
+          Serial.print("]");
+          Serial1.print("]");
+          goto cal_end;                                                                            // bail if you found your pin
+        }
+      }
+      cal_end:
+      delay(1);
+      if (z != cal.getLength()-1) {                                                  // add a comma if it's not the last value
+          Serial.print(",");
+          Serial1.print(",");
+      }
+    }
+  Serial.print("],");
+  Serial1.print("],");
+  }
+}
+
 //////////////////////// MAIN LOOP /////////////////////////
 void loop() {
   
@@ -400,7 +456,7 @@ void loop() {
   char w;
   char* name;
   JsonHashTable hashTable;
-  JsonParser<400> root;
+  JsonParser<600> root;
   int number_of_protocols = 0;                                                      // reset number of protocols
   int end_flag = 0;
   int which_serial = 0;
@@ -474,30 +530,45 @@ void loop() {
           Serial1.read();    
           calibrate_offset();
           break;
-          case 1011:                                                                    // calibrate the lights
+          case 1011:                                                                    // calibrate the lights (eeprom 60 - 300)
           Serial.read();
           Serial1.read();    
-          add_calibration(350);
+          add_calibration(60);
           break;
-          case 1012:                                                                    // factory calibration of lights
+          case 1012:                                                                    // factory calibration of lights (eeprom 300 - 540)
           Serial.read();
           Serial1.read();    
-          add_calibration(750);
+          add_calibration(300);
           break;
           case 1013:                                                                    // view and set device info      
           Serial.read();
           Serial1.read();    
           set_device_info(1);                                                                                                            
           break;
-          case 1014:                                                                    // calibrate the baseline 
+          case 1014:                                                                    // calibrate the baseline  (eeprom 540 - 880) 
           Serial.read();  
           Serial1.read();    
-          add_calibration(1150);
+          add_calibration(540);
           break;
-          case 1015:                                                                   // calibrate the spad blanks
+          case 1015:                                                                   // calibrate the spad blanks  (eeprom 880 - 1120)
           Serial.read();  
           Serial1.read();    
-          add_calibration(1550);
+          add_calibration(880);
+          break;
+          case 1016:                                                                   // calibrate the other user defined calibrations  (eeprom 1120 - 1360)
+          Serial.read();  
+          Serial1.read();    
+          add_calibration(1120);
+          break;
+          case 1017:                                                                   // reset all saved EEPROM values to zero
+          Serial.read();  
+          Serial1.read();    
+          reset_all(0);
+          break;
+          case 1018:                                                                   // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
+          Serial.read();  
+          Serial1.read();    
+          reset_all(1);
           break;
        }
     }
@@ -610,9 +681,7 @@ void loop() {
 
       int protocols = 1;
       for (int u = 0;u<protocols;u++) {                                                        // the number of times to repeat the current protocol
-        
-        int baseline_apply =      hashTable.getLong("baseline_get");                           // indicates to the chrome app to apply a baseline to this sample, causes the baseline calibration values to display
-  //      String protocol_name =    hashTable.getString("protocol_name");                      // used only for calibration routines ("cal_true" = 1 or = 2)
+        String protocol_note =    hashTable.getString("protocol_note");                      // used only for calibration routines ("cal_true" = 1 or = 2)
         String protocol_id =      hashTable.getString("protocol_id");                          // used to determine what macro to apply
         int analog_averages =     hashTable.getLong("analog_averages");                          // # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
         if (analog_averages == 0) {                                                              // if averages don't exist, set it to 1 automatically.
@@ -641,8 +710,14 @@ void loop() {
         int pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
         int pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
         int offset_off =          hashTable.getLong("offset_off");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
+        int get_offset =          hashTable.getLong("get_offset");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
   // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
-        JsonArray pulses =        hashTable.getArray("pulses");                                  // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
+        JsonArray get_ir_baseline=hashTable.getArray("get_ir_baseline");                        // requests the ir_baseline information from the device for the specified pins
+        JsonArray get_tcs_cal =   hashTable.getArray("get_tcs_cal");                            // requests the get_tcs_cal information from the device for the specified pins
+        JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // requests get_lights_cal information from the device for the specified pins
+        JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // requests the get_blank_cal information from the device for the specified pins
+        JsonArray get_other_cal =   hashTable.getArray("get_other_cal");                        // requests the get_other_cal information from the device for the specified pins
+        JsonArray pulses =        hashTable.getArray("pulses");                                 // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
         JsonArray act1_lights =   hashTable.getArray("act1_lights");
         JsonArray act2_lights =   hashTable.getArray("act2_lights");
         JsonArray alt1_lights =   hashTable.getArray("alt1_lights");
@@ -706,53 +781,44 @@ void loop() {
         Serial1.print("{\"protocol_id\": \"");
         Serial.print(protocol_id);
         Serial1.print(protocol_id);
-        Serial.print("\"");
-        Serial1.print("\"");
-        if (baseline_apply == 1) {                                                                  // print baseline calibrations values if requested.
-          Serial.print(",\"all_pins\": [");
-          Serial1.print(",\"all_pins\": [");
-          for (int i=0;i<sizeof(all_pins)/sizeof(float);i++) {
-            Serial.print(i);
-            if (i != sizeof(all_pins)/sizeof(float)-1) {
-              Serial.print(",");
-            }
-          }
-          Serial.print(",\"calibration_baseline_slope_850\": [");
-          Serial1.print(",\"calibration_baseline_slope_850\": [");
-          for (int i=0;i<sizeof(calibration_baseline_slope_850)/sizeof(float);i++) {
-            Serial.print(i);
-            if (i != sizeof(calibration_baseline_slope_850)/sizeof(float)-1) {
-              Serial.print(",");
-            }
-          }
-          Serial.print("],\"calibration_baseline_slope_605\": [");
-          Serial1.print("],\"calibration_baseline_slope_605\": [");
-          for (int i=0;i<sizeof(calibration_baseline_slope_605)/sizeof(float);i++) {
-            Serial.print(i);
-            if (i != sizeof(calibration_baseline_slope_605)/sizeof(float)-1) {
-              Serial.print(",");
-            }
-          }        
-        }
-        Serial.print(",\"calibration_spad_blank\": [");
-        Serial1.print(",\"calibration_spad_blank\": [");
-        for (int i=0;i<sizeof(calibration_spad_blank)/sizeof(float);i++) {
-          Serial.print(i);
-          if (i != sizeof(calibration_spad_blank)/sizeof(float)-1) {
-            Serial.print(",");
-          }
-        }
-        Serial.print("],");
-        Serial1.print("],");
+        Serial.print("\",");
+        Serial1.print("\",");
         
-        Serial1.print("\"averages\": "); 
-        Serial.print("\"averages\": "); 
-        Serial1.print(averages);  
-        Serial.print(averages); 
-        Serial1.print(","); 
-        Serial.print(","); 
+        if (get_offset == 1) {
+          print_offset(1);
+        }
         
-        print_sensor_calibration(1);                                               // print sensor calibration data
+        if (protocol_note != "") {
+          Serial.print("\"protocol_note\": \"");
+          Serial1.print("\"protocol_note\": \"");
+          Serial.print(protocol_note);
+          Serial1.print(protocol_note);
+          Serial.print("\",");
+          Serial1.print("\",");
+          }
+/*
+x get_ir_baseline - call a pin, get slope and yint
+x get_light_cal - call a pin, get slope and y int
+x get_blank_cal - get blank value for pin x
+get_tcs_cal - get slope and yint for tcs
+get_all - print all calibration data (see offsets, etc.)
+*/
+        get_calibration(calibration_baseline_slope,calibration_baseline_yint,0,0,get_ir_baseline ,"get_ir_baseline");
+        get_calibration(calibration_slope,calibration_yint,0,0,get_lights_cal ,"get_lights_cal");
+        get_calibration(calibration_blank1,calibration_blank2,0,0,get_blank_cal,"get_blank_cal");
+        get_calibration(calibration_other1,calibration_other2,0,0,get_other_cal,"get_other_cal");
+        get_calibration(0,0,light_slope,light_y_intercept,get_tcs_cal,"get_tcs_cal");
+        
+        if (averages > 1) {      
+          Serial1.print("\"averages\": "); 
+          Serial.print("\"averages\": "); 
+          Serial1.print(averages);  
+          Serial.print(averages); 
+          Serial1.print(","); 
+          Serial.print(","); 
+        }
+
+//        print_sensor_calibration(1);                                               // print sensor calibration data
   
         // this should be an array, so I can reset it all......
         relative_humidity_average = 0;                                                                    // reset all of the environmental variables
@@ -1722,25 +1788,6 @@ int Light_Intensity(int var1) {
   }
 }
 
-void save_eeprom_dbl(double saved_val, int loc) {                                                        // save the calibration value to the EEPROM, and print the value to USB and bluetooth Serial
-  char str [10] = {0};
-  dtostrf(saved_val,10,10,str);
-  for (int i=0;i<10;i++) {
-    EEPROM.write(loc+i,str[i]);
-  }
-}
-
-float call_eeprom_dbl(int loc) {                                                                       // call calibration values from the EEPROM, and print the values to USB Serial only
-  char str [10] = {0};
-  float called_val;
-  for (int i=0;i<10;i++) {
-    str[i] = EEPROM.read(loc+i);
-  }
-  String string = (String) str;
-  called_val = atof(string.c_str());  
-  return called_val;
-}  
-
 void print_sensor_calibration(int _open) {
   if (_open = 0) {
     Serial.print("{");
@@ -1924,121 +1971,113 @@ int uE_to_intensity(int _pin, int _uE) {
   return _intensity;
 }
 
-void save_calibration_slope (int _pin,float _slope_val,int location) {
-  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
-    if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-        save_eeprom_dbl(_slope_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
-    }
-  }
-}
-
-void save_calibration_yint (int _pin,float _yint_val,int location) {
-  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
-    if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-        save_eeprom_dbl(_yint_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
-    }
-  }
-}
-
 //350 - 1150 - light calibrations
 //1150 - 1550 - baseline
 //1550 - 1750 - spad blanks
+//1750 - 2150 - other additional user defined calibrations
+
+void print_cal(String name, float array[],int last) {                                                    // little function to clean up printing calibration values
+  Serial.print("\"");
+  Serial.print(name);
+  Serial.print("\":[");
+  Serial1.print("\"");
+  Serial1.print(name);
+  Serial1.print("\":[");
+  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
+    Serial.print(array[i]);
+    Serial1.print(array[i]);
+    if (i != sizeof(all_pins)/sizeof(int)-1) {        
+      Serial.print(",");    
+      Serial1.print(",");    
+    }
+  }
+  Serial.print("]");    
+  Serial1.print("]");    
+  if (last != 1) {                                                                                        // if it's not the last one, then add comma.  otherwise, add curly.
+    Serial.println(",");    
+    Serial1.println(",");    
+  }
+  else { 
+    Serial.println("}");
+    Serial.println("");
+    Serial1.println("}");
+    Serial1.println("");
+  }
+}
+
+void reset_all(int which) {
+  if (which == 0) {
+    int clean [1360] = {};
+    EEPROM_writeAnything(0,clean);
+  }
+  else {
+    int clean [1300] = {};
+    EEPROM_writeAnything(60,clean);                                                      // only reset the arrays, leave other calibrations
+  }  
+}
 
 void call_print_calibration (int _print) {
-    tmp006_cal_S = call_eeprom_dbl(240);                                                             // call contactless temp calibration
-  
-    light_slope = call_eeprom_dbl(250);                                                              // call conversion from tcs raw light values to uE
-    light_y_intercept = call_eeprom_dbl(260);  
-  
-    device_id = call_eeprom_dbl(270);
-    firmware_version = call_eeprom_dbl(280);
-    manufacture_date = call_eeprom_dbl(290);
-  
-    slope_34 = call_eeprom_dbl(300);                                                                 // call saved calibration inforamtion for detector offsets pin 34 (A10) infrared and 35 (A11) visible
-    yintercept_34 = call_eeprom_dbl(310);
-    slope_35 = call_eeprom_dbl(320);
-    yintercept_35 = call_eeprom_dbl(330);
+     
+  EEPROM_readAnything(0,tmp006_cal_S);
+  EEPROM_readAnything(4,light_slope);
+  EEPROM_readAnything(8,light_y_intercept);
+  EEPROM_readAnything(12,device_id);
+  EEPROM_readAnything(16,firmware_version);
+  EEPROM_readAnything(20,manufacture_date);
+  EEPROM_readAnything(24,slope_34);
+  EEPROM_readAnything(28,yintercept_34);
+  EEPROM_readAnything(32,slope_35);
+  EEPROM_readAnything(36,yintercept_35);
+  EEPROM_readAnything(60,calibration_slope);
+  EEPROM_readAnything(180,calibration_yint);
+  EEPROM_readAnything(300,calibration_slope_factory);
+  EEPROM_readAnything(420,calibration_yint_factory);
+  EEPROM_readAnything(540,calibration_baseline_slope);
+  EEPROM_readAnything(660,calibration_baseline_yint);
+  EEPROM_readAnything(880,calibration_blank1);
+  EEPROM_readAnything(1000,calibration_blank2);
+  EEPROM_readAnything(1120,calibration_other1);
+  EEPROM_readAnything(1240,calibration_other2);
 
-  for (int i=0;i<(sizeof(all_pins)/sizeof(int));i++) {                                                      // recall the calibration arrays
-    calibration_slope [i] = call_eeprom_dbl(350+i*10);
-    calibration_yint [i] = call_eeprom_dbl(550+i*10);
-    calibration_slope_factory [i] = call_eeprom_dbl(750+i*10);
-    calibration_yint_factory [i] = call_eeprom_dbl(950+i*10);
-    calibration_baseline_slope_850 [i] = call_eeprom_dbl(1150+i*10);
-    calibration_baseline_slope_605 [i] = call_eeprom_dbl(1350+i*10);
-    calibration_spad_blank [i] = call_eeprom_dbl(1550+i*10);
-  }
-  if (_print == 1) {
+  if (_print == 1) {                                                                                      // if this should be printed to COM port --
     Serial.print("{");
+    Serial1.print("{");
     print_offset(1);
     Serial.println();
+    Serial1.println();
     print_sensor_calibration(1);
     Serial.println();
-    Serial.print("\"all_pins\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins and print
-      Serial.print(all_pins[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
+    Serial1.println();
+
+    print_cal("all_pins", all_pins,0);
+    print_cal("calibration_slope", calibration_slope,0);
+    print_cal("calibration_yint", calibration_yint ,0);
+    print_cal("calibration_slope_factory", calibration_slope_factory ,0);
+    print_cal("calibration_yint_factory", calibration_yint_factory ,0);
+    print_cal("calibration_baseline_slope", calibration_baseline_slope ,0);
+    print_cal("calibration_baseline_yint", calibration_baseline_yint ,0);
+    print_cal("calibration_blank1", calibration_blank1 ,0);
+    print_cal("calibration_blank2", calibration_blank2 ,0);
+    print_cal("calibration_other1", calibration_other1 ,0);
+    print_cal("calibration_other2", calibration_other2 ,1);
+  }
+}
+
+void save_calibration_slope (int _pin,float _slope_val,int location) {
+  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
+    if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
+       EEPROM_writeAnything(location+i*4,_slope_val);
+//        save_eeprom_dbl(_slope_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
     }
-    Serial.println("],");
-    Serial.print("\"calibration_slope\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_slope[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
+  }
+}
+
+float save_calibration_yint (int _pin,float _yint_val,int location) {
+  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
+    if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
+       EEPROM_writeAnything(location+i*4,_yint_val);
+//        save_eeprom_dbl(_yint_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
     }
-    Serial.println("],");
-    Serial.print("\"calibration_yint\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_yint[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("],");
-    Serial.print("\"calibration_slope_factory\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_slope_factory[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("],");
-    Serial.print("\"calibration_yint_factory\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_yint_factory[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("],");
-    Serial.print("\"calibration_baseline_slope_850\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_baseline_slope_850[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("],");
-    Serial.print("\"calibration_baseline_slope_605\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_baseline_slope_605[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("],");
-    Serial.print("\"calibration_spad_blank\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(calibration_spad_blank[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-      }
-    }
-    Serial.println("]}");
-    Serial.println("");
   }
 }
 
@@ -2050,22 +2089,24 @@ void add_calibration (int location) {                                           
   while (1) {
     pin = user_enter_dbl(60000);                                                                      // define the pin to add a calibration value to
     Serial.println(pin);
+    Serial1.println(pin);
     if (pin == -1) {                                                                                    // if user enters -1, exit from this calibration
       goto final;
     }
     slope_val = user_enter_dbl(60000);                                                                  // now enter that calibration value
-    Serial.println(slope_val,4);
+    Serial.println(slope_val,6);
+    Serial1.println(slope_val,6);
     if (slope_val == -1) {
       goto final;
     }
     yint_val = user_enter_dbl(60000);                                                                  // now enter that calibration value
-    Serial.println(yint_val,4);
+    Serial.println(yint_val,6);
+    Serial1.println(yint_val,6);
     if (yint_val == -1) {
       goto final;
     }                                                                                            // THIS IS STUPID... not sure why but for some reason you have to split up the eeprom saves or they just won't work... at leats this works...
-
     save_calibration_slope(pin,slope_val,location);                                                      // save the value in the calibration string which corresponding pin index in all_pins
-    save_calibration_yint(pin,yint_val,location+200);                                                      // save the value in the calibration string which corresponding pin index in all_pins
+    save_calibration_yint(pin,yint_val,location+120);                                                      // save the value in the calibration string which corresponding pin index in all_pins
     skipit:
     delay(1);
   }
@@ -2127,28 +2168,28 @@ void calibrate_offset() {
 
   call_print_calibration(1);
 
-  float slope_34 = user_enter_dbl(60000);  
+  slope_34 = user_enter_dbl(60000);  
   Serial.print(slope_34,2);
   Serial1.print(slope_34,2);
-  save_eeprom_dbl(slope_34,300);                                                 
+  EEPROM_writeAnything(24,slope_34);
   serial_bt_flush();
 
-  float yintercept_34 = user_enter_dbl(60000);  
+  yintercept_34 = user_enter_dbl(60000);  
   Serial.print(yintercept_34,2);
   Serial1.print(yintercept_34,2);
-  save_eeprom_dbl(yintercept_34,310);                                                 
+  EEPROM_writeAnything(28,yintercept_34);
   serial_bt_flush();
 
-  float slope_35 = user_enter_dbl(60000);  
+  slope_35 = user_enter_dbl(60000);  
   Serial.print(slope_35,2);
   Serial1.print(slope_35,2);
-  save_eeprom_dbl(slope_35,320);                                                 
+  EEPROM_writeAnything(32,slope_35);
   serial_bt_flush();
 
-  float yintercept_35 = user_enter_dbl(60000);  
+  yintercept_35 = user_enter_dbl(60000);  
   Serial.print(yintercept_35,2);
   Serial1.print(yintercept_35,2);
-  save_eeprom_dbl(yintercept_35,330);                                                 
+  EEPROM_writeAnything(36,yintercept_35);
   serial_bt_flush();
   
   call_print_calibration(1);
@@ -2158,18 +2199,18 @@ void calibrate_light_sensor() {
 
     call_print_calibration(1);
 
-    double _light_slope = user_enter_dbl(60000);  
-    Serial.print(_light_slope,6);
-    Serial1.print(_light_slope,6);
-    save_eeprom_dbl(_light_slope,250);                                                 
+    light_slope = user_enter_dbl(60000);  
+    Serial.print(light_slope,6);
+    Serial1.print(light_slope,6);
+    EEPROM_writeAnything(4,light_slope);
     Serial.print("success");
     Serial1.print("success");
     serial_bt_flush();
 
-    double _light_y_intercept = user_enter_dbl(60000);  
-    Serial.print(_light_y_intercept,6);
-    Serial1.print(_light_y_intercept,6);
-    save_eeprom_dbl(_light_y_intercept,260);                                                   
+    light_y_intercept = user_enter_dbl(60000);  
+    Serial.print(light_y_intercept,6);
+    Serial1.print(light_y_intercept,6);
+    EEPROM_writeAnything(8,light_y_intercept);
     Serial.print("success\"");
     Serial1.print("success\"");
     serial_bt_flush();
@@ -2198,8 +2239,19 @@ float Contactless_Temperature(int var1) {
     Serial1.print(diet);
     Serial1.print(",");
 #endif
+    if (objt < -60 | objt > 1000) {                             // if the value is crazy probably indicating that there's no sensor installed
+      objt_average = -99;
+      objt = -99;
+      Serial.print("\"error\":\"no contactless temp sensor found\"");
+      Serial1.print("\"error\":\"no contactless temp sensor found\"");
+      Serial.print(",");
+      Serial1.print(",");
+      return objt;
+    }
+    else {
     objt_average += objt / averages;
     return objt;
+    }
   }
   /*
   else if (var1 == 3) {
@@ -2236,7 +2288,8 @@ float Contactless_Temperature(int var1) {
         tmp006_walk /= 5;
       }
     }
-    save_eeprom(tmp006_cal_S,240);
+    EEPROM_writeAnything(0,tmp006_cal_S);
+//    save_eeprom(tmp006_cal_S,240);
     Serial.println("Finished calibration - new values saved!");
   }
   */
@@ -2269,8 +2322,8 @@ void requestCo2(byte packet[],int timeout) {
     delay(50);
     end1 = millis();
     if (end1 - start1 > timeout) {
-      Serial.print("\"no co2 sensor found\"");
-      Serial1.print("\"no co2 sensor found\"");
+      Serial.print("\"error\":\"no co2 sensor found\"");
+      Serial1.print("\"error\":\"no co2 sensor found\"");
       Serial.print(",");
       Serial1.print(",");
       int error = 1;
@@ -2474,7 +2527,8 @@ void set_device_info(int _set) {
     if (device_id == -1) {
       goto device_end;
     }
-    save_eeprom_dbl(device_id,270);
+    EEPROM_writeAnything(12,device_id);
+//    save_eeprom_dbl(device_id,270);
 // please enter new firmware version (int or double) followed by '+'
     firmware_version = user_enter_dbl(60000);
     Serial.println(firmware_version);  
@@ -2482,7 +2536,8 @@ void set_device_info(int _set) {
     if (firmware_version == -1) {
       goto device_end;
     }
-    save_eeprom_dbl(firmware_version,280);
+    EEPROM_writeAnything(16,firmware_version);
+//    save_eeprom_dbl(firmware_version,280);
 /**/
 // please enter new date of manufacture (yyyymm) followed by '+'   
     manufacture_date = user_enter_dbl(60000);
@@ -2491,7 +2546,8 @@ void set_device_info(int _set) {
     if (manufacture_date == -1) {
       goto device_end;
     }
-    save_eeprom_dbl(manufacture_date,290);
+    EEPROM_writeAnything(20,manufacture_date);
+//    save_eeprom_dbl(manufacture_date,290);
     set_device_info(0);
   }
   delay(1);
