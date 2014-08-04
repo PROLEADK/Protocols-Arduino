@@ -1,9 +1,10 @@
 Protocols-Arduino
 =================
 
-***Most Current Protocol File: Arduino\_Combined\_29***
+***Current Stable Protocol File: Arduino\_Combined\_30***
+***Current Development Protocol File: Arduino\_Combined\_31_dev***
 
-This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON (the "Protocol JSON"), parses the JSON and inteprets what to do (flash lights, measure CO2, etc.), takes the measurement as specified, then sends back the data also as a JSON (the "Data JSON").
+This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON (the "Protocol JSON"), parses the JSON and inteprets what to do (flash lights, measure CO2, etc.) and takes the measurement as specified, then sends back the data also as a JSON (the "Data JSON").
 
 ***INSTALLING ARDUINO IDE, TEENSYDUINO AND APPROPRIATE LIBRARIES TO CONTRIBUTE/FORK PROTOCOLS-ARDUINO***
 
@@ -37,6 +38,16 @@ http://www.pjrc.com/teensy/td_download.html
 * case 1013:     // view and set device info      
 * case 1014**:     // add calibration values for the baseline  
 * case 1015**:     // add calibration values for the spad blanks
+* case 1016:     // user defined calibrations, set by specific lights/detectors
+* case 1017:     // reset all EEPROM values to zero
+* case 1018:     // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
+* case 1019**:     // add calibration values for spad factor
+* case 1020:     // add user defined calibration values (2)
+* case 1021:     // add user defined calibration values (2)
+* case 1022:     // add user defined calibration values (2)
+* case 1023:     // add user defined calibration values (2)
+* case 1024:     // add user defined calibration values (2)
+* case 1025:     // add user defined calibration values (2)
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
