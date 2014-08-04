@@ -1,5 +1,12 @@
 /////////////////////CHANGE LOG/////////////////////
 /*
+
+next to do: fix memory leak, added access to individual pins... add hard-coded save of firmware number
+
+Most recent updates (30):{
+- added userdef1 - userdef6 variables to be saved to EEPROM. Users can add 2 values per saved variable (saved as array)
+- added spad_factor used to calculate spad for multispeq spad values.
+  
 Most recent updates (29):{
 - cleaned up calling and printing calibrations, made simplifying print function
 - added other1 and other2 calibration save locations for user defined information
@@ -129,6 +136,7 @@ For more details on hardware, apps, and other related software, go to https://gi
 #include <SoftwareSerial.h>
 //#include <algorithm>
 #include "EEPROMAnything.h"
+#include <typeinfo>
 
 
 //////////////////////DEVICE ID FIRMWARE VERSION////////////////////////
@@ -169,6 +177,13 @@ float calibration_blank1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 float calibration_blank2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 float calibration_other1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 float calibration_other2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float spad_factor[2] = {};
+float userdef1[2] = {};
+float userdef2[2] = {};
+float userdef3[2] = {};
+float userdef4[2] = {};
+float userdef5[2] = {};
+float userdef6[2] = {};
 int averages = 1;
 int pwr_off_state = 0;
 int pwr_off_lights_state = 0;
@@ -570,6 +585,41 @@ void loop() {
           Serial1.read();    
           reset_all(1);
           break;
+          case 1019:                                                                   // save spad_factor value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(40);
+          break;
+          case 1020:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1360);
+          break;
+          case 1021:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1368);
+          break;
+          case 1022:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1376);
+          break;
+          case 1023:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1384);
+          break;
+          case 1024:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1392);
+          break;
+          case 1025:                                                                   // save user defined value to EEPROM
+          Serial.read();  
+          Serial1.read();    
+          add_userdef(1400);
+          break;
        }
     }
   }        
@@ -716,8 +766,15 @@ void loop() {
         JsonArray get_tcs_cal =   hashTable.getArray("get_tcs_cal");                            // requests the get_tcs_cal information from the device for the specified pins
         JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // requests get_lights_cal information from the device for the specified pins
         JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // requests the get_blank_cal information from the device for the specified pins
-        JsonArray get_other_cal =   hashTable.getArray("get_other_cal");                        // requests the get_other_cal information from the device for the specified pins
-        JsonArray pulses =        hashTable.getArray("pulses");                                 // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
+        JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // requests the get_other_cal information from the device for the specified pins
+        JsonArray get_spad_factor =  hashTable.getArray("get_spad_factor");                   // requests the spad_factor information from the device for the specified pins
+        JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // requests the get_userdef1 information from the device for the specified pins
+        JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // requests the get_userdef2 information from the device for the specified pins
+        JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // requests the get_userdef3 information from the device for the specified pins
+        JsonArray get_userdef4 =  hashTable.getArray("get_userdef4");                        // requests the get_userdef4 information from the device for the specified pins
+        JsonArray get_userdef5 =  hashTable.getArray("get_userdef5");                        // requests the get_userdef5 information from the device for the specified pins
+        JsonArray get_userdef6 =  hashTable.getArray("get_userdef6");                        // requests the get_userdef6 information from the device for the specified pins
+        JsonArray pulses =        hashTable.getArray("pulses");                                // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
         JsonArray act1_lights =   hashTable.getArray("act1_lights");
         JsonArray act2_lights =   hashTable.getArray("act2_lights");
         JsonArray alt1_lights =   hashTable.getArray("alt1_lights");
@@ -796,18 +853,19 @@ void loop() {
           Serial.print("\",");
           Serial1.print("\",");
           }
-/*
-x get_ir_baseline - call a pin, get slope and yint
-x get_light_cal - call a pin, get slope and y int
-x get_blank_cal - get blank value for pin x
-get_tcs_cal - get slope and yint for tcs
-get_all - print all calibration data (see offsets, etc.)
-*/
+          
         get_calibration(calibration_baseline_slope,calibration_baseline_yint,0,0,get_ir_baseline ,"get_ir_baseline");
         get_calibration(calibration_slope,calibration_yint,0,0,get_lights_cal ,"get_lights_cal");
         get_calibration(calibration_blank1,calibration_blank2,0,0,get_blank_cal,"get_blank_cal");
         get_calibration(calibration_other1,calibration_other2,0,0,get_other_cal,"get_other_cal");
         get_calibration(0,0,light_slope,light_y_intercept,get_tcs_cal,"get_tcs_cal");
+        get_calibration(0,0,spad_factor[0],spad_factor[1],get_spad_factor,"get_spad_factor");
+        get_calibration(0,0,userdef1[0],userdef1[1],get_userdef1,"get_userdef1");
+        get_calibration(0,0,userdef2[0],userdef2[1],get_userdef2,"get_userdef2");
+        get_calibration(0,0,userdef3[0],userdef3[1],get_userdef3,"get_userdef3");
+        get_calibration(0,0,userdef4[0],userdef4[1],get_userdef4,"get_userdef4");
+        get_calibration(0,0,userdef5[0],userdef5[1],get_userdef5,"get_userdef5");
+        get_calibration(0,0,userdef6[0],userdef6[1],get_userdef6,"get_userdef6");
         
         if (averages > 1) {      
           Serial1.print("\"averages\": "); 
@@ -1976,17 +2034,17 @@ int uE_to_intensity(int _pin, int _uE) {
 //1550 - 1750 - spad blanks
 //1750 - 2150 - other additional user defined calibrations
 
-void print_cal(String name, float array[],int last) {                                                    // little function to clean up printing calibration values
+void print_cal_userdef(String name, float array[],int last) {                                                    // little function to clean up printing calibration values
   Serial.print("\"");
   Serial.print(name);
   Serial.print("\":[");
   Serial1.print("\"");
   Serial1.print(name);
   Serial1.print("\":[");
-  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
+  for (int i=0;i<sizeof(userdef1)/sizeof(float);i++) {                                                      // recall the calibration arrays
     Serial.print(array[i]);
     Serial1.print(array[i]);
-    if (i != sizeof(all_pins)/sizeof(int)-1) {        
+    if (i != sizeof(userdef1)/sizeof(float)-1) {        
       Serial.print(",");    
       Serial1.print(",");    
     }
@@ -2005,13 +2063,42 @@ void print_cal(String name, float array[],int last) {                           
   }
 }
 
+void print_cal(String name, float array[],int last) {                                                    // little function to clean up printing calibration values
+  Serial.print("\"");
+  Serial.print(name);
+  Serial.print("\":[");
+  Serial1.print("\"");
+  Serial1.print(name);
+  Serial1.print("\":[");
+    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
+      Serial.print(array[i]);
+      Serial1.print(array[i]);
+      if (i != sizeof(all_pins)/sizeof(int)-1) {        
+        Serial.print(",");    
+        Serial1.print(",");    
+      }
+  }
+  Serial.print("]");    
+  Serial1.print("]");    
+  if (last != 1) {                                                                                        // if it's not the last one, then add comma.  otherwise, add curly.
+    Serial.println(",");    
+    Serial1.println(",");    
+  }
+  else { 
+    Serial.println("}");
+    Serial.println("");
+    Serial1.println("}");
+    Serial1.println("");
+  }
+}
+
 void reset_all(int which) {
   if (which == 0) {
-    int clean [1360] = {};
+    int clean [1408] = {};
     EEPROM_writeAnything(0,clean);
   }
   else {
-    int clean [1300] = {};
+    int clean [1348] = {};
     EEPROM_writeAnything(60,clean);                                                      // only reset the arrays, leave other calibrations
   }  
 }
@@ -2028,6 +2115,7 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(28,yintercept_34);
   EEPROM_readAnything(32,slope_35);
   EEPROM_readAnything(36,yintercept_35);
+  EEPROM_readAnything(40,spad_factor);
   EEPROM_readAnything(60,calibration_slope);
   EEPROM_readAnything(180,calibration_yint);
   EEPROM_readAnything(300,calibration_slope_factory);
@@ -2038,7 +2126,13 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(1000,calibration_blank2);
   EEPROM_readAnything(1120,calibration_other1);
   EEPROM_readAnything(1240,calibration_other2);
-
+  EEPROM_readAnything(1360,userdef1);
+  EEPROM_readAnything(1368,userdef2);
+  EEPROM_readAnything(1376,userdef3);
+  EEPROM_readAnything(1384,userdef4);
+  EEPROM_readAnything(1392,userdef5);
+  EEPROM_readAnything(1400,userdef6);
+  
   if (_print == 1) {                                                                                      // if this should be printed to COM port --
     Serial.print("{");
     Serial1.print("{");
@@ -2059,7 +2153,14 @@ void call_print_calibration (int _print) {
     print_cal("calibration_blank1", calibration_blank1 ,0);
     print_cal("calibration_blank2", calibration_blank2 ,0);
     print_cal("calibration_other1", calibration_other1 ,0);
-    print_cal("calibration_other2", calibration_other2 ,1);
+    print_cal("calibration_other2", calibration_other2 ,0);
+    print_cal_userdef("spad_factor", spad_factor ,0);
+    print_cal_userdef("userdef1", userdef1 ,0);
+    print_cal_userdef("userdef2", userdef2 ,0);
+    print_cal_userdef("userdef3", userdef3 ,0);
+    print_cal_userdef("userdef4", userdef4 ,0);
+    print_cal_userdef("userdef5", userdef5 ,0);
+    print_cal_userdef("userdef6", userdef6 ,1);
   }
 }
 
@@ -2162,6 +2263,19 @@ void print_offset(int _open) {
     Serial.println("}");
     Serial1.println("}");
   }
+}
+
+void add_userdef(int location) {
+
+  call_print_calibration(1);
+  for (int i=0;i<2;i++) {                        // loop twice for 2 values per userdef
+    float userdef = user_enter_dbl(60000);  
+    Serial.print(userdef,2);
+    Serial1.print(userdef,2);
+    EEPROM_writeAnything(location+i*4,userdef);
+    serial_bt_flush();  
+  }  
+  call_print_calibration(1);
 }
 
 void calibrate_offset() {
