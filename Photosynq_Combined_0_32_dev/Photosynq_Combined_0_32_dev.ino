@@ -4,7 +4,7 @@
 /////////////////////CHANGE LOG/////////////////////
 /*
 
-next to do: fix memory leak, added access to individual pins.
+next to do: fix memory leak, added access to individual pins... add hard-coded save of firmware number
 
 Most recent updates (31):
 - fixed bug that act2, alt1, and alt2 didn't work
@@ -1032,9 +1032,6 @@ void loop() {
   
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
               if (pulse == 0) {
-                Serial.println("I'm here!");
-                Serial.println("I'm here!");
-                Serial.println("I'm here!");
                 _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
                 _act1_light = act1_lights.getLong(cycle);
                 act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
