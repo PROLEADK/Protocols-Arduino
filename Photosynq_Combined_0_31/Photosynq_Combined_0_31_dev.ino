@@ -1,13 +1,20 @@
+// FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
+#define FIRMWARE_VERSION .31
+
 /////////////////////CHANGE LOG/////////////////////
 /*
 
 next to do: fix memory leak, added access to individual pins... add hard-coded save of firmware number
 
-Most recent updates (30):{
+Most recent updates (31):
+- fixed bug that act2, alt1, and alt2 didn't work
+- added auto-update firmware version on firmware flash (no longer set in 1013+)
+
+Most recent updates (30):
 - added userdef1 - userdef6 variables to be saved to EEPROM. Users can add 2 values per saved variable (saved as array)
 - added spad_factor used to calculate spad for multispeq spad values.
   
-Most recent updates (29):{
+Most recent updates (29):
 - cleaned up calling and printing calibrations, made simplifying print function
 - added other1 and other2 calibration save locations for user defined information
 - now you can 'get' calibrations by calling them in the protocol JSON - this info is then used in the macro to apply baselines or whatever, this includes:
@@ -16,32 +23,6 @@ Most recent updates (29):{
   - get_lights_cal
   - get_blank_cal
   - get_other_cal
-
-Most recent updates (28):{
-- prevents data from measurement light '0' from being saved - this allows users to have long pauses in their scripts if necessary without overloading the data output
-- added a 'protocols' option to the macro, which works the same as 'measurements' but repeats the same protocol instead of repeating the measurement (this includes any environmental measurements)
-- removed all of the previous 'baseline' caliculations and sums which was in previous versions, now users only input the critical values (slope and y int) to save on the device
-- deleted some old/unusued functions like save_eeprom and replaced with new ones
-- cleaned up old comments, removed unnecessary global variables
-- now the output from any codes entered (like 1001) SHOULD be a JSON.  In addition, there are now separate codes to print data versus calibration the data (no more 'you have 1 second to enter 1+' stuff
-- changed / added the menu items - they are now:
-  case 1000:     // print "MultispeQ Ready" to USB and Bluetooth
-  case 1001:     // power off completely (if USB connected, only batteries
-  case 1002:     // configure bluetooth name and baud rate
-  case 1003:     // power down lights (TL1963) only
-  case 1004:     // show battery level and associated values
-  case 1005:     // print all calibration data
-  *case 1006:     // add calibration values for tcs light sensor to actual PAR values     
-  case 1007:     // view device info
-  *case 1008:     // add calibration values for offset  
-  **case 1011:     // add calibration values for the lights     
-  **case 1012:     // add factor calibration values for of lights    
-  case 1013:     // view and set device info      
-  **case 1014:     // add calibration values for the baseline  
-  **case 1015:     // add calibration values for the spad blanks
-
-* requires new menu items in chrome app
-** requires wizard with new protocols and macros to generate calibration values
 
 /////////////////////LICENSE/////////////////////
  GPLv3 license
@@ -132,17 +113,13 @@ For more details on hardware, apps, and other related software, go to https://gi
 #include <TCS3471.h>
 #include "mcp4728.h"
 #include <i2c_t3.h>
-//#include <stdlib.h>
 #include <SoftwareSerial.h>
-//#include <algorithm>
 #include "EEPROMAnything.h"
 #include <typeinfo>
-
 
 //////////////////////DEVICE ID FIRMWARE VERSION////////////////////////
 float device_id = 0;
 float manufacture_date = 0;
-float firmware_version = 0;
 
 //////////////////////PIN DEFINITIONS AND TEENSY SETTINGS////////////////////////
 #define ANALOGRESOLUTION 16
@@ -304,10 +281,12 @@ void setup() {
   analogWriteFrequency(5, 187500);
   pinMode(DAC_ON, OUTPUT);
   digitalWriteFast(DAC_ON, HIGH);                                               // pull high to power off, pull low to keep power.
-}
 
-int print_success() {
-  Serial.println("Success you win!");
+  float tmp = 0;
+  EEPROM_readAnything(16,tmp);
+  if (tmp != FIRMWARE_VERSION) {                    // if the current firmware version isn't what's saved in EEPROM memory, then...
+    EEPROM_writeAnything(16,(float) FIRMWARE_VERSION);                                  // save the current firmware version
+  }
 }
 
 void pwr_off() { 
@@ -699,8 +678,8 @@ void loop() {
   Serial.print(device_id,2);
   Serial1.print(",\"firmware_version\": \"");
   Serial.print(",\"firmware_version\": \"");
-  Serial1.print(firmware_version);
-  Serial.print(firmware_version);
+  Serial1.print(FIRMWARE_VERSION);
+  Serial.print(FIRMWARE_VERSION);
   Serial.print("\",\"sample\": [");
   Serial1.print("\",\"sample\": [");
 
@@ -1052,19 +1031,23 @@ void loop() {
             detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                                        // move to next detector
   
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
-              _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
-              _act1_light = act1_lights.getLong(cycle);
-              act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
-              _act2_light_prev = _act2_light;
-              _act2_light = act1_lights.getLong(cycle);
-              act2_on = calculate_intensity(_act2_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
-              _alt1_light_prev = _alt1_light;
-              _alt1_light = act1_lights.getLong(cycle);
-              alt1_on = calculate_intensity(_alt1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
-              _alt2_light_prev = _alt2_light;
-              _alt2_light = act1_lights.getLong(cycle);
-              alt2_on = calculate_intensity(_alt2_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
-              
+              if (pulse == 0) {
+                Serial.println("I'm here!");
+                Serial.println("I'm here!");
+                Serial.println("I'm here!");
+                _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
+                _act1_light = act1_lights.getLong(cycle);
+                act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
+                _act2_light_prev = _act2_light;
+                _act2_light = act2_lights.getLong(cycle);
+                act2_on = calculate_intensity(_act2_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
+                _alt1_light_prev = _alt1_light;
+                _alt1_light = alt1_lights.getLong(cycle);
+                alt1_on = calculate_intensity(_alt1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
+                _alt2_light_prev = _alt2_light;
+                _alt2_light = alt2_lights.getLong(cycle);
+                alt2_on = calculate_intensity(_alt2_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
+              }
               calculate_intensity(_meas_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);          // in addition, calculate the intensity of the current measuring light
               
               switch (_meas_light) {                                                                    // set the DAC intensity for the measuring light only...
@@ -2109,7 +2092,7 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(4,light_slope);
   EEPROM_readAnything(8,light_y_intercept);
   EEPROM_readAnything(12,device_id);
-  EEPROM_readAnything(16,firmware_version);
+  // location 16 - 20 is open!
   EEPROM_readAnything(20,manufacture_date);
   EEPROM_readAnything(24,slope_34);
   EEPROM_readAnything(28,yintercept_34);
@@ -2615,7 +2598,7 @@ void set_device_info(int _set) {
   Serial.print(device_id,2);
   Serial.println(",");
   Serial.print("\"firmware_version\": ");
-  Serial.print(firmware_version);
+  Serial.print(FIRMWARE_VERSION);
   Serial.println(",");
   Serial.print("\"manufacture_date\": ");
   Serial.print(manufacture_date);
@@ -2626,7 +2609,7 @@ void set_device_info(int _set) {
   Serial1.print(device_id,2);
   Serial1.println(",");
   Serial1.print("\"firmware_version\": ");
-  Serial1.print(firmware_version);
+  Serial1.print(FIRMWARE_VERSION);
   Serial1.println(",");
   Serial1.print("\"manufacture_date\": ");
   Serial1.print(manufacture_date);
@@ -2642,17 +2625,6 @@ void set_device_info(int _set) {
       goto device_end;
     }
     EEPROM_writeAnything(12,device_id);
-//    save_eeprom_dbl(device_id,270);
-// please enter new firmware version (int or double) followed by '+'
-    firmware_version = user_enter_dbl(60000);
-    Serial.println(firmware_version);  
-    Serial1.println(firmware_version);  
-    if (firmware_version == -1) {
-      goto device_end;
-    }
-    EEPROM_writeAnything(16,firmware_version);
-//    save_eeprom_dbl(firmware_version,280);
-/**/
 // please enter new date of manufacture (yyyymm) followed by '+'   
     manufacture_date = user_enter_dbl(60000);
     Serial.println(manufacture_date);  
@@ -2661,7 +2633,6 @@ void set_device_info(int _set) {
       goto device_end;
     }
     EEPROM_writeAnything(20,manufacture_date);
-//    save_eeprom_dbl(manufacture_date,290);
     set_device_info(0);
   }
   delay(1);
