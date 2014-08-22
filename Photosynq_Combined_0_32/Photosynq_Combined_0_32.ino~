@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .33
+#define FIRMWARE_VERSION .32
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -9,11 +9,6 @@ analogWrite(pin,0 - 4095)
 - + time
 digitalRead(pin)
 digitalWriteFast(pin,0-1 or HIGH LOW)
-
-Most recent updates (33):
-- finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
-- for analog_write, user can also set the frequency and length of the pwm signal.
-- add 1015+10+... all at once
 
 next to do:
 - added ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
@@ -25,8 +20,6 @@ Most recent updates (32):
 - fixed memory leak (added additional free(json) and free(data_raw_average) at end of void loop() )
 - NOTE - maximum # of saved (measuring light != 0) data points is 8000 - 10000 depending on the size of the protocol JSON (larger protocol JSON means less memory to save data).
 
-<<<<<<< HEAD
-=======
 Most recent updates (31):
 - fixed bug that act2, alt1, and alt2 didn't work
 - added auto-update firmware version on firmware flash (no longer set in 1013+)
@@ -45,7 +38,6 @@ Most recent updates (29):
   - get_blank_cal
   - get_other_cal
 
->>>>>>> 0f430226775dae1940449662b6532f442c54534a
 /////////////////////LICENSE/////////////////////
  GPLv3 license
  by Greg Austic
@@ -120,7 +112,11 @@ For more details on hardware, apps, and other related software, go to https://gi
  */
 
 //#define DEB0UG 1  // uncomment to add full debug features
+<<<<<<< HEAD
 //#define DEBUGSIMPLE 1  // uncomment to add partial debug features
+=======
+#define DEBUGSIMPLE 1  // uncomment to add partial debug features
+>>>>>>> 0f430226775dae1940449662b6532f442c54534a
 //#define DAC 1 // uncomment for boards which do not use DAC for light intensity control
 
 #include <Time.h>                                                             // enable real time clock library

@@ -10,14 +10,16 @@ analogWrite(pin,0 - 4095)
 digitalRead(pin)
 digitalWriteFast(pin,0-1 or HIGH LOW)
 
+<<<<<<< HEAD
 Most recent updates (33):
 - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
 - for analog_write, user can also set the frequency and length of the pwm signal.
 - add 1015+10+... all at once
-
+=======
 next to do:
 - added ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
 - for analog_write, user can also set the frequency and length of the pwm signal.
+>>>>>>> 0f430226775dae1940449662b6532f442c54534a
 
 Most recent updates (32):
 - added initial (beta) functionality for analog_read, analog_write, digital_read, and digital_write.
@@ -120,7 +122,11 @@ For more details on hardware, apps, and other related software, go to https://gi
  */
 
 //#define DEB0UG 1  // uncomment to add full debug features
+<<<<<<< HEAD
 //#define DEBUGSIMPLE 1  // uncomment to add partial debug features
+=======
+#define DEBUGSIMPLE 1  // uncomment to add partial debug features
+>>>>>>> 0f430226775dae1940449662b6532f442c54534a
 //#define DAC 1 // uncomment for boards which do not use DAC for light intensity control
 
 #include <Time.h>                                                             // enable real time clock library
