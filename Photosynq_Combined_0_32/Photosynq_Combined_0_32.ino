@@ -1,10 +1,24 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .31
+#define FIRMWARE_VERSION .32
 
 /////////////////////CHANGE LOG/////////////////////
 /*
 
-next to do: fix memory leak, added access to individual pins... add hard-coded save of firmware number
+analogRead(pin)
+analogWrite(pin,0 - 4095)
+- + time
+digitalRead(pin)
+digitalWriteFast(pin,0-1 or HIGH LOW)
+
+next to do:
+- added ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
+- for analog_write, user can also set the frequency and length of the pwm signal.
+
+Most recent updates (32):
+- added initial (beta) functionality for analog_read, analog_write, digital_read, and digital_write.
+- added hard-coded firmware firsion (located at top of file) - so now you only enter device_id and manufacture_date with 1013+.
+- fixed memory leak (added additional free(json) and free(data_raw_average) at end of void loop() )
+- NOTE - maximum # of saved (measuring light != 0) data points is 8000 - 10000 depending on the size of the protocol JSON (larger protocol JSON means less memory to save data).
 
 Most recent updates (31):
 - fixed bug that act2, alt1, and alt2 didn't work
@@ -98,7 +112,7 @@ For more details on hardware, apps, and other related software, go to https://gi
  */
 
 //#define DEB0UG 1  // uncomment to add full debug features
-//#define DEBUGSIMPLE 1  // uncomment to add partial debug features
+#define DEBUGSIMPLE 1  // uncomment to add partial debug features
 //#define DAC 1 // uncomment for boards which do not use DAC for light intensity control
 
 #include <Time.h>                                                             // enable real time clock library
@@ -154,7 +168,7 @@ float calibration_blank1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 float calibration_blank2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 float calibration_other1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 float calibration_other2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float spad_factor[2] = {};
+float userdef0[2] = {};
 float userdef1[2] = {};
 float userdef2[2] = {};
 float userdef3[2] = {};
@@ -187,6 +201,9 @@ float yintercept_34 = 0;
 float slope_35 = 0;
 float yintercept_35 = 0;
 char* bt_response = "OKOKlinvorV1.8OKsetPINOKsetnameOK115200"; // Expected response from bt module after programming is done.
+float freqtimer0;
+float freqtimer1;
+float freqtimer2;
 
 //////////////////////HTU21D Temp/Humidity variables///////////////////////////
 #define temphumid_address 0x40                                           // HTU21d Temp/hum I2C sensor address
@@ -207,6 +224,8 @@ Adafruit_TMP006 tmp006(0x42);  // start with a diferent i2c address!  ADR1 is GN
 float tmp006_cal_S = 6.4;
 
 ////////////////////ENVIRONMENTAL variables averages (must be global) //////////////////////
+float analog_read_average = 0;
+float digital_read_average = 0;
 float relative_humidity_average = 0;
 float temperature_average = 0;
 float objt_average = 0;
@@ -277,6 +296,10 @@ void setup() {
   pinMode(DETECTOR2, EXTERNAL);
   analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
   analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
+  float default_resolution = 488.28;
+  int timer0 [8] = {5, 6, 9, 10, 20, 21, 22, 23};
+  int timer1 [2] = {3, 4};
+  int timer2 [2] = {25, 32}; 
   analogWriteFrequency(3, 187500);                                              // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
   analogWriteFrequency(5, 187500);
   pinMode(DAC_ON, OUTPUT);
@@ -454,7 +477,7 @@ void loop() {
   int number_of_protocols = 0;                                                      // reset number of protocols
   int end_flag = 0;
   int which_serial = 0;
-  long* data_raw_average = (long*)malloc(1);
+  long* data_raw_average = (long*)malloc(4);
   char serial_buffer [serial_buffer_size];
   String json2 [max_jsons];
   memset(serial_buffer,0,serial_buffer_size);                                    // reset buffer to zero
@@ -690,9 +713,9 @@ void loop() {
 
     for (int q = 0;q<number_of_protocols;q++) {                                               // loop through all of the protocols to create a measurement
 
-      free(json);                                                                             // make sure this is here! Free before resetting the size according to the serial input
+      free(json);                                                                             // free initial json malloc, make sure this is here! Free before resetting the size according to the serial input
       json = (char*)malloc((json2[q].length()+1)*sizeof(char));
-      strcpy(json,json2[q].c_str());  
+      strncpy(json,json2[q].c_str(),json2[q].length());  
       json[json2[q].length()] = '\0';                                                         // Add closing character to char*
       hashTable = root.parseHashTable(json);
       if (!hashTable.success()) {                                                             // NOTE: if the incomign JSON is too long (>~5000 bytes) this tends to be where you see failure (no response from device)
@@ -739,20 +762,20 @@ void loop() {
         int pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
         int pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
         int offset_off =          hashTable.getLong("offset_off");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
-        int get_offset =          hashTable.getLong("get_offset");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
+        int get_offset =          hashTable.getLong("get_offset");                               // include detector offset information in the output
   // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
-        JsonArray get_ir_baseline=hashTable.getArray("get_ir_baseline");                        // requests the ir_baseline information from the device for the specified pins
-        JsonArray get_tcs_cal =   hashTable.getArray("get_tcs_cal");                            // requests the get_tcs_cal information from the device for the specified pins
-        JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // requests get_lights_cal information from the device for the specified pins
-        JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // requests the get_blank_cal information from the device for the specified pins
-        JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // requests the get_other_cal information from the device for the specified pins
-        JsonArray get_spad_factor =  hashTable.getArray("get_spad_factor");                   // requests the spad_factor information from the device for the specified pins
-        JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // requests the get_userdef1 information from the device for the specified pins
-        JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // requests the get_userdef2 information from the device for the specified pins
-        JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // requests the get_userdef3 information from the device for the specified pins
-        JsonArray get_userdef4 =  hashTable.getArray("get_userdef4");                        // requests the get_userdef4 information from the device for the specified pins
-        JsonArray get_userdef5 =  hashTable.getArray("get_userdef5");                        // requests the get_userdef5 information from the device for the specified pins
-        JsonArray get_userdef6 =  hashTable.getArray("get_userdef6");                        // requests the get_userdef6 information from the device for the specified pins
+        JsonArray get_ir_baseline=hashTable.getArray("get_ir_baseline");                        // include the ir_baseline information from the device for the specified pins
+        JsonArray get_tcs_cal =   hashTable.getArray("get_tcs_cal");                            // include the get_tcs_cal information from the device for the specified pins
+        JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // include get_lights_cal information from the device for the specified pins
+        JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // include the get_blank_cal information from the device for the specified pins
+        JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // include the get_other_cal information from the device for the specified pins
+        JsonArray get_userdef0 =  hashTable.getArray("get_userdef0");                        // include the saved userdef0 information from the device
+        JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // include the saved userdef1 information from the device
+        JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // include the saved userdef2 information from the device
+        JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // include the saved userdef3 information from the device
+        JsonArray get_userdef4 =  hashTable.getArray("get_userdef4");                        // include the saved userdef4 information from the device
+        JsonArray get_userdef5 =  hashTable.getArray("get_userdef5");                        // include the saved userdef5 information from the device
+        JsonArray get_userdef6 =  hashTable.getArray("get_userdef6");                        // include the saved userdef6 information from the device
         JsonArray pulses =        hashTable.getArray("pulses");                                // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
         JsonArray act1_lights =   hashTable.getArray("act1_lights");
         JsonArray act2_lights =   hashTable.getArray("act2_lights");
@@ -765,8 +788,9 @@ void loop() {
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
-  
-        free(data_raw_average);
+        
+
+
         long size_of_data_raw = 0;
         long total_pulses = 0;      
         for (int i=0;i<pulses.getLength();i++) {                                            // count the number of non zero lights and total pulses
@@ -779,6 +803,7 @@ void loop() {
           }
           size_of_data_raw += pulses.getLong(i) * non_zero_lights;
         }
+        free(data_raw_average);                                                            // free malloc of data_raw_average
         data_raw_average = (long*)calloc(size_of_data_raw,sizeof(long));                   // get some memory space for data_raw_average, initialize all at zero.
   
   #ifdef DEBUGSIMPLE
@@ -838,7 +863,7 @@ void loop() {
         get_calibration(calibration_blank1,calibration_blank2,0,0,get_blank_cal,"get_blank_cal");
         get_calibration(calibration_other1,calibration_other2,0,0,get_other_cal,"get_other_cal");
         get_calibration(0,0,light_slope,light_y_intercept,get_tcs_cal,"get_tcs_cal");
-        get_calibration(0,0,spad_factor[0],spad_factor[1],get_spad_factor,"get_spad_factor");
+        get_calibration(0,0,userdef0[0],userdef0[1],get_userdef0,"get_userdef0");
         get_calibration(0,0,userdef1[0],userdef1[1],get_userdef1,"get_userdef1");
         get_calibration(0,0,userdef2[0],userdef2[1],get_userdef2,"get_userdef2");
         get_calibration(0,0,userdef3[0],userdef3[1],get_userdef3,"get_userdef3");
@@ -858,6 +883,8 @@ void loop() {
 //        print_sensor_calibration(1);                                               // print sensor calibration data
   
         // this should be an array, so I can reset it all......
+        analog_read_average = 0;
+        digital_read_average = 0;
         relative_humidity_average = 0;                                                                    // reset all of the environmental variables
         temperature_average = 0;
         objt_average = 0;
@@ -906,7 +933,7 @@ void loop() {
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
-          && (String) environmental.getArray(i).getString(0) == "temperature") {
+            && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"temperature\": ");
@@ -918,7 +945,7 @@ void loop() {
               }  
             }
             if (environmental.getArray(i).getLong(1) == 0 \
-          && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
+            && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"contactless_temperature\": ");
@@ -930,7 +957,7 @@ void loop() {
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
-          && (String) environmental.getArray(i).getString(0) == "co2") {
+            && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
                 Serial1.print("\"co2\": ");
@@ -942,7 +969,7 @@ void loop() {
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
-          && (String) environmental.getArray(i).getString(0) == "light_intensity") {
+            && (String) environmental.getArray(i).getString(0) == "light_intensity") {
               Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"light_intensity\": ");
@@ -970,6 +997,54 @@ void loop() {
                 Serial.print(lux_to_uE(b_average));  
                 Serial.print(",");  
               }
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "analog_read") {                      // perform analog reads
+              int pin = environmental.getArray(i).getLong(2);
+              pinMode(pin,INPUT);
+              int analog_read = analogRead(pin);
+              if (x == averages-1) {
+                Serial1.print("\"analog_read\": ");
+                Serial.print("\"analog_read\": ");
+                Serial1.print(analog_read);  
+                Serial1.print(",");
+                Serial.print(analog_read);  
+                Serial.print(",");                
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "digital_read") {                      // perform digital reads
+              int pin = environmental.getArray(i).getLong(2);
+              pinMode(pin,INPUT);
+              int digital_read = digitalRead(pin);
+              if (x == averages-1) {
+                Serial1.print("\"digital_read\": ");
+                Serial.print("\"digital_read\": ");
+                Serial1.print(digital_read);  
+                Serial1.print(",");
+                Serial.print(digital_read);  
+                Serial.print(",");                
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "digital_write") {                      // perform digital write
+              int pin = environmental.getArray(i).getLong(2);
+              int setting = environmental.getArray(i).getLong(3);
+              pinMode(pin,OUTPUT);
+              digitalWriteFast(pin,setting);
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "analog_write") {                      // perform analog write with length of time to apply the pwm
+              int pin = environmental.getArray(i).getLong(2);
+              int wait = environmental.getArray(i).getLong(4);
+              int setting = environmental.getArray(i).getLong(3);
+              int freq = environmental.getArray(i).getLong(3);
+              pinMode(pin,OUTPUT);
+              analogWriteFrequency(pin, freq);                                                           // set analog frequency
+              analogWrite(pin,setting);
+              delay(wait);
+              analogWrite(pin,0);
+              analogWriteFrequency(pin, freq);                                                           // reset analog frequency
             }
           }
   
@@ -1373,6 +1448,8 @@ void loop() {
   Serial1.println("");
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
+  free(data_raw_average);                                                         // free the calloc() of data_raw_average
+  free(json);                                                                     // free second json malloc
 }
 
 void pulse1() {		                                                        // interrupt service routine which turns the measuring light on
@@ -2095,7 +2172,7 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(28,yintercept_34);
   EEPROM_readAnything(32,slope_35);
   EEPROM_readAnything(36,yintercept_35);
-  EEPROM_readAnything(40,spad_factor);
+  EEPROM_readAnything(40,userdef0);
   EEPROM_readAnything(60,calibration_slope);
   EEPROM_readAnything(180,calibration_yint);
   EEPROM_readAnything(300,calibration_slope_factory);
@@ -2134,7 +2211,7 @@ void call_print_calibration (int _print) {
     print_cal("calibration_blank2", calibration_blank2 ,0);
     print_cal("calibration_other1", calibration_other1 ,0);
     print_cal("calibration_other2", calibration_other2 ,0);
-    print_cal_userdef("spad_factor", spad_factor ,0);
+    print_cal_userdef("userdef0", userdef0 ,0);
     print_cal_userdef("userdef1", userdef1 ,0);
     print_cal_userdef("userdef2", userdef2 ,0);
     print_cal_userdef("userdef3", userdef3 ,0);
@@ -2856,5 +2933,12 @@ int calculate_intensity_background(int _light,int tcs_on,int _cycle,float _light
   }
   return on;
 }
+
+/*
+// so set the current freq to old depending on timer, then set new.  Then in the analog write make sure to return to whatever the previous frequency was.
+float analogWriteFrequency_save(int pin, float freq, float prev_freq) {
+  freq_timer0 = freq;                                                             // save current frequency
+  analogWriteFrequency(3, 187500);                                              // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
+*/
 
 
