@@ -4,11 +4,8 @@
 /////////////////////CHANGE LOG/////////////////////
 /*
 
- analogRead(pin)
- analogWrite(pin,0 - 4095)
- - + time
- digitalRead(pin)
- digitalWriteFast(pin,0-1 or HIGH LOW)
+ Most recent updates (34):
+ - add a stop and wait function between pulse sets, protocols, and measurements.  This should enable user inputted values from chrome app, and wait for user to respond.
  
  Most recent updates (33):
  - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
@@ -16,34 +13,12 @@
  - Now you can enter the main level number (like 1000+, 1015+ etc.) immediately followed by additional information successfully
  - example - to enter calibration data you can enter 1019+5.432+6.54+-1+
  - Next step is to allow chrome app to auto-push information to the device.
- 
- next to do:
- - added ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
- - for analog_write, user can also set the frequency and length of the pwm signal.
- 
+  
  Most recent updates (32):
  - added initial (beta) functionality for analog_read, analog_write, digital_read, and digital_write.
  - added hard-coded firmware firsion (located at top of file) - so now you only enter device_id and manufacture_date with 1013+.
  - fixed memory leak (added additional free(json) and free(data_raw_average) at end of void loop() )
  - NOTE - maximum # of saved (measuring light != 0) data points is 8000 - 10000 depending on the size of the protocol JSON (larger protocol JSON means less memory to save data).
- 
- Most recent updates (31):
- - fixed bug that act2, alt1, and alt2 didn't work
- - added auto-update firmware version on firmware flash (no longer set in 1013+)
- 
- Most recent updates (30):
- - added userdef1 - userdef6 variables to be saved to EEPROM. Users can add 2 values per saved variable (saved as array)
- - added spad_factor used to calculate spad for multispeq spad values.
- 
- Most recent updates (29):
- - cleaned up calling and printing calibrations, made simplifying print function
- - added other1 and other2 calibration save locations for user defined information
- - now you can 'get' calibrations by calling them in the protocol JSON - this info is then used in the macro to apply baselines or whatever, this includes:
- - get_ir_baseline
- - get_tcs_cal
- - get_lights_cal
- - get_blank_cal
- - get_other_cal
  
  /////////////////////LICENSE/////////////////////
  GPLv3 license
@@ -1138,7 +1113,7 @@ void loop() {
               }
               calculate_intensity(_meas_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);          // in addition, calculate the intensity of the current measuring light
 
-                switch (_meas_light) {                                                                    // set the DAC intensity for the measuring light only...
+              switch (_meas_light) {                                                                    // set the DAC intensity for the measuring light only...
               case 15:
                 dac.analogWrite(3,meas_intensity);
               case 16:
@@ -1185,10 +1160,10 @@ void loop() {
 #endif
             }
 
-            while (on == 0 | off == 0) {                                        	     // if ALL pulses happened, then...
+            while (on == 0 | off == 0) {                                                	 // if ALL pulses happened, then...
             }
-            data1 = analogRead(detector);                                              // save the detector reading as data1    
-            digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						// turn off sample and hold, and turn on lights for next pulse set
+            data1 = analogRead(detector);                                                        // save the detector reading as data1    
+            digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						 // turn off sample and hold, and turn on lights for next pulse set
 
             if (first_flag == 1) {                                                                    // if this is the 0th pulse and a therefore new cycle
               digitalWriteFast(_act1_light_prev, LOW);                                                // turn off previous lights, turn on the new ones on (if light setting is zero, then no light on
