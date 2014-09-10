@@ -1,12 +1,24 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .33
+#define FIRMWARE_VERSION .34
 
 /////////////////////CHANGE LOG/////////////////////
 /*
 
+to do:
+When we get all devices back ---
+put all wait times in milliseconds
+ - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
+change intensity of actinic light in baseline calibration (so it doesn't max out).
+
  Most recent updates (34):
- - add a stop and wait function between pulse sets, protocols, and measurements.  This should enable user inputted values from chrome app, and wait for user to respond.
- 
+ - added "alert" function between cycles
+ - added "prompt" function between cycles, allows user imput which is returned in data JSON as prompt_rsp
+ - added "note" which acts as an environmental variable, allows user input at beginning of end of measurement 
+ - for all user inputted text (ie "prompt" or "note"), char limit is 999, do not use any of the following: [ ] + " ' 
+ - cleaned up unnecessary spaces in output data JSON 
+ - added ability to exit any delay (average, protocol, measurement, etc.) using -1+
+ - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (all at once, no delay)
+
  Most recent updates (33):
  - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
  - analog_write works - in "environmental", write:  ["analog_read",<location 0/1>,<PWM pin #>,<PWM setting>,<PWM Frequency>,<Time to hold PWM in ms>]
@@ -523,6 +535,7 @@ void loop() {
   String choose = "0";
   while (Serial.peek() != '[' && Serial1.peek() != '[') {                      // wait till we see a "[" to start the JSON of JSONS
     choose = user_enter_str(50,1);
+
     if (choose.toInt() > 0 && choose.toInt() < 200) {                    // if it's 0 - 200 then go see full light of device testing
       lighttests(choose.toInt());
       serial_bt_flush();                                                             // flush serial port if it's none of the above things
@@ -683,12 +696,12 @@ void loop() {
   Serial.print("{\"device_id\": ");
   Serial1.print(device_id,2);
   Serial.print(device_id,2);
-  Serial1.print(",\"firmware_version\": \"");
-  Serial.print(",\"firmware_version\": \"");
+  Serial1.print(",\"firmware_version\":\"");
+  Serial.print(",\"firmware_version\":\"");
   Serial1.print(FIRMWARE_VERSION);
   Serial.print(FIRMWARE_VERSION);
-  Serial.print("\",\"sample\": [");
-  Serial1.print("\",\"sample\": [");
+  Serial.print("\",\"sample\":[");
+  Serial1.print("\",\"sample\":[");
 
   for (int y=0;y<measurements;y++) {                                                              // loop through the all measurements to create a measurement group
 
@@ -716,8 +729,9 @@ void loop() {
       }
 
       int protocols = 1;
+      int quit = 0;
       for (int u = 0;u<protocols;u++) {                                                        // the number of times to repeat the current protocol
-        String protocol_note =    hashTable.getString("protocol_note");                      // used only for calibration routines ("cal_true" = 1 or = 2)
+      
         String protocol_id =      hashTable.getString("protocol_id");                          // used to determine what macro to apply
         int analog_averages =     hashTable.getLong("analog_averages");                          // # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
         if (analog_averages == 0) {                                                              // if averages don't exist, set it to 1 automatically.
@@ -753,7 +767,7 @@ void loop() {
         JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // include get_lights_cal information from the device for the specified pins
         JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // include the get_blank_cal information from the device for the specified pins
         JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // include the get_other_cal information from the device for the specified pins
-        JsonArray get_userdef0 =  hashTable.getArray("get_userdef0");                        // include the saved userdef0 information from the device
+        JsonArray get_userdef0 =  hashTable.getArray("get_userghdef0");                        // include the saved userdef0 information from the device
         JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // include the saved userdef1 information from the device
         JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // include the saved userdef2 information from the device
         JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // include the saved userdef3 information from the device
@@ -771,9 +785,9 @@ void loop() {
         JsonArray detectors =     hashTable.getArray("detectors");                               // the Teensy pin # of the detectors used during those pulses, as an array of array.  For example, if pulses = [5,2] and detectors = [[34,35],[34,35]] .  
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
+        JsonArray alert =         hashTable.getArray("alert");                                // sends the user a message which they must reply -1+ to continue
+        JsonArray prompt =        hashTable.getArray("prompt");                                // sends the user a message to which they must reply <answer>+ to continue
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
-
-
 
         long size_of_data_raw = 0;
         long total_pulses = 0;      
@@ -822,8 +836,18 @@ void loop() {
         }
         Serial.println();
 #endif
-        Serial.print("{\"protocol_id\": \"");
-        Serial1.print("{\"protocol_id\": \"");
+        Serial.print("{");
+        Serial1.print("{");
+
+        quit = user_enter_long(5);                                                        // check to see if user has quit (send -1 on USB or bluetooth serial)
+        if (quit == -1) {
+          Serial.print("}]");
+          Serial1.print("}]");          
+          goto skipall;
+        }
+        
+        Serial.print("\"protocol_id\":\"");
+        Serial1.print("\"protocol_id\":\"");
         Serial.print(protocol_id);
         Serial1.print(protocol_id);
         Serial.print("\",");
@@ -831,15 +855,6 @@ void loop() {
 
         if (get_offset == 1) {
           print_offset(1);
-        }
-
-        if (protocol_note != "") {
-          Serial.print("\"protocol_note\": \"");
-          Serial1.print("\"protocol_note\": \"");
-          Serial.print(protocol_note);
-          Serial1.print(protocol_note);
-          Serial.print("\",");
-          Serial1.print("\",");
         }
 
         get_calibration(calibration_baseline_slope,calibration_baseline_yint,0,0,get_ir_baseline ,"get_ir_baseline");
@@ -856,8 +871,8 @@ void loop() {
         get_calibration(0,0,userdef6[0],userdef6[1],get_userdef6,"get_userdef6");
 
         if (averages > 1) {      
-          Serial1.print("\"averages\": "); 
-          Serial.print("\"averages\": "); 
+          Serial1.print("\"averages\":"); 
+          Serial.print("\"averages\":"); 
           Serial1.print(averages);  
           Serial.print(averages); 
           Serial1.print(","); 
@@ -908,8 +923,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "relative_humidity") {
               Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 2nd component in the array is == 0 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"relative_humidity\": ");
-                Serial.print("\"relative_humidity\": ");
+                Serial1.print("\"relative_humidity\":");
+                Serial.print("\"relative_humidity\":");
                 Serial1.print(relative_humidity_average);  
                 Serial1.print(",");
                 Serial.print(relative_humidity_average);  
@@ -920,8 +935,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"temperature\": ");
-                Serial.print("\"temperature\": ");
+                Serial1.print("\"temperature\":");
+                Serial.print("\"temperature\":");
                 Serial1.print(temperature_average);  
                 Serial1.print(",");
                 Serial.print(temperature_average);  
@@ -932,8 +947,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"contactless_temperature\": ");
-                Serial.print("\"contactless_temperature\": ");
+                Serial1.print("\"contactless_temperature\":");
+                Serial.print("\"contactless_temperature\":");
                 Serial1.print(objt_average);  
                 Serial1.print(",");
                 Serial.print(objt_average);  
@@ -944,8 +959,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"co2\": ");
-                Serial.print("\"co2\": ");
+                Serial1.print("\"co2\":");
+                Serial.print("\"co2\":");
                 Serial1.print(co2_value_average);  
                 Serial1.print(",");
                 Serial.print(co2_value_average);  
@@ -956,26 +971,26 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "light_intensity") {
               Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"light_intensity\": ");
-                Serial.print("\"light_intensity\": ");
+                Serial1.print("\"light_intensity\":");
+                Serial.print("\"light_intensity\":");
                 Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
-                Serial1.print("\"r\": ");
-                Serial.print("\"r\": ");
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
                 Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
-                Serial1.print("\"g\": ");
-                Serial.print("\"g\": ");
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
                 Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
-                Serial1.print("\"b\": ");
-                Serial.print("\"b\": ");
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
                 Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(b_average));  
@@ -988,8 +1003,8 @@ void loop() {
               pinMode(pin,INPUT);
               int analog_read = analogRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"analog_read\": ");
-                Serial.print("\"analog_read\": ");
+                Serial1.print("\"analog_read\":");
+                Serial.print("\"analog_read\":");
                 Serial1.print(analog_read);  
                 Serial1.print(",");
                 Serial.print(analog_read);  
@@ -1002,8 +1017,8 @@ void loop() {
               pinMode(pin,INPUT);
               int digital_read = digitalRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"digital_read\": ");
-                Serial.print("\"digital_read\": ");
+                Serial1.print("\"digital_read\":");
+                Serial.print("\"digital_read\":");
                 Serial1.print(digital_read);  
                 Serial1.print(",");
                 Serial.print(digital_read);  
@@ -1037,6 +1052,16 @@ void loop() {
               analogWrite(pin,0);
               reset_freq();                                                                              // reset analog frequencies
             }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
+              Serial1.print("\"note\":\"");
+              Serial.print("\"note\":\"");
+              String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+              Serial1.print(note);
+              Serial1.print("\",");
+              Serial.print(note);  
+              Serial.print("\",");                
+            }
           }
 
           analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
@@ -1052,8 +1077,8 @@ void loop() {
           Serial.print("ambient light in uE: ");
           Serial.println(lux_to_uE(lux_average));
           Serial.print("ue to intensity result:  ");
-          Serial.println(uE_to_intensity(act_background_light,lux_to_uE(lux_average)));                                                                             // NOTE: wait turn flip DAC switch until later.
-#endif                                                                               
+          Serial.println(uE_to_intensity(act_background_light,lux_to_uE(lux_average)));  // NOTE: wait turn flip DAC switch until later.
+#endif
           for (int z=0;z<total_pulses;z++) {                                            // cycle through all of the pulses from all cycles
             int first_flag = 0;                                                           // flag to note the first pulse of a cycle
             int act1_on = 0;
@@ -1088,16 +1113,48 @@ void loop() {
             Serial.print(", ");
             Serial.println(detector);
 #endif      
-            if (pulse == 0) {
-              meas_array_size = meas_lights.getArray(cycle).getLength();                                // get the number of measurement/detector subsets in the new cycle
-              first_flag = 1;                                                                           // flip flag indicating that it's the 0th pulse and a new cycle
+            if (pulse == 0) {                                                                             // if it's the first pulse
+              meas_array_size = meas_lights.getArray(cycle).getLength();                                  // get the number of measurement/detector subsets in the new cycle
+              first_flag = 1;                                                                             // flip flag indicating that it's the 0th pulse and a new cycle
             }
 
-            _meas_light = meas_lights.getArray(cycle).getLong(meas_number%meas_array_size);                                    // move to next measurement light
-            detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                                        // move to next detector
+            _meas_light = meas_lights.getArray(cycle).getLong(meas_number%meas_array_size);               // move to next measurement light
+            detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                    // move to next detector
 
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
               if (pulse == 0) {
+
+                String al = alert.getString(cycle);
+//                Serial.println();
+//                Serial.println(al);
+                if (al != "0" && al != "") {                                                             // if there's an alert, wait for user to respond to alert
+                  Serial1.print("\"alert\":\"");
+                  Serial.print("\"alert\":\"");
+                  Serial1.print(alert.getString(cycle));
+                  Serial.print(alert.getString(cycle));
+                  Serial1.print("\",");
+                  Serial.print("\",");                  
+                  while (1) {
+                    int response = user_enter_long(3000000);                                                  // wait 50 minutes for user to respond
+                    if (response == -1) {
+                      break;
+                    }
+                  }
+                }
+                String pr = prompt.getString(cycle);
+                if (pr != "0" && pr != "") {                                                            // if there's a prompt, wait for user to repond to prompt
+                  Serial1.print("\"prompt_msg\":\"");
+                  Serial.print("\"prompt_msg\":\"");
+                  Serial1.print(prompt.getString(cycle));
+                  Serial.print(prompt.getString(cycle));
+                  Serial1.print("\",\"prompt_rsp\":\"");
+                  Serial.print("\",\"prompt_rsp\":\"");
+                  String response = user_enter_str(3000000,0);                                                  // wait 50 minutes for user to respond
+                  Serial.print(response);
+                  Serial1.print(response);
+                  Serial.print("\",");
+                  Serial1.print("\",");
+                }  
                 _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
                 _act1_light = act1_lights.getLong(cycle);
                 act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
@@ -1284,8 +1341,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "relative_humidity") {
               Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 3rd component in the array is == 1 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"relative_humidity\": ");
-                Serial.print("\"relative_humidity\": ");
+                Serial1.print("\"relative_humidity\":");
+                Serial.print("\"relative_humidity\":");
                 Serial1.print(relative_humidity_average);  
                 Serial1.print(",");
                 Serial.print(relative_humidity_average);  
@@ -1296,8 +1353,8 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"temperature\": ");
-                Serial.print("\"temperature\": ");
+                Serial1.print("\"temperature\":");
+                Serial.print("\"temperature\":");
                 Serial1.print(temperature_average);  
                 Serial1.print(",");
                 Serial.print(temperature_average);  
@@ -1308,8 +1365,8 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"contactless_temperature\": ");
-                Serial.print("\"contactless_temperature\": ");
+                Serial1.print("\"contactless_temperature\":");
+                Serial.print("\"contactless_temperature\":");
                 Serial1.print(objt_average);  
                 Serial1.print(",");
                 Serial.print(objt_average);  
@@ -1320,8 +1377,8 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"co2\": ");
-                Serial.print("\"co2\": ");
+                Serial1.print("\"co2\":");
+                Serial.print("\"co2\":");
                 Serial1.print(co2_value_average);  
                 Serial1.print(",");
                 Serial.print(co2_value_average);  
@@ -1332,26 +1389,26 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "light_intensity") {
               Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"light_intensity\": ");
-                Serial.print("\"light_intensity\": ");
+                Serial1.print("\"light_intensity\":");
+                Serial.print("\"light_intensity\":");
                 Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
-                Serial1.print("\"r\": ");
-                Serial.print("\"r\": ");
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
                 Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
-                Serial1.print("\"g\": ");
-                Serial.print("\"g\": ");
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
                 Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
-                Serial1.print("\"b\": ");
-                Serial.print("\"b\": ");
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
                 Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(b_average));  
@@ -1364,8 +1421,8 @@ void loop() {
               pinMode(pin,INPUT);
               int analog_read = analogRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"analog_read\": ");
-                Serial.print("\"analog_read\": ");
+                Serial1.print("\"analog_read\":");
+                Serial.print("\"analog_read\":");
                 Serial1.print(analog_read);  
                 Serial1.print(",");
                 Serial.print(analog_read);  
@@ -1378,8 +1435,8 @@ void loop() {
               pinMode(pin,INPUT);
               int digital_read = digitalRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"digital_read\": ");
-                Serial.print("\"digital_read\": ");
+                Serial1.print("\"digital_read\":");
+                Serial.print("\"digital_read\":");
                 Serial1.print(digital_read);  
                 Serial1.print(",");
                 Serial.print(digital_read);  
@@ -1413,9 +1470,19 @@ void loop() {
               analogWrite(pin,0);
               reset_freq();                                                                              // reset analog frequencies
             }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
+              Serial1.print("\"note\":\"");
+              Serial.print("\"note\":\"");
+              String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+              Serial1.print(note);
+              Serial1.print("\",");
+              Serial.print(note);  
+              Serial.print("\",");                
+            }            
           }
-          if (x+1 < averages) {                                                             // countdown to next average, unless it's the end of the very last run
-            countdown(averages_delay);
+          if (x+1 < averages) {                                                             //  to next average, unless it's the end of the very last run
+            user_enter_long(averages_delay);
           }
         }
         Serial1.print("\"data_raw\":[");                                                    // print the averaged results
@@ -1444,7 +1511,7 @@ void loop() {
         if (q < number_of_protocols-1 | u < protocols-1) {                               // if it's not the last protocol in the measurement and it's not the last repeat of the current protocol, add a comma
           Serial.print(",");
           Serial1.print(",");
-          delay(protocols_delay*1000);
+          user_enter_long(protocols_delay*1000);
         }
         else if (q == number_of_protocols-1 && u == protocols-1) {                      // if it is the last protocol, then close out the data json
           Serial.print("]");
@@ -1484,9 +1551,10 @@ void loop() {
     if (y < measurements-1) {                                                      // add commas between measurements
       Serial.print(",");
       Serial1.print(",");
-      delay(measurements_delay*1000);                                                   // delay between measurements
+      user_enter_long(measurements_delay*1000);
     }
   }
+  skipall:
   Serial.println("]}");
   Serial.println("");
   Serial1.println("]}");
@@ -1500,7 +1568,6 @@ void loop() {
 void pulse1() {		                                                        // interrupt service routine which turns the measuring light on
   digitalWriteFast(SAMPLE_AND_HOLD, LOW);		            		 // turn on measuring light and/or actinic lights etc., tick counter
   digitalWriteFast(_meas_light, HIGH);						// turn on measuring light
-  data1 = analogRead(detector);                                              // save the detector reading as data1
   on=1;
 }
 
@@ -1516,8 +1583,8 @@ void lighttests_all() {
 
   double increment = user_enter_dbl(60000);
 
-  Serial.print("{\"response\": \"");
-  Serial1.print("{\"response\": \""); 
+  Serial.print("{\"response\":\"");
+  Serial1.print("{\"response\":\""); 
 
   if (increment == 0) {
     //back to main menu
@@ -1819,8 +1886,8 @@ end:
     serial_bt_flush();
   }
   else if (_choose == 106) {
-    Serial1.print("{\"contactless_temperature\": [");
-    Serial.print("{\"contactless_temperature\": [");
+    Serial1.print("{\"contactless_temperature\":[");
+    Serial.print("{\"contactless_temperature\":[");
     while (Serial.available()<3 && Serial1.available()<3) {
       sensor_value = Contactless_Temperature(1);
       Serial.print(sensor_value);
@@ -1893,7 +1960,7 @@ float Relative_Humidity(int var1) {
   if (var1 == 1 | var1 == 0) {
     float relative_humidity = htu.readHumidity();
 #ifdef DEBUGSIMPLE
-    Serial.print("\"relative_humidity\": ");
+    Serial.print("\"relative_humidity\":");
     Serial.print(relative_humidity);  
     Serial.print(",");
 #endif
@@ -1906,7 +1973,7 @@ float Temperature(int var1) {
   if (var1 == 1 | var1 == 0) {
     float temperature = htu.readTemperature();
 #ifdef DEBUGSIMPLE
-    Serial.print("\"temperature\": ");
+    Serial.print("\"temperature\":");
     Serial.print(temperature);  
     Serial.print(",");
 #endif
@@ -1973,11 +2040,10 @@ void print_sensor_calibration(int _open) {
   }
 }
 
-String user_enter_str(long timeout,int _pwr_off) {
+String user_enter_str (long timeout,int _pwr_off) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
-  char serial_buffer [32] = {
-    0  };
+  char serial_buffer [1000] = {0};
   String serial_string;
   //  serial_bt_flush();
   long start1 = millis();
@@ -2000,7 +2066,7 @@ String user_enter_str(long timeout,int _pwr_off) {
 skip:
   if (Serial.available()>0) {                                                          // if it's from USB, then read it.
     if (Serial.peek() != '[') {
-      Serial.readBytesUntil('+',serial_buffer, 32);
+      Serial.readBytesUntil('+',serial_buffer, 1000);
       serial_string = serial_buffer;
       //        serial_bt_flush();
     }
@@ -2009,7 +2075,7 @@ skip:
   }
   else if (Serial1.available()>0) {                                                    // if it's from bluetooth, then read it instead.
     if (Serial1.peek() != '[') {
-      Serial1.readBytesUntil('+',serial_buffer, 32);
+      Serial1.readBytesUntil('+',serial_buffer, 1000);
       serial_string = serial_buffer;
       //        serial_bt_flush();
     }
@@ -2525,8 +2591,8 @@ unsigned long Co2(int var1) {
     requestCo2(readCO2,2000);
     unsigned long co2_value = getCo2(response);
 #ifdef DEBUGSIMPLE
-    Serial1.print("\"co2_content\": ");
-    Serial.print("\"co2_content\": ");
+    Serial1.print("\"co2_content\":");
+    Serial.print("\"co2_content\":");
     Serial1.print(co2_value);  
     Serial1.print(",");
     Serial.print(co2_value);  
@@ -2597,33 +2663,6 @@ int numDigits(int number) {
     digits++;
   }
   return digits;
-}
-
-int countdown(int _wait) {                                                                         // count down the number of seconds defined by wait
-  for (int z=0;z<_wait;z++) { 
-#ifdef DEBUG
-    Serial.print(_wait);
-    Serial.print(",");
-    Serial.print(z);
-#endif
-#ifdef DEBUGSIMPLE
-    Serial.print("Time remaining: ");
-    Serial.print(_wait-z);
-    Serial.print(", ");
-    Serial.println(Serial.available());    
-#endif
-    delay(1000);
-    if (Serial.peek() == 49) {                                                                      // THIS ISN'T IMPLEMENTED - can't really skip for some reason the incomign serial buffer keeps filling up
-#ifdef DEBUG
-      Serial.println("Ok - skipping wait!");
-#endif
-      delay(5);                                                                                    // if multiple buttons were pressed, make sure they all get into the serial cache...
-      z = _wait;
-      while (Serial.available()>0) {                                                                   //flush the buffer in case multiple buttons were pressed
-        Serial.read();
-      }
-    }
-  }
 }
 
 float getFloatFromSerialMonitor(){                                               // getfloat function from Gabrielle Miller on cerebralmeltdown.com - thanks!
@@ -2719,24 +2758,24 @@ void i2cRead(byte address, byte count, byte* buffer)
 
 void set_device_info(int _set) {
   //  serial_bt_flush();
-  Serial.print("{\"device_id\": ");
+  Serial.print("{\"device_id\":");
   Serial.print(device_id,2);
   Serial.println(",");
-  Serial.print("\"firmware_version\": ");
+  Serial.print("\"firmware_version\":");
   Serial.print(FIRMWARE_VERSION);
   Serial.println(",");
-  Serial.print("\"manufacture_date\": ");
+  Serial.print("\"manufacture_date\":");
   Serial.print(manufacture_date);
   Serial.println("}");
   Serial.println();
 
-  Serial1.print("{\"device_id\": ");
+  Serial1.print("{\"device_id\":");
   Serial1.print(device_id,2);
   Serial1.println(",");
-  Serial1.print("\"firmware_version\": ");
+  Serial1.print("\"firmware_version\":");
   Serial1.print(FIRMWARE_VERSION);
   Serial1.println(",");
-  Serial1.print("\"manufacture_date\": ");
+  Serial1.print("\"manufacture_date\":");
   Serial1.print(manufacture_date);
   Serial1.println("}");
   Serial1.println();
@@ -3009,8 +3048,3 @@ Teensy 3.0              Ideal Freq:
 
  */
 }
-
-
-
-
-
