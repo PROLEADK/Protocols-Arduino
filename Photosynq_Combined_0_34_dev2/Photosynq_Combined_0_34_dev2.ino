@@ -18,6 +18,7 @@ change intensity of actinic light in baseline calibration (so it doesn't max out
  - cleaned up unnecessary spaces in output data JSON 
  - added ability to exit any delay (average, protocol, measurement, etc.) using -1+
  - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (all at once, no delay)
+ - now temp/relative humidity, co2, and contactless temp return errors (like "no co2 sensor found") instead of 998 or blank or whatever.
 
  Most recent updates (33):
  - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
@@ -222,6 +223,7 @@ float freqtimer2;
 HTU21D htu;                                                              // create class object
 unsigned int tempval;
 unsigned int rhval;
+int temp_error = 0;
 
 //////////////////////S8 CO2 Variables///////////////////////////
 byte readCO2[] = {
@@ -230,10 +232,12 @@ byte response[] = {
   0,0,0,0,0,0,0};                                                        //create an array to store CO2 response
 float valMultiplier = 1;
 int CO2calibration = 17;                                                 // manual CO2 calibration pin (CO2 sensor has auto-calibration, so manual calibration is only necessary when you don't want to wait for autocalibration to occur - see datasheet for details 
+int co2_error = 0;                                                        // error 1 is "no co2 sensor found", error 2 is "no response from co2 sensor"
 
 ////////////////////TMP006 variables - address is 1000010 (adr0 on SDA, adr1 on GND)//////////////////////
 Adafruit_TMP006 tmp006(0x42);  // start with a diferent i2c address!  ADR1 is GND, ADR0 is SDA so address is set to 42
 float tmp006_cal_S = 6.4;
+int ctemp_error = 0;
 
 ////////////////////ENVIRONMENTAL variables averages (must be global) //////////////////////
 float analog_read_average = 0;
@@ -925,10 +929,18 @@ void loop() {
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
                 Serial1.print("\"relative_humidity\":");
                 Serial.print("\"relative_humidity\":");
-                Serial1.print(relative_humidity_average);  
-                Serial1.print(",");
-                Serial.print(relative_humidity_average);  
-                Serial.print(",");
+                switch (temp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(relative_humidity_average);  
+                    Serial1.print(",");
+                    Serial.print(relative_humidity_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no temperature / relative humidity sensor found\",");
+                    Serial1.print("\"no temperature / relative humidity sensor found\",");
+                    break;
+                }
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
@@ -937,10 +949,18 @@ void loop() {
               if (x == averages-1) {
                 Serial1.print("\"temperature\":");
                 Serial.print("\"temperature\":");
-                Serial1.print(temperature_average);  
-                Serial1.print(",");
-                Serial.print(temperature_average);  
-                Serial.print(",");     
+                switch (temp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(temperature_average);  
+                    Serial1.print(",");
+                    Serial.print(temperature_average);  
+                    Serial.print(",");     
+                    break;
+                  case 1:
+                    Serial.print("\"no temperature / relative humidity sensor found\",");
+                    Serial1.print("\"no temperature / relative humidity sensor found\",");
+                    break;
+                }    
               }  
             }
             if (environmental.getArray(i).getLong(1) == 0 \
@@ -949,10 +969,18 @@ void loop() {
               if (x == averages-1) {
                 Serial1.print("\"contactless_temperature\":");
                 Serial.print("\"contactless_temperature\":");
-                Serial1.print(objt_average);  
-                Serial1.print(",");
-                Serial.print(objt_average);  
-                Serial.print(",");
+                switch (ctemp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(objt_average);  
+                    Serial1.print(",");
+                    Serial.print(objt_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no contactless temperature sensor found\",");
+                    Serial1.print("\"no contactless temperature sensor found\",");
+                    break;
+                }    
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
@@ -961,10 +989,22 @@ void loop() {
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
                 Serial1.print("\"co2\":");
                 Serial.print("\"co2\":");
-                Serial1.print(co2_value_average);  
-                Serial1.print(",");
-                Serial.print(co2_value_average);  
-                Serial.print(",");
+                switch (co2_error) {                                             // co2 response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(co2_value_average);  
+                    Serial1.print(",");
+                    Serial.print(co2_value_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no co2 sensor found\",");
+                    Serial1.print("\"no co2 sensor found\",");
+                    break;
+                  case 2:
+                    Serial.print("\"no response from co2 sensor\",");
+                    Serial1.print("\"no response from co2 sensor\",");
+                    break;
+                }    
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
@@ -1125,25 +1165,7 @@ void loop() {
               if (pulse == 0) {
 
                 String al = alert.getString(cycle);
-
-                if (al != "") {                                                                         // if there's an alert, create the alert object
-                  Serial1.print("\"alert\":[");
-                  Serial.print("\"alert\":[");
-                }
-
-                if (al != "0" && al != "") {                                                             // if there's an alert, wait for user to respond to alert
-                  Serial1.print(alert.getString(cycle));
-                  Serial.print(alert.getString(cycle));
-                  while (1) {
-                    int response = user_enter_long(3000000);                                                  // wait 50 minutes for user to respond
-                    if (response == -1) {
-                      break;
-                    }
-                  }                  
-                  if (cycle != pulses.getLength());                                                      // if it's the last cycle in the protocols, then don't add the comma
-                  Serial1.print("\",");
-                  Serial.print("\",");                  
-                }
+                check_alert(al,cycle,alert,pulses);
                 
                 String pr = prompt.getString(cycle);
                 if (pr != "0" && pr != "") {                                                            // if there's a prompt, wait for user to repond to prompt
@@ -1153,7 +1175,7 @@ void loop() {
                   Serial.print(prompt.getString(cycle));
                   Serial1.print("\",\"prompt_rsp\":\"");
                   Serial.print("\",\"prompt_rsp\":\"");
-                  String response = user_enter_str(3000000,0);                                                  // wait 50 minutes for user to respond
+                  String response = user_enter_str(30000,0);                                                  // wait 50 minutes for user to respond
                   Serial.print(response);
                   Serial1.print(response);
                   Serial.print("\",");
@@ -1341,52 +1363,88 @@ void loop() {
             Serial.println(environmental.getArray(i).getLong(1));
 #endif
 
-            if (environmental.getArray(i).getLong(1) == 1 \                                       
+            if (environmental.getArray(i).getLong(1) == 1 \                                    
             && (String) environmental.getArray(i).getString(0) == "relative_humidity") {
-              Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 3rd component in the array is == 1 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
+              Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 2nd component in the array is == 0 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
                 Serial1.print("\"relative_humidity\":");
                 Serial.print("\"relative_humidity\":");
-                Serial1.print(relative_humidity_average);  
-                Serial1.print(",");
-                Serial.print(relative_humidity_average);  
-                Serial.print(",");
+                switch (temp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(relative_humidity_average);  
+                    Serial1.print(",");
+                    Serial.print(relative_humidity_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no temperature / relative humidity sensor found\",");
+                    Serial1.print("\"no temperature / relative humidity sensor found\",");
+                    break;
+                }
               }
             }
             if (environmental.getArray(i).getLong(1) == 1 \
-          && (String) environmental.getArray(i).getString(0) == "temperature") {
+            && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"temperature\":");
                 Serial.print("\"temperature\":");
-                Serial1.print(temperature_average);  
-                Serial1.print(",");
-                Serial.print(temperature_average);  
-                Serial.print(",");     
-              }       
+                switch (temp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(temperature_average);  
+                    Serial1.print(",");
+                    Serial.print(temperature_average);  
+                    Serial.print(",");     
+                    break;
+                  case 1:
+                    Serial.print("\"no temperature / relative humidity sensor found\",");
+                    Serial1.print("\"no temperature / relative humidity sensor found\",");
+                    break;
+                }    
+              }  
             }
             if (environmental.getArray(i).getLong(1) == 1 \
-          && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
+            && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"contactless_temperature\":");
                 Serial.print("\"contactless_temperature\":");
-                Serial1.print(objt_average);  
-                Serial1.print(",");
-                Serial.print(objt_average);  
-                Serial.print(",");
+                switch (ctemp_error) {                                                           // contactless temperature response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(objt_average);  
+                    Serial1.print(",");
+                    Serial.print(objt_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no contactless temperature sensor found\",");
+                    Serial1.print("\"no contactless temperature sensor found\",");
+                    break;
+                }    
               }
-            }          
+            }
             if (environmental.getArray(i).getLong(1) == 1 \
-          && (String) environmental.getArray(i).getString(0) == "co2") {
+            && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
-              if (x == averages-1) {
+              if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
                 Serial1.print("\"co2\":");
                 Serial.print("\"co2\":");
-                Serial1.print(co2_value_average);  
-                Serial1.print(",");
-                Serial.print(co2_value_average);  
-                Serial.print(",");
+                switch (co2_error) {                                             // co2 response depends on if there were errors or not
+                  case 0:
+                    Serial1.print(co2_value_average);  
+                    Serial1.print(",");
+                    Serial.print(co2_value_average);  
+                    Serial.print(",");
+                    break;
+                  case 1:
+                    Serial.print("\"no co2 sensor found\",");
+                    Serial1.print("\"no co2 sensor found\",");
+                    break;
+                  case 2:
+                    Serial.print("\"no response from co2 sensor\",");
+                    Serial1.print("\"no response from co2 sensor\",");
+                    break;
+                }    
               }
             }
             if (environmental.getArray(i).getLong(1) == 1 \
@@ -1961,8 +2019,12 @@ final:
 }
 
 float Relative_Humidity(int var1) {
+  temp_error = 0;                                                                      // reset error flag
   if (var1 == 1 | var1 == 0) {
     float relative_humidity = htu.readHumidity();
+    if (relative_humidity == 998) {                                                          // flag error if response is 998
+      temp_error = 1;    
+    }
 #ifdef DEBUGSIMPLE
     Serial.print("\"relative_humidity\":");
     Serial.print(relative_humidity);  
@@ -1974,8 +2036,12 @@ float Relative_Humidity(int var1) {
 }
 
 float Temperature(int var1) {
+  temp_error = 0;                                                                      // reset error flag
   if (var1 == 1 | var1 == 0) {
     float temperature = htu.readTemperature();
+    if (temperature == 998) {                                                          // flag error if response is 998
+      temp_error = 1;    
+    }
 #ifdef DEBUGSIMPLE
     Serial.print("\"temperature\":");
     Serial.print(temperature);  
@@ -1993,7 +2059,7 @@ int Light_Intensity(int var1) {
     r = TCS3471.readRData();
     g = TCS3471.readGData();
     b = TCS3471.readBData();
-#ifdef DEBUGSIMPLE
+  #ifdef DEBUGSIMPLE
     Serial.print("\"light_intensity\": ");
     Serial.print(lux, DEC);
     Serial.print(",");
@@ -2118,12 +2184,7 @@ skip:
     val = atol(serial_string.c_str());  
   }
   return val;
-  while (Serial.available()>0) {                                                     // flush any remaining serial data before returning
-    Serial.read();
-  }
-  while (Serial1.available()>0) {
-    Serial1.read();
-  }
+  serial_bt_flush();
   Serial.setTimeout(1000);
   Serial1.setTimeout(1000);
 }
@@ -2155,12 +2216,7 @@ skip:
     val = atof(serial_string.c_str());  
   }
   return val;
-  while (Serial.available()>0) {                                                     // flush any remaining serial data before returning
-    Serial.read();
-  }
-  while (Serial1.available()>0) {
-    Serial1.read();
-  }
+  serial_bt_flush();
   Serial.setTimeout(1000);
   Serial1.setTimeout(1000);
 }
@@ -2609,34 +2665,32 @@ unsigned long Co2(int var1) {
 }
 
 void requestCo2(byte packet[],int timeout) {
-  int error = 0;
+  co2_error = 0;                                                    // reset the co2_error flag
   long start1 = millis();
   long end1 = millis();
-  while(!Serial3.available()) { //keep sending request until we start to get a response
-    Serial3.write(readCO2,7);
+  while(!Serial3.available()) {                                     //keep sending request until we start to get a response
+    Serial3.write(readCO2,7);                                       // send request for co2 from module
     delay(50);
     end1 = millis();
     if (end1 - start1 > timeout) {
-      Serial.print("\"error\":\"no co2 sensor found\"");
-      Serial1.print("\"error\":\"no co2 sensor found\"");
-      Serial.print(",");
-      Serial1.print(",");
-      int error = 1;
+      co2_error = 1;                                                // send "no co2 sensor found" error
       break;
     }
   }
-  switch (error) {
-  case 0:
-    while(Serial3.available() < 7 ) //Wait to get a 7 byte response
+  switch (co2_error) {
+  case 0:                                                             // if the co2 sensor is present, then...
+    while(Serial3.available() < 7 )                                   //Wait to get a 7 byte response
     {
       timeout++;  
-      if(timeout > 10) {   //if it takes to long there was probably an error
+      if(timeout > 10) {                                             //if it takes to long there was probably an error, so flush serial and exit
 #ifdef DEBUGSIMPLE
         Serial.println("I timed out!");
 #endif
-        while(Serial3.available())  //flush whatever we have
-            Serial3.read();
-        break;                        //exit and try again
+        while(Serial3.available()) {
+          Serial3.read();
+        }
+        co2_error = 2;                                            // send "no response from co2 sensor" error
+        break;                                                    //exit and try again
       }
       delay(50);
     }
@@ -3052,3 +3106,43 @@ Teensy 3.0              Ideal Freq:
 
  */
 }
+
+
+/*
+void start_timers(_pulsedistance) {                                                            // restart the timers
+  Serial.flush();                                                          // flush any remaining serial output info before moving forward          
+  unsigned long starttimer0;
+  starttimer0 = micros();
+  timer0.begin(pulse1,_pulsedistance);                                       // Begin firsts pulse
+  while (micros()-starttimer0 < pulsesize) {
+  }                                                                         // wait a full pulse size, then...                                                                                          
+  timer1.begin(pulse2,_pulsedistance);                                       // Begin second pulse
+}
+*/
+void pause_timers() {                                                            // pause timers
+  timer0.end(); 
+  timer1.end();
+}
+
+void check_alert(String _al,int _cycle,JsonArray _alert, JsonArray _pulses) {
+  if (_al != "") {                                                                         // if there's an alert, create the alert object
+    Serial1.print("\"alert\":[");
+    Serial.print("\"alert\":[");
+    if (_al != "0") {                                                             // if there's an alert, wait for user to respond to alert
+//      pause_timers();
+      Serial1.print(_alert.getString(_cycle));
+      Serial.print(_alert.getString(_cycle));
+      while (1) {
+        int response = user_enter_long(30000);                                                  // wait 50 minutes for user to respond
+        if (response == -1) {
+          break;
+        }
+      }                  
+      if (_cycle != _pulses.getLength()) {                                                      // if it's the last cycle in the protocols, then don't add the comma
+        Serial1.print("\",");
+        Serial.print("\",");                  
+      }
+    }
+  }
+}
+

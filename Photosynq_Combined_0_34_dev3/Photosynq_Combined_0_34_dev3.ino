@@ -5,7 +5,7 @@
 /*
 
 to do:
-When we get all devices back ---
+When we get all devices back 
 put all wait times in milliseconds
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
 change intensity of actinic light in baseline calibration (so it doesn't max out).
@@ -14,7 +14,7 @@ change intensity of actinic light in baseline calibration (so it doesn't max out
  - added "alert" function between cycles
  - added "prompt" function between cycles, allows user imput which is returned in data JSON as prompt_rsp
  - added "note" which acts as an environmental variable, allows user input at beginning of end of measurement 
- - for all user inputted text (ie "prompt" or "note"), char limit is 999, do not use any of the following: [ ] + " ' 
+ - for all user inputted text (ie "prompt" or "note"), char limit is 999, do not use any of the following: [ ] + " ' !
  - cleaned up unnecessary spaces in output data JSON 
  - added ability to exit any delay (average, protocol, measurement, etc.) using -1+
  - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (all at once, no delay)
@@ -526,6 +526,10 @@ void loop() {
   for (int i=0;i<max_jsons;i++) {
     json2[i] = "";                                                              // reset all json2 char's to zero (ie reset all protocols)
   }
+  int alert_flag = 0;                                                            // flags to indicate if an alert, prompt, or confirm have been called at least once (to print the object name to data JSON)
+  int prompt_flag = 0;
+  int confirm_flag = 0;
+
   call_print_calibration(0);                                                                  // recall all data saved in eeprom
 
   digitalWriteFast(SAMPLE_AND_HOLD,LOW);                                          // discharge sample and hold in case the cap has be
@@ -785,8 +789,8 @@ void loop() {
         JsonArray detectors =     hashTable.getArray("detectors");                               // the Teensy pin # of the detectors used during those pulses, as an array of array.  For example, if pulses = [5,2] and detectors = [[34,35],[34,35]] .  
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
-        JsonArray alert =         hashTable.getArray("alert");                                // sends the user a message which they must reply -1+ to continue
-        JsonArray prompt =        hashTable.getArray("prompt");                                // sends the user a message to which they must reply <answer>+ to continue
+        JsonArray message_type =  hashTable.getArray("message_type");                                // sends the user a message which they must reply -1+ to continue
+        JsonArray message =       hashTable.getArray("message");                                // sends the user a message to which they must reply <answer>+ to continue
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
 
         long size_of_data_raw = 0;
@@ -1124,25 +1128,61 @@ void loop() {
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
               if (pulse == 0) {
 
+                String _message_type = message_type.getString(cycle);                                      // get what type of message it is
+
+                if (_message_type != "") {                                                                 // if there are some messages, then print object name...
+                  Serial1.print("\"message\":[");
+                  Serial.print("\"message\":[");
+                  Serial1.print("[");
+                  Serial.print("[");
+                  Serial1.print(message.getString(cycle));
+                  Serial.print(message.getString(cycle));
+                  Serial1.print(",");
+                  Serial.print(",");
+                  if (_message_type == "0") {
+                    Serial1.print("null]");
+                    Serial.print("null]");
+                  }
+                  else if (_message_type == "alert") {
+                    while (1) {
+                      int response = user_enter_long(300000);                                                  // wait 50 minutes for user to respond
+                      if (response == -1) {
+                        Serial1.print("\"ok\"]");
+                        Serial.print("\"ok\"]");
+                        break;
+                      }
+                    }
+                  }
+                  if (cycle != pulses.getLength()) {                                                      // if it's the last cycle in the protocols, then don't add the comma
+                    Serial1.print(",");
+                    Serial.print(",");                  
+                  }
+                  else if (cycle == pulses.getLength()) {                                                 // if it is the last cycle, then close out the array
+                    Serial1.print("],");
+                    Serial.print("],");                  
+                  }
+              }
+/*                
                 String al = alert.getString(cycle);
 
-                if (al != "") {                                                                         // if there's an alert, create the alert object
-                  Serial1.print("\"alert\":[");
-                  Serial.print("\"alert\":[");
-                }
-
-                if (al != "0" && al != "") {                                                             // if there's an alert, wait for user to respond to alert
+                if (al != "") {                                                                         // if there's an alert, wait for user to respond to alert
+                  if (alert_flag == 0) {                                                                 // if it's the first time the alert has been found, then print alert to data JSON
+                    Serial1.print("\"alert\":[");
+                    Serial.print("\"alert\":[");
+                    alert_flag = 1;
+                  }
                   Serial1.print(alert.getString(cycle));
                   Serial.print(alert.getString(cycle));
                   while (1) {
-                    int response = user_enter_long(3000000);                                                  // wait 50 minutes for user to respond
+                    int response = user_enter_long(300000);                                                  // wait 50 minutes for user to respond
                     if (response == -1) {
                       break;
                     }
-                  }                  
-                  if (cycle != pulses.getLength());                                                      // if it's the last cycle in the protocols, then don't add the comma
-                  Serial1.print("\",");
-                  Serial.print("\",");                  
+                  }
+                  if (cycle != pulses.getLength()) {                                                      // if it's the last cycle in the protocols, then don't add the comma
+                    Serial1.print("\",");
+                    Serial.print("\",");                  
+                  }
                 }
                 
                 String pr = prompt.getString(cycle);
@@ -1153,12 +1193,13 @@ void loop() {
                   Serial.print(prompt.getString(cycle));
                   Serial1.print("\",\"prompt_rsp\":\"");
                   Serial.print("\",\"prompt_rsp\":\"");
-                  String response = user_enter_str(3000000,0);                                                  // wait 50 minutes for user to respond
+                  String response = user_enter_str(300000,0);                                                  // wait 50 minutes for user to respond
                   Serial.print(response);
                   Serial1.print(response);
                   Serial.print("\",");
                   Serial1.print("\",");
-                }  
+                }
+              */  
                 _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
                 _act1_light = act1_lights.getLong(cycle);
                 act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
