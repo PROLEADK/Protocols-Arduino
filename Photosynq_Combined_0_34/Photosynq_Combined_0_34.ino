@@ -1,63 +1,53 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .33
+#define FIRMWARE_VERSION .34
 
 /////////////////////CHANGE LOG/////////////////////
 /*
 
-analogRead(pin)
-analogWrite(pin,0 - 4095)
-- + time
-digitalRead(pin)
-digitalWriteFast(pin,0-1 or HIGH LOW)
+to do:
+When we get all devices back 
+put all wait times in milliseconds (averages, protocols, measurements)
+ - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
+change intensity of actinic light in baseline calibration (so it doesn't max out).
 
-<<<<<<< HEAD
-Most recent updates (33):
-- finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
-- for analog_write, user can also set the frequency and length of the pwm signal.
-- add 1015+10+... all at once
-=======
-next to do:
-- added ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
-- for analog_write, user can also set the frequency and length of the pwm signal.
->>>>>>> 0f430226775dae1940449662b6532f442c54534a
+ Most recent updates (34):
+ - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":["alert","heres alert message","0","prompt","prompt message here"]...
+ - "message_type" can be set as "alert", "confirm", or "prompt".
+   - "alert" response from user must be -1+ to continue
+   - "confirm" response from user is -1+ to continue, or 1+ to exit.  Any data collected so far will be displayed in data_raw, data which has been skipped is displayed as 0s
+   - "prompt" response from user is any test or numbers followed by +
+ - "message" is what should be displayed to the user (for example, "now choose a different leaf to continue")
+ - added "note" located in the "environmental" object (works the same as the other env vars like temp, co2, etc.).  Allows user input test at beginning of end of measurement
+ - for all user inputted text ("message" or "note"), char limit is 999, do not use any of the following: [ ] + " ' !
+ - cleaned up unnecessary spaces in output data JSON 
+ - added ability to exit any delay (average, protocol, measurement, etc.) using -1+
+ - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (send these all at once, no delay)
+ - now when there is no temperature and relative humidity sensor attached, it gives errors "no temp/rh found" or "no response from co2 sensor" type errors, in JSON format, in place of the values
+ - added 1027+ to initiate a software reset.  This is used to finish a firmware update from a hex file.  Chrome and android apps can use this to complete update.
 
-Most recent updates (32):
-- added initial (beta) functionality for analog_read, analog_write, digital_read, and digital_write.
-- added hard-coded firmware firsion (located at top of file) - so now you only enter device_id and manufacture_date with 1013+.
-- fixed memory leak (added additional free(json) and free(data_raw_average) at end of void loop() )
-- NOTE - maximum # of saved (measuring light != 0) data points is 8000 - 10000 depending on the size of the protocol JSON (larger protocol JSON means less memory to save data).
-
-<<<<<<< HEAD
-=======
-Most recent updates (31):
-- fixed bug that act2, alt1, and alt2 didn't work
-- added auto-update firmware version on firmware flash (no longer set in 1013+)
-
-Most recent updates (30):
-- added userdef1 - userdef6 variables to be saved to EEPROM. Users can add 2 values per saved variable (saved as array)
-- added spad_factor used to calculate spad for multispeq spad values.
+ Most recent updates (33):
+ - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
+ - analog_write works - in "environmental", write:  ["analog_read",<location 0/1>,<PWM pin #>,<PWM setting>,<PWM Frequency>,<Time to hold PWM in ms>]
+ - Now you can enter the main level number (like 1000+, 1015+ etc.) immediately followed by additional information successfully
+ - example - to enter calibration data you can enter 1019+5.432+6.54+-1+
+ - Next step is to allow chrome app to auto-push information to the device.
   
-Most recent updates (29):
-- cleaned up calling and printing calibrations, made simplifying print function
-- added other1 and other2 calibration save locations for user defined information
-- now you can 'get' calibrations by calling them in the protocol JSON - this info is then used in the macro to apply baselines or whatever, this includes:
-  - get_ir_baseline
-  - get_tcs_cal
-  - get_lights_cal
-  - get_blank_cal
-  - get_other_cal
-
->>>>>>> 0f430226775dae1940449662b6532f442c54534a
-/////////////////////LICENSE/////////////////////
+ Most recent updates (32):
+ - added initial (beta) functionality for analog_read, analog_write, digital_read, and digital_write.
+ - added hard-coded firmware firsion (located at top of file) - so now you only enter device_id and manufacture_date with 1013+.
+ - fixed memory leak (added additional free(json) and free(data_raw_average) at end of void loop() )
+ - NOTE - maximum # of saved (measuring light != 0) data points is 8000 - 10000 depending on the size of the protocol JSON (larger protocol JSON means less memory to save data).
+ 
+ /////////////////////LICENSE/////////////////////
  GPLv3 license
  by Greg Austic
  If you use this code, please be nice and attribute if possible and when reasonable!
  Libraries from Adafruit were used for TMP006 and TCS34725, as were code snippets from their examples for taking the measurements.  Lots of help from PJRC forum as well.  Thanks Adafruit and Paul and PJRC community!
  
  /////////////////////DESCRIPTION//////////////////////
-Using Arduino v1.0.5 w/ Teensyduino installed downloaded from http://www.pjrc.com/teensy/td_download.html, intended for use with Teensy 3.1
-
-For more details on hardware, apps, and other related software, go to https://github.com/Photosynq .  
+ Using Arduino v1.0.5 w/ Teensyduino installed downloaded from http://www.pjrc.com/teensy/td_download.html, intended for use with Teensy 3.1
+ 
+ For more details on hardware, apps, and other related software, go to https://github.com/Photosynq .  
  
  This file is used for the MultispeQ handheld spectrophotometers which are used in the PhotosynQ platform.  It is capable of taking a wide variety of measurements, including 
  fluorescence, 810 and 940 dirk, electrochromic shift, SPAD (chlorophyll content), and environmental variables like CO2, ambient temperature, contactless object temperature,
@@ -122,11 +112,7 @@ For more details on hardware, apps, and other related software, go to https://gi
  */
 
 //#define DEB0UG 1  // uncomment to add full debug features
-<<<<<<< HEAD
 //#define DEBUGSIMPLE 1  // uncomment to add partial debug features
-=======
-#define DEBUGSIMPLE 1  // uncomment to add partial debug features
->>>>>>> 0f430226775dae1940449662b6532f442c54534a
 //#define DAC 1 // uncomment for boards which do not use DAC for light intensity control
 
 #include <Time.h>                                                             // enable real time clock library
@@ -171,24 +157,42 @@ float manufacture_date = 0;
 int _meas_light;															 // measuring light to be used during the interrupt
 int serial_buffer_size = 5000;                                        // max size of the incoming jsons
 int max_jsons = 15;                                                   // max number of protocols per measurement
-float all_pins [26] = {15,16,11,12,2,20,14,10,34,35,36,37,38,3,4,9,24,25,26,27,28,29,30,31,32,33};
-float calibration_slope [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_yint [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_slope_factory [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_yint_factory [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_baseline_slope [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
-float calibration_baseline_yint [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float calibration_blank1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float calibration_blank2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float calibration_other1 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float calibration_other2 [26] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-float userdef0[2] = {};
-float userdef1[2] = {};
-float userdef2[2] = {};
-float userdef3[2] = {};
-float userdef4[2] = {};
-float userdef5[2] = {};
-float userdef6[2] = {};
+float all_pins [26] = {
+  15,16,11,12,2,20,14,10,34,35,36,37,38,3,4,9,24,25,26,27,28,29,30,31,32,33};
+float calibration_slope [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_yint [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_slope_factory [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_yint_factory [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_baseline_slope [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};  
+float calibration_baseline_yint [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_blank1 [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_blank2 [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_other1 [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float calibration_other2 [26] = {
+  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+float userdef0[2] = {
+};
+float userdef1[2] = {
+};
+float userdef2[2] = {
+};
+float userdef3[2] = {
+};
+float userdef4[2] = {
+};
+float userdef5[2] = {
+};
+float userdef6[2] = {
+};
 int averages = 1;
 int pwr_off_state = 0;
 int pwr_off_lights_state = 0;
@@ -287,7 +291,10 @@ void setup() {
   TCS3471.setIntegrationTime(700.0);
   TCS3471.setGain(TCS3471_GAIN_1X);
   TCS3471.enable();
-        
+
+  pinMode(29,OUTPUT);
+
+  pinMode(3,INPUT);
   pinMode(MEASURINGLIGHT1, OUTPUT);                                             // set appropriate pins to output
   pinMode(MEASURINGLIGHT2, OUTPUT);
   pinMode(MEASURINGLIGHT3, OUTPUT);
@@ -311,9 +318,12 @@ void setup() {
   analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
   analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
   float default_resolution = 488.28;
-  int timer0 [8] = {5, 6, 9, 10, 20, 21, 22, 23};
-  int timer1 [2] = {3, 4};
-  int timer2 [2] = {25, 32}; 
+  int timer0 [8] = {
+    5, 6, 9, 10, 20, 21, 22, 23  };
+  int timer1 [2] = {
+    3, 4  };
+  int timer2 [2] = {
+    25, 32  }; 
   analogWriteFrequency(3, 187500);                                              // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
   analogWriteFrequency(5, 187500);
   pinMode(DAC_ON, OUTPUT);
@@ -321,19 +331,19 @@ void setup() {
 
   float tmp = 0;
   EEPROM_readAnything(16,tmp);
-  if (tmp != FIRMWARE_VERSION) {                    // if the current firmware version isn't what's saved in EEPROM memory, then...
-    EEPROM_writeAnything(16,(float) FIRMWARE_VERSION);                                  // save the current firmware version
+  if (tmp != (float) FIRMWARE_VERSION) {                                                // if the current firmware version isn't what's saved in EEPROM memory, then...
+    EEPROM_writeAnything(16,(float) FIRMWARE_VERSION);                          // save the current firmware version
   }
 }
 
 void pwr_off() { 
-    digitalWriteFast(PWR_OFF, HIGH);
-    delay(50);
-    digitalWriteFast(PWR_OFF, LOW);
-    Serial.println("{\"pwr_off\":\"HIGH\"}");
-    Serial1.println("{\"pwr_off\":\"HIGH\"}");
-    Serial.println();
-    Serial1.println();
+  digitalWriteFast(PWR_OFF, HIGH);
+  delay(50);
+  digitalWriteFast(PWR_OFF, LOW);
+  Serial.println("{\"pwr_off\":\"HIGH\"}");
+  Serial1.println("{\"pwr_off\":\"HIGH\"}");
+  Serial.println();
+  Serial1.println();
 }
 
 void pwr_off_lights() {
@@ -351,26 +361,26 @@ void pwr_off_lights() {
     digitalWriteFast(PWR_OFF_LIGHTS, LOW);    
     pwr_off_lights_state = 0;
   }
-    Serial.println();
-    Serial1.println();
+  Serial.println();
+  Serial1.println();
 }
 
 /*
 Battery output:
-batt_level:[bv0,bv1,bv2]
-
-battery data intepretation:
-if bv0 - bv1 < .1 - state: "USB Power Only"
-else if bv1 < 5 && bv0 > 7 - state "Low quality batteries, replace with NiMh or Li"
-else if bv1 < 5 - state "Replace batteries"
-else if bv0 - bv1 > .1, then:
-  if bv0 < 6.6 - state "Replace batteries"
-  if 6.6 - 7.1 - state "Batteries low"
-  if 7.1 - 7.6 - state "Batteries OK"
-  if 7.6 + - state "Batteries good"  
-
-Please print both the intepretation and the raw values (we'll want to watch them over time to get more info out of them).
-*/
+ batt_level:[bv0,bv1,bv2]
+ 
+ battery data intepretation:
+ if bv0 - bv1 < .1 - state: "USB Power Only"
+ else if bv1 < 5 && bv0 > 7 - state "Low quality batteries, replace with NiMh or Li"
+ else if bv1 < 5 - state "Replace batteries"
+ else if bv0 - bv1 > .1, then:
+ if bv0 < 6.6 - state "Replace batteries"
+ if 6.6 - 7.1 - state "Batteries low"
+ if 7.1 - 7.6 - state "Batteries OK"
+ if 7.6 + - state "Batteries good"  
+ 
+ Please print both the intepretation and the raw values (we'll want to watch them over time to get more info out of them).
+ */
 
 void batt_level() {
   dac.analogWrite(0,4095);                                        // if we are setting actinic equal to the light sensor, then do it!
@@ -403,13 +413,24 @@ void batt_level() {
 }
 
 void get_calibration(float slope[], float yint[],float _slope, float _yint, JsonArray cal,String name) {
-  if (cal.getLong(0) > 0) {                                                          // if get_ir_baseline is true, then...
+  if (cal.getLong(0) > 0) {                                                          // if get_ir_baseline is true, then...    
     Serial.print("\"");
     Serial.print(name);
     Serial.print("\": [");
     Serial1.print("\"");
     Serial1.print(name);
     Serial1.print("\": [");
+    if (_slope != 0) {
+      Serial.print(_slope);
+      Serial1.print(_slope);
+      if (yint [0] != 0) {
+        Serial.print(",");
+        Serial.print(_yint);                                                  // ignore second value if it's 0
+        Serial1.print(",");
+        Serial1.print(_yint);                                                  // ignore second value if it's 0
+      }
+    }
+    else if (_slope == 0) {
     for (int z = 0;z<cal.getLength();z++) {                                          // check each pins in the get_ir_baseline array, and for each pin...
       Serial.print("[");
       Serial.print(cal.getLong(z));                                                  // print the pin name
@@ -429,36 +450,49 @@ void get_calibration(float slope[], float yint[],float _slope, float _yint, Json
               Serial1.print(yint[i]);                                                // ignore second value if it's 0
             }
           }
-          else if (_slope != 0) {                                                       // if it's just a single value, then print this way...
-            Serial.print(_slope);
-            Serial1.print(_slope);
-            if (yint [0] != 0) {
-              Serial.print(",");
-              Serial.print(_yint);                                                  // ignore second value if it's 0
-              Serial1.print(",");
-              Serial1.print(_yint);                                                  // ignore second value if it's 0
-            }
-          }
           Serial.print("]");
           Serial1.print("]");
           goto cal_end;                                                                            // bail if you found your pin
         }
       }
-      cal_end:
+cal_end:
       delay(1);
       if (z != cal.getLength()-1) {                                                  // add a comma if it's not the last value
-          Serial.print(",");
-          Serial1.print(",");
+        Serial.print(",");
+        Serial1.print(",");
       }
     }
-  Serial.print("],");
-  Serial1.print("],");
+    }
+    Serial.print("],");
+    Serial1.print("],");
   }
+}
+
+void measureit() {
+  int i;
+  int readit;
+  pinMode(A14,INPUT);
+  Serial.println(A14);
+  
+  for (i=0;i<100;i++) {
+    readit = analogRead(A14);
+    Serial.println(readit); 
+    delay(2000);
+  }
+  /*
+  for (i=0;i<100;i++) {
+   pinMode(3,OUTPUT);
+   digitalWrite(3, HIGH);
+   delay(2000);
+   digitalWrite(3, LOW);
+   delay(2000);
+   }
+   */
 }
 
 //////////////////////// MAIN LOOP /////////////////////////
 void loop() {
-  
+
   delay(50);
   int measurements = 1;                                                   // the number of times to repeat the entire measurement (all protocols)
   unsigned long measurements_delay = 0;                                    // number of milliseconds to wait between measurements  
@@ -476,7 +510,7 @@ void loop() {
   int _alt1_light_prev;
   int _alt2_light_prev;
   int act_background_light_prev = 13;
-  
+
   int cycle = 0;                                                                // current cycle number (start counting at 0!)
   int pulse = 0;                                                                // current pulse number
   int total_cycles;	                       	                        	// Total number of cycles - note first cycle is cycle 0
@@ -498,150 +532,110 @@ void loop() {
   for (int i=0;i<max_jsons;i++) {
     json2[i] = "";                                                              // reset all json2 char's to zero (ie reset all protocols)
   }
+
   call_print_calibration(0);                                                                  // recall all data saved in eeprom
-  
+
   digitalWriteFast(SAMPLE_AND_HOLD,LOW);                                          // discharge sample and hold in case the cap has be
   delay(10);
   digitalWriteFast(SAMPLE_AND_HOLD,HIGH);
 
   String choose = "0";
   while (Serial.peek() != '[' && Serial1.peek() != '[') {                      // wait till we see a "[" to start the JSON of JSONS
-     choose = user_enter_str(50,1);
-     if (choose == '[') {
-       break;
-     }                                                                         // if it's a '[' then skip the other stuff and get started with measurement
-     else if (choose.toInt() > 0 && choose.toInt() < 200) {                    // if it's 0 - 200 then go see full light of device testing
-       lighttests(choose.toInt());
-     }
-     else {
-       switch (choose.toInt()) {
-          case 1000:                                                                    // print "MultispeQ Ready" to USB and Bluetooth
-          Serial.read();
-          Serial1.read();
-          Serial.println("MultispeQ Ready");
-          Serial1.println("MultispeQ Ready");
-          break;
-          case 1001:                                                                    // power off completely (if USB connected, only batteries power down
-          Serial.read();
-          Serial1.read();
-          pwr_off();
-          break;
-          case 1002:                                                                    // configure bluetooth name and baud rate
-          Serial.read();
-          Serial1.read();
-          configure_bluetooth();
-          break;
-          case 1003:                                                                    // power down lights (TL1963) only
-          Serial.read();
-          Serial1.read();
-          pwr_off_lights();
-          break;
-          case 1004:                                                                    // show battery level and associated values
-          Serial.read();
-          Serial1.read();
-          batt_level();
-          break;
-          case 1005:                                                                    // print all calibration data
-          Serial.read();
-          Serial1.read();
-          call_print_calibration(1);
-          break;
-          case 1006:                                                                    // calibrate tcs light sensor to actual PAR values
-          Serial.read();
-          Serial1.read();
-          calibrate_light_sensor();
-          break;
-          case 1007:                                                                   // view device info  
-          Serial.read();
-          Serial1.read();    
-          set_device_info(0);                                                       
-          break;
-          case 1008:                                                                    // calibrate offset
-          Serial.read();
-          Serial1.read();    
-          calibrate_offset();
-          break;
-          case 1011:                                                                    // calibrate the lights (eeprom 60 - 300)
-          Serial.read();
-          Serial1.read();    
-          add_calibration(60);
-          break;
-          case 1012:                                                                    // factory calibration of lights (eeprom 300 - 540)
-          Serial.read();
-          Serial1.read();    
-          add_calibration(300);
-          break;
-          case 1013:                                                                    // view and set device info      
-          Serial.read();
-          Serial1.read();    
-          set_device_info(1);                                                                                                            
-          break;
-          case 1014:                                                                    // calibrate the baseline  (eeprom 540 - 880) 
-          Serial.read();  
-          Serial1.read();    
-          add_calibration(540);
-          break;
-          case 1015:                                                                   // calibrate the spad blanks  (eeprom 880 - 1120)
-          Serial.read();  
-          Serial1.read();    
-          add_calibration(880);
-          break;
-          case 1016:                                                                   // calibrate the other user defined calibrations  (eeprom 1120 - 1360)
-          Serial.read();  
-          Serial1.read();    
-          add_calibration(1120);
-          break;
-          case 1017:                                                                   // reset all saved EEPROM values to zero
-          Serial.read();  
-          Serial1.read();    
-          reset_all(0);
-          break;
-          case 1018:                                                                   // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
-          Serial.read();  
-          Serial1.read();    
-          reset_all(1);
-          break;
-          case 1019:                                                                   // save spad_factor value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(40);
-          break;
-          case 1020:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1360);
-          break;
-          case 1021:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1368);
-          break;
-          case 1022:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1376);
-          break;
-          case 1023:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1384);
-          break;
-          case 1024:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1392);
-          break;
-          case 1025:                                                                   // save user defined value to EEPROM
-          Serial.read();  
-          Serial1.read();    
-          add_userdef(1400);
-          break;
-       }
+    choose = user_enter_str(50,1);
+
+    if (choose.toInt() > 0 && choose.toInt() < 200) {                    // if it's 0 - 200 then go see full light of device testing
+      lighttests(choose.toInt());
+      serial_bt_flush();                                                             // flush serial port if it's none of the above things
+    }
+    else {
+      switch (choose.toInt()) {
+      case false:                                                                   // if it's not a number, then exit switch and check to see if it's a protocol
+        break;
+      case 1000:                                                                    // print "MultispeQ Ready" to USB and Bluetooth
+        Serial.println("MultispeQ Ready");
+        Serial1.println("MultispeQ Ready");
+        break;
+      case 1001:                                                                    // power off completely (if USB connected, only batteries power down
+        pwr_off();
+        break;
+      case 1002:                                                                    // configure bluetooth name and baud rate
+        configure_bluetooth();
+        break;
+      case 1003:                                                                    // power down lights (TL1963) only
+        pwr_off_lights();
+        break;
+      case 1004:                                                                    // show battery level and associated values
+        batt_level();
+        break;
+      case 1005:                                                                    // print all calibration data
+        call_print_calibration(1);
+        break;
+      case 1006:                                                                    // calibrate tcs light sensor to actual PAR values
+        calibrate_light_sensor();
+        break;
+      case 1007:                                                                   // view device info  
+        set_device_info(0);                                                       
+        break;
+      case 1008:                                                                    // calibrate offset
+        calibrate_offset();
+        break;
+      case 1011:                                                                    // calibrate the lights (eeprom 60 - 300)
+        add_calibration(60);
+        break;
+      case 1012:                                                                    // factory calibration of lights (eeprom 300 - 540)
+        add_calibration(300);
+        break;
+      case 1013:                                                                    // view and set device info      
+        set_device_info(1);                                                                                                            
+        break;
+      case 1014:                                                                    // calibrate the baseline  (eeprom 540 - 880) 
+        add_calibration(540);
+        break;
+      case 1015:                                                                   // calibrate the spad blanks  (eeprom 880 - 1120)
+        add_calibration(880);
+        break;
+      case 1016:                                                                   // calibrate the other user defined calibrations  (eeprom 1120 - 1360)
+        add_calibration(1120);
+        break;
+      case 1017:                                                                   // reset all saved EEPROM values to zero
+        reset_all(0);
+        break;
+      case 1018:                                                                   // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
+        reset_all(1);
+        break;
+      case 1019:                                                                   // save spad_factor value to EEPROM
+        add_userdef(40);
+        break;
+      case 1020:                                                                   // save user defined value to EEPROM
+        add_userdef(1360);
+        break;
+      case 1021:                                                                   // save user defined value to EEPROM
+        add_userdef(1368);
+        break;
+      case 1022:                                                                   // save user defined value to EEPROM
+        add_userdef(1376);
+        break;
+      case 1023:                                                                   // save user defined value to EEPROM
+        add_userdef(1384);
+        break;
+      case 1024:                                                                   // save user defined value to EEPROM
+        add_userdef(1392);
+        break;
+      case 1025:                                                                   // save user defined value to EEPROM
+        add_userdef(1400);
+        break;
+      case 1026:
+        measureit();
+        break;
+      case 1027:
+        _reboot_Teensyduino_();                                                    // restart teensy
+        break;
+      }
     }
   }        
   if (Serial.peek() == 91) {
 #ifdef DEBUGSIMPLE
-    Serial.println("comp serial");
+    Serial.println("computer serial");
 #endif
     which_serial = 1;
   }
@@ -654,14 +648,14 @@ void loop() {
 
   Serial.read();                                       // flush the "["
   Serial1.read();                                       // flush the "["
-  
+
   switch (which_serial) {
-    case 0:
+  case 0:
     Serial.println("error in choosing bluetooth or serial");
     Serial1.println("error in choosing bluetooth or serial");
     break;
-    
-    case 1:
+
+  case 1:
     Serial.setTimeout(2000);                                          // make sure set timeout is 1 second
     Serial.readBytesUntil('!',serial_buffer,serial_buffer_size);
     for (int i=0;i<5000;i++) {                                    // increments through each char in incoming transmission - if it's open curly, it saves all chars until closed curly.  Any other char is ignored.
@@ -684,7 +678,7 @@ void loop() {
     }
     break;
 
-    case 2:
+  case 2:
     Serial1.setTimeout(1000);                                          // make sure set timeout is 1 second
     Serial1.readBytesUntil('!',serial_buffer,serial_buffer_size);
     for (int i=0;i<5000;i++) {                                    // increments through each char in incoming transmission - if it's open curly, it saves all chars until closed curly.  Any other char is ignored.
@@ -697,7 +691,7 @@ void loop() {
         number_of_protocols++;
       }        
     }  
-    
+
     for (int i=0;i<number_of_protocols;i++) {
       if (json2[i] != '0') {
 #ifdef DEBUGSIMPLE
@@ -708,20 +702,20 @@ void loop() {
     }
     break;
   }
-      
+
   Serial1.print("{\"device_id\": ");                                                          //Begin JSON file printed to bluetooth on Serial ports
   Serial.print("{\"device_id\": ");
   Serial1.print(device_id,2);
   Serial.print(device_id,2);
-  Serial1.print(",\"firmware_version\": \"");
-  Serial.print(",\"firmware_version\": \"");
-  Serial1.print(FIRMWARE_VERSION);
-  Serial.print(FIRMWARE_VERSION);
-  Serial.print("\",\"sample\": [");
-  Serial1.print("\",\"sample\": [");
+  Serial1.print(",\"firmware_version\":\"");
+  Serial.print(",\"firmware_version\":\"");
+  Serial1.print(FIRMWARE_VERSION,3);
+  Serial.print(FIRMWARE_VERSION,3);
+  Serial.print("\",\"sample\":[");
+  Serial1.print("\",\"sample\":[");
 
   for (int y=0;y<measurements;y++) {                                                              // loop through the all measurements to create a measurement group
-  
+
     Serial.print("[");                                                                        // print brackets to define single measurement
     Serial1.print("[");
 
@@ -746,8 +740,9 @@ void loop() {
       }
 
       int protocols = 1;
+      int quit = 0;
       for (int u = 0;u<protocols;u++) {                                                        // the number of times to repeat the current protocol
-        String protocol_note =    hashTable.getString("protocol_note");                      // used only for calibration routines ("cal_true" = 1 or = 2)
+      
         String protocol_id =      hashTable.getString("protocol_id");                          // used to determine what macro to apply
         int analog_averages =     hashTable.getLong("analog_averages");                          // # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
         if (analog_averages == 0) {                                                              // if averages don't exist, set it to 1 automatically.
@@ -773,17 +768,17 @@ void loop() {
         }
         int act_background_light_intensity = hashTable.getLong("act_background_light_intensity");  // sets intensity of background actinic.  Choose this OR tcs_to_act.
         int tcs_to_act =          hashTable.getLong("tcs_to_act");                               // sets the % of response from the tcs light sensor to act as actinic during the run (values 1 - 100).  If tcs_to_act is not defined (ie == 0), then the act_background_light intensity is set to actintensity1.
-        int pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
-        int pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
+        long pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
+        long pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
         int offset_off =          hashTable.getLong("offset_off");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
         int get_offset =          hashTable.getLong("get_offset");                               // include detector offset information in the output
-  // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
+        // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
         JsonArray get_ir_baseline=hashTable.getArray("get_ir_baseline");                        // include the ir_baseline information from the device for the specified pins
         JsonArray get_tcs_cal =   hashTable.getArray("get_tcs_cal");                            // include the get_tcs_cal information from the device for the specified pins
         JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // include get_lights_cal information from the device for the specified pins
         JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // include the get_blank_cal information from the device for the specified pins
         JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // include the get_other_cal information from the device for the specified pins
-        JsonArray get_userdef0 =  hashTable.getArray("get_userdef0");                        // include the saved userdef0 information from the device
+        JsonArray get_userdef0 =  hashTable.getArray("get_userghdef0");                        // include the saved userdef0 information from the device
         JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // include the saved userdef1 information from the device
         JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // include the saved userdef2 information from the device
         JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // include the saved userdef3 information from the device
@@ -801,9 +796,9 @@ void loop() {
         JsonArray detectors =     hashTable.getArray("detectors");                               // the Teensy pin # of the detectors used during those pulses, as an array of array.  For example, if pulses = [5,2] and detectors = [[34,35],[34,35]] .  
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
+//        JsonArray message_type =  hashTable.getArray("message_type");                                // sends the user a message which they must reply -1+ to continue
+        JsonArray message =       hashTable.getArray("message");                                // sends the user a message to which they must reply <answer>+ to continue
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
-        
-
 
         long size_of_data_raw = 0;
         long total_pulses = 0;      
@@ -819,31 +814,31 @@ void loop() {
         }
         free(data_raw_average);                                                            // free malloc of data_raw_average
         data_raw_average = (long*)calloc(size_of_data_raw,sizeof(long));                   // get some memory space for data_raw_average, initialize all at zero.
-  
-  #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
         Serial.println();
         Serial.print("size of data raw:  ");
         Serial.println(size_of_data_raw);
-  
+
         Serial.println();
         Serial.print("total number of pulses:  ");
         Serial.println(total_pulses);
-  
+
         Serial.println();
         Serial.print("all data in data_raw_average:  ");
         for (int i=0;i<size_of_data_raw;i++) {
           Serial.print(data_raw_average[i]);
         }
         Serial.println();
-  
+
         Serial.println();
         Serial.print("number of pulses:  ");
         Serial.println(pulses.getLength());
-  
+
         Serial.println();
         Serial.print("arrays in meas_lights:  ");
         Serial.println(meas_lights.getLength());
-  
+
         Serial.println();
         Serial.print("length of meas_lights arrays:  ");
         for (int i=0;i<meas_lights.getLength();i++) {
@@ -851,27 +846,30 @@ void loop() {
           Serial.print(", ");
         }
         Serial.println();
-  #endif
-        Serial.print("{\"protocol_id\": \"");
-        Serial1.print("{\"protocol_id\": \"");
+#endif
+        Serial.print("{");
+        Serial1.print("{");
+
+        quit = user_enter_long(5);                                                        // check to see if user has quit (send -1 on USB or bluetooth serial)
+/*
+        if (quit == -1) {
+          Serial.print("}]");
+          Serial1.print("}]");          
+          goto skipall;
+        }
+*/
+
+        Serial.print("\"protocol_id\":\"");
+        Serial1.print("\"protocol_id\":\"");
         Serial.print(protocol_id);
         Serial1.print(protocol_id);
         Serial.print("\",");
         Serial1.print("\",");
-        
+
         if (get_offset == 1) {
           print_offset(1);
         }
-        
-        if (protocol_note != "") {
-          Serial.print("\"protocol_note\": \"");
-          Serial1.print("\"protocol_note\": \"");
-          Serial.print(protocol_note);
-          Serial1.print(protocol_note);
-          Serial.print("\",");
-          Serial1.print("\",");
-          }
-          
+
         get_calibration(calibration_baseline_slope,calibration_baseline_yint,0,0,get_ir_baseline ,"get_ir_baseline");
         get_calibration(calibration_slope,calibration_yint,0,0,get_lights_cal ,"get_lights_cal");
         get_calibration(calibration_blank1,calibration_blank2,0,0,get_blank_cal,"get_blank_cal");
@@ -884,18 +882,18 @@ void loop() {
         get_calibration(0,0,userdef4[0],userdef4[1],get_userdef4,"get_userdef4");
         get_calibration(0,0,userdef5[0],userdef5[1],get_userdef5,"get_userdef5");
         get_calibration(0,0,userdef6[0],userdef6[1],get_userdef6,"get_userdef6");
-        
+
         if (averages > 1) {      
-          Serial1.print("\"averages\": "); 
-          Serial.print("\"averages\": "); 
+          Serial1.print("\"averages\":"); 
+          Serial.print("\"averages\":"); 
           Serial1.print(averages);  
           Serial.print(averages); 
           Serial1.print(","); 
           Serial.print(","); 
         }
 
-//        print_sensor_calibration(1);                                               // print sensor calibration data
-  
+        //        print_sensor_calibration(1);                                               // print sensor calibration data
+
         // this should be an array, so I can reset it all......
         analog_read_average = 0;
         digital_read_average = 0;
@@ -908,38 +906,40 @@ void loop() {
         g_average = 0;
         b_average = 0;
         calculate_offset(pulsesize);                                                                    // calculate the offset, based on the pulsesize and the calibration values (ax+b)
-        
-  #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
         Serial.println();
         Serial.print("\"offsets\": "); 
         Serial.print(offset_34);
         Serial.print(",");
         Serial.println(offset_35);
-  #endif
+#endif
+
         for (int x=0;x<averages;x++) {                                                       // Repeat the protocol this many times  
           int background_on = 0;
           long data_count = 0;
-        
+          int message_flag = 0;                                                              // flags to indicate if an alert, prompt, or confirm have been called at least once (to print the object name to data JSON)
+
           /*
       options for relative humidity, temperature, contactless temperature. light_intensity,co2
            0 - take before spectroscopy measurements
            1 - take after spectroscopy measurements
            */
-           
+
           for (int i=0;i<environmental.getLength();i++) {                                         // call environmental measurements
-  #ifdef DEBUGSIMPLE
+#ifdef DEBUGSIMPLE
             Serial.println("Here's the environmental measurements called:    ");
             Serial.print(environmental.getArray(i).getString(0));
             Serial.print(", ");
             Serial.println(environmental.getArray(i).getLong(1));
-  #endif
-  
+#endif
+
             if (environmental.getArray(i).getLong(1) == 0 \                                    
             && (String) environmental.getArray(i).getString(0) == "relative_humidity") {
               Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 2nd component in the array is == 0 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"relative_humidity\": ");
-                Serial.print("\"relative_humidity\": ");
+                Serial1.print("\"relative_humidity\":");
+                Serial.print("\"relative_humidity\":");
                 Serial1.print(relative_humidity_average);  
                 Serial1.print(",");
                 Serial.print(relative_humidity_average);  
@@ -950,8 +950,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"temperature\": ");
-                Serial.print("\"temperature\": ");
+                Serial1.print("\"temperature\":");
+                Serial.print("\"temperature\":");
                 Serial1.print(temperature_average);  
                 Serial1.print(",");
                 Serial.print(temperature_average);  
@@ -962,8 +962,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"contactless_temperature\": ");
-                Serial.print("\"contactless_temperature\": ");
+                Serial1.print("\"contactless_temperature\":");
+                Serial.print("\"contactless_temperature\":");
                 Serial1.print(objt_average);  
                 Serial1.print(",");
                 Serial.print(objt_average);  
@@ -974,8 +974,8 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"co2\": ");
-                Serial.print("\"co2\": ");
+                Serial1.print("\"co2\":");
+                Serial.print("\"co2\":");
                 Serial1.print(co2_value_average);  
                 Serial1.print(",");
                 Serial.print(co2_value_average);  
@@ -986,26 +986,26 @@ void loop() {
             && (String) environmental.getArray(i).getString(0) == "light_intensity") {
               Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"light_intensity\": ");
-                Serial.print("\"light_intensity\": ");
+                Serial1.print("\"light_intensity\":");
+                Serial.print("\"light_intensity\":");
                 Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
-                Serial1.print("\"r\": ");
-                Serial.print("\"r\": ");
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
                 Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
-                Serial1.print("\"g\": ");
-                Serial.print("\"g\": ");
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
                 Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
-                Serial1.print("\"b\": ");
-                Serial.print("\"b\": ");
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
                 Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(b_average));  
@@ -1018,8 +1018,8 @@ void loop() {
               pinMode(pin,INPUT);
               int analog_read = analogRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"analog_read\": ");
-                Serial.print("\"analog_read\": ");
+                Serial1.print("\"analog_read\":");
+                Serial.print("\"analog_read\":");
                 Serial1.print(analog_read);  
                 Serial1.print(",");
                 Serial.print(analog_read);  
@@ -1032,8 +1032,8 @@ void loop() {
               pinMode(pin,INPUT);
               int digital_read = digitalRead(pin);
               if (x == averages-1) {
-                Serial1.print("\"digital_read\": ");
-                Serial.print("\"digital_read\": ");
+                Serial1.print("\"digital_read\":");
+                Serial.print("\"digital_read\":");
                 Serial1.print(digital_read);  
                 Serial1.print(",");
                 Serial.print(digital_read);  
@@ -1050,39 +1050,58 @@ void loop() {
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "analog_write") {                      // perform analog write with length of time to apply the pwm
               int pin = environmental.getArray(i).getLong(2);
-              int wait = environmental.getArray(i).getLong(4);
               int setting = environmental.getArray(i).getLong(3);
-              int freq = environmental.getArray(i).getLong(3);
+              int freq = environmental.getArray(i).getLong(4);
+              int wait = environmental.getArray(i).getLong(5);
+#ifdef DEBUGSIMPLE
+              Serial.println(pin);
+              Serial.println(pin);
+              Serial.println(wait);
+              Serial.println(setting);
+              Serial.println(freq);              
+#endif
               pinMode(pin,OUTPUT);
               analogWriteFrequency(pin, freq);                                                           // set analog frequency
               analogWrite(pin,setting);
               delay(wait);
               analogWrite(pin,0);
-              analogWriteFrequency(pin, freq);                                                           // reset analog frequency
+              reset_freq();                                                                              // reset analog frequencies
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
+              if (x == 0) {                                                                // if it's the last measurement to average, then print the results
+                Serial1.print("\"note\":\"");
+                Serial.print("\"note\":\"");
+                String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+                Serial1.print(note);
+                Serial1.print("\",");
+                Serial.print(note);  
+                Serial.print("\",");                
+              }
             }
           }
-  
-        analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
-  
-        int actfull = 0;
-        int _tcs_to_act = 0;
-        float _light_intensity = lux_to_uE(lux_average);
-        _tcs_to_act = (uE_to_intensity(act_background_light,_light_intensity)*tcs_to_act)/100;
-  #ifdef DEBUGSIMPLE
-        Serial.println();
-        Serial.print("tcs to act: ");
-        Serial.println(_tcs_to_act);
-        Serial.print("ambient light in uE: ");
-        Serial.println(lux_to_uE(lux_average));
-        Serial.print("ue to intensity result:  ");
-        Serial.println(uE_to_intensity(act_background_light,lux_to_uE(lux_average)));                                                                             // NOTE: wait turn flip DAC switch until later.
-  #endif                                                                               
-        for (int z=0;z<total_pulses;z++) {                                            // cycle through all of the pulses from all cycles
-          int first_flag = 0;                                                           // flag to note the first pulse of a cycle
-          int act1_on = 0;
-          int act2_on = 0;
-          int alt1_on = 0;
-          int alt2_on = 0;
+
+          analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
+
+          int actfull = 0;
+          int _tcs_to_act = 0;
+          float _light_intensity = lux_to_uE(lux_average);
+          _tcs_to_act = (uE_to_intensity(act_background_light,_light_intensity)*tcs_to_act)/100;
+#ifdef DEBUGSIMPLE
+          Serial.println();
+          Serial.print("tcs to act: ");
+          Serial.println(_tcs_to_act);
+          Serial.print("ambient light in uE: ");
+          Serial.println(lux_to_uE(lux_average));
+          Serial.print("ue to intensity result:  ");
+          Serial.println(uE_to_intensity(act_background_light,lux_to_uE(lux_average)));  // NOTE: wait turn flip DAC switch until later.
+#endif
+          for (int z=0;z<total_pulses;z++) {                                            // cycle through all of the pulses from all cycles
+            int first_flag = 0;                                                           // flag to note the first pulse of a cycle
+            int act1_on = 0;
+            int act2_on = 0;
+            int alt1_on = 0;
+            int alt2_on = 0;
             if (cycle == 0 && pulse == 0) {                                             // if it's the beginning of a measurement, then...                                                             // wait a few milliseconds so that the actinic pulse presets can stabilize
               Serial.flush();                                                          // flush any remaining serial output info before moving forward          
               unsigned long starttimer0;
@@ -1095,8 +1114,8 @@ void loop() {
               }                                                                         // wait a full pulse size, then...                                                                                          
               timer1.begin(pulse2,pulsedistance);                                       // Begin second pulse
             }      
-  
-  #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
             Serial.println();
             Serial.print("cycle, measurement number, measurement array size,total pulses ");
             Serial.print(cycle); 
@@ -1110,17 +1129,92 @@ void loop() {
             Serial.print(_meas_light);
             Serial.print(", ");
             Serial.println(detector);
-  #endif      
-            if (pulse == 0) {
-              meas_array_size = meas_lights.getArray(cycle).getLength();                                // get the number of measurement/detector subsets in the new cycle
-              first_flag = 1;                                                                           // flip flag indicating that it's the 0th pulse and a new cycle
+#endif      
+            if (pulse == 0) {                                                                             // if it's the first pulse
+              meas_array_size = meas_lights.getArray(cycle).getLength();                                  // get the number of measurement/detector subsets in the new cycle
+              first_flag = 1;                                                                             // flip flag indicating that it's the 0th pulse and a new cycle
             }
-  
-            _meas_light = meas_lights.getArray(cycle).getLong(meas_number%meas_array_size);                                    // move to next measurement light
-            detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                                        // move to next detector
-  
+
+            _meas_light = meas_lights.getArray(cycle).getLong(meas_number%meas_array_size);               // move to next measurement light
+            detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                    // move to next detector
+
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
               if (pulse == 0) {
+                String _message_type = message.getArray(cycle).getString(0);                                // get what type of message it is
+                if ((_message_type != "" | quit == -1) && x == 0) {                                         // if there are some messages or the user has entered -1 to quit AND it's the first repeat of an average (so it doesn't ask these question on every average), then print object name...
+                  if (message_flag == 0) {                                                                 // if this is the first time the message has been printed, then print object name
+                    Serial1.print("\"message\":[");
+                    Serial.print("\"message\":[");
+                    message_flag = 1;
+                  }
+                  if (quit != -1) {                                                                          // if they haven't entered quit yet, check to make sure they didn't enter it since last time we checked
+                    quit = user_enter_long(5);                                                               // check to see if user has quit (send -1 on USB or bluetooth serial)
+                  }
+                  if (quit == -1) {                                                                          // if the user quit the measurement, then post any data produced so far (skipPart) and quit (skipall)
+                    Serial1.print("[]],");
+                    Serial.print("[]],");
+                    goto skipPart;
+                  }
+                  Serial1.print("[\"");
+                  Serial.print("[\"");
+                  Serial1.print(_message_type);                                                              // print message type
+                  Serial.print(_message_type);                                                               // print message
+                  Serial1.print("\",");
+                  Serial.print("\",");
+                  Serial1.print("\"");
+                  Serial.print("\"");
+                  Serial1.print(message.getArray(cycle).getString(1));                                       // print message
+                  Serial.print(message.getArray(cycle).getString(1));
+                  Serial1.print("\",");
+                  Serial.print("\",");
+                  if (_message_type == "0") {
+                    Serial1.print("\"\"]");
+                    Serial.print("\"\"]");
+                  }
+                  else if (_message_type == "alert") {                                                    // wait for user response to alert
+                    while (1) {
+                      int response = user_enter_long(3000000);           
+                      if (response == -1) {
+                        Serial1.print("\"ok\"]");
+                        Serial.print("\"ok\"]");
+                        break;
+                      }
+                    }
+                  }
+                  else if (_message_type == "confirm") {                                                  // wait for user's confirmation message.  If enters '1' then skip to end.
+                    while (1) {
+                      int response = user_enter_long(3000000);
+                      if (response == 1) {
+                        Serial1.print("\"cancel\"]],");
+                        Serial.print("\"cancel\"]],");
+                        goto skipPart;
+                      }
+                      if (response == -1) {
+                        Serial1.print("\"ok\"]");
+                        Serial.print("\"ok\"]");
+                        break;
+                      }
+                    }
+                  }
+                  else if (_message_type == "prompt") {                                                    // wait for user to input information, followed by +
+                    String response = user_enter_str(3000000,0);
+                    Serial1.print("\"");
+                    Serial.print("\"");
+                    Serial.print(response);
+                    Serial1.print(response);
+                    Serial1.print("\"]");
+                    Serial.print("\"]");
+                  }             
+                  if (cycle != pulses.getLength()-1) {                                                    // if it's not the last cycle, then add comma
+                    Serial1.print(",");
+                    Serial.print(",");                  
+                  }
+                  else {                                                                                 // if it is the last cycle, then close out the array
+                    Serial1.print("],");
+                    Serial.print("],");                  
+                  }
+                }
+
                 _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
                 _act1_light = act1_lights.getLong(cycle);
                 act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
@@ -1135,43 +1229,43 @@ void loop() {
                 alt2_on = calculate_intensity(_alt2_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);
               }
               calculate_intensity(_meas_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act);          // in addition, calculate the intensity of the current measuring light
-              
+
               switch (_meas_light) {                                                                    // set the DAC intensity for the measuring light only...
-                case 15:
-                  dac.analogWrite(3,meas_intensity);
-                case 16:
-                  dac.analogWrite(3,meas_intensity);
-                case 11:
-                  dac.analogWrite(3,meas_intensity);
-                case 12:
-                  dac.analogWrite(3,meas_intensity);
-                case 20:
-                  dac.analogWrite(0,act_intensity); 
-                case 2:
-                  dac.analogWrite(0,act_intensity);   
-                case 10:
-                  dac.analogWrite(2,cal_intensity);        
-                case 14:
-                  dac.analogWrite(2,cal_intensity);        
+              case 15:
+                dac.analogWrite(3,meas_intensity);
+              case 16:
+                dac.analogWrite(3,meas_intensity);
+              case 11:
+                dac.analogWrite(3,meas_intensity);
+              case 12:
+                dac.analogWrite(3,meas_intensity);
+              case 20:
+                dac.analogWrite(0,act_intensity); 
+              case 2:
+                dac.analogWrite(0,act_intensity);   
+              case 10:
+                dac.analogWrite(2,cal_intensity);        
+              case 14:
+                dac.analogWrite(2,cal_intensity);        
               }
               digitalWriteFast(DAC_ON, LOW);                                                       // and turn it on.
               delayMicroseconds(1);                                                     
               digitalWriteFast(DAC_ON, HIGH);                                              
-  
+
               if (pulse == 0) {
                 dac.analogWrite(0,act_intensity);                                                     // ...also write the new values to the DAC for actinic lights, but don't turn them on yet!     
                 dac.analogWrite(3,meas_intensity);
                 dac.analogWrite(2,cal_intensity);        
               }            
-              
-    #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
               Serial.print("actinic, measurement, and calibration intensities           ");
               Serial.print(act_intensity);
               Serial.print(",");
               Serial.print(meas_intensity);
               Serial.print(",");
               Serial.println(cal_intensity);
-    
+
               Serial.println("state of actinic lights                                   ");         
               Serial.print(act1_on);
               Serial.print(",");
@@ -1180,14 +1274,14 @@ void loop() {
               Serial.print(alt1_on);
               Serial.print(",");
               Serial.println(alt2_on);
-   #endif
+#endif
             }
-            
-            while (on == 0 | off == 0) {                                        	     // if ALL pulses happened, then...
+
+            while (on == 0 | off == 0) {                                                	 // if ALL pulses happened, then...
             }
-            data1 = analogRead(detector);                                              // save the detector reading as data1    
-            digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						// turn off sample and hold, and turn on lights for next pulse set
-  
+            data1 = analogRead(detector);                                                        // save the detector reading as data1    
+            digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						 // turn off sample and hold, and turn on lights for next pulse set
+
             if (first_flag == 1) {                                                                    // if this is the 0th pulse and a therefore new cycle
               digitalWriteFast(_act1_light_prev, LOW);                                                // turn off previous lights, turn on the new ones on (if light setting is zero, then no light on
               if (act1_on == 1) {                                                                      // only turn on if your supposed to!
@@ -1205,51 +1299,51 @@ void loop() {
               if (alt2_on == 1) {
                 digitalWriteFast(_alt2_light, HIGH);
               } 
-              
+
               digitalWriteFast(DAC_ON, LOW);                                               // now turn on the DAC with the new values for the next cycle
               delayMicroseconds(1);                                                     
               digitalWriteFast(DAC_ON, HIGH);                                              
               first_flag = 0;                                                              // reset flag
             }
-            
+
             float offset = 0;
             if (offset_off == 0) {
               switch (detector) {                                                          // apply offset to whicever detector is being used
-                case 34:
-                  offset = offset_34;
-                  break;
-                case 35:
-                  offset = offset_35;
-                  break;
+              case 34:
+                offset = offset_34;
+                break;
+              case 35:
+                offset = offset_35;
+                break;
               }
             }
-  
-  #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
             Serial.print("data count, size of raw data                                   ");
             Serial.print(data_count);  
             Serial.print(",");
             Serial.println(size_of_data_raw);
-  
-  #endif
+
+#endif
             if (_meas_light  != 0) {                                                      // save the data, so long as the measurement light is not equal to zero.
               data_raw_average[data_count] += data1 - offset;  
               data_count++;
             }
-  
+
             noInterrupts();                                                              // turn off interrupts because we're checking volatile variables set in the interrupts
             on = 0;                                                                      // reset pulse counters
             off = 0;  
             pulse++;                                                                     // progress the pulse counter and measurement number counter
-  
-  #ifdef DEBUGSIMPLE
+
+#ifdef DEBUGSIMPLE
             Serial.print("data point average, current data                               ");
             Serial.print(data_raw_average[meas_number]);
             Serial.print("!");
             Serial.println(data1); 
-  #endif
+#endif
             interrupts();                                                              // done with volatile variables, turn interrupts back on
             meas_number++;                                                              // progress measurement number counters
-  
+
             if (pulse == pulses.getLong(cycle)*meas_lights.getArray(cycle).getLength()) { // if it's the last pulse of a cycle...
               pulse = 0;                                                               // reset pulse counter      
               cycle++;                                                                 // ...move to next cycle
@@ -1257,7 +1351,7 @@ void loop() {
           }        
           background_on = 0;
           background_on = calculate_intensity_background(act_background_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act,act_background_light_intensity);  // figure out background light intensity and state
-  
+
           if (_act1_light != act_background_light) {                                  // turn off all lights unless they are the actinic background light  
             digitalWriteFast(_act1_light, LOW);
           }
@@ -1270,7 +1364,7 @@ void loop() {
           if (_alt2_light != act_background_light) {
             digitalWriteFast(_alt2_light, LOW);
           }
-          
+
           if (background_on == 1) {
             digitalWriteFast(DAC_ON, LOW);        
             delayMicroseconds(1);
@@ -1280,7 +1374,7 @@ void loop() {
           else {
             digitalWriteFast(act_background_light, LOW);                                // turn on actinic background light in case it was off previously.
           }     
-          
+
           timer0.end();                                                                  // if it's the last cycle and last pulse, then... stop the timers
           timer1.end();
           cycle = 0;                                                                     // ...and reset counters
@@ -1288,27 +1382,27 @@ void loop() {
           on = 0;
           off = 0;
           meas_number = 0;
-  
+
           /*
       options for relative humidity, temperature, contactless temperature. light_intensity,co2
            0 - take before spectroscopy measurements
            1 - take after spectroscopy measurements
            */
-           
+
           for (int i=0;i<environmental.getLength();i++) {                                             // call environmental measurements after the spectroscopic measurement
-  #ifdef DEBUGSIMPLE
+#ifdef DEBUGSIMPLE
             Serial.println("Here's the environmental measurements called:    ");
             Serial.print(environmental.getArray(i).getString(0));
             Serial.print(", ");
             Serial.println(environmental.getArray(i).getLong(1));
-  #endif
-  
+#endif
+
             if (environmental.getArray(i).getLong(1) == 1 \                                       
             && (String) environmental.getArray(i).getString(0) == "relative_humidity") {
               Relative_Humidity((int) environmental.getArray(i).getLong(1));                        // if this string is in the JSON and the 3rd component in the array is == 1 (meaning they want this measurement taken prior to the spectroscopic measurement), then call the associated measurement (and so on for all if statements in this for loop)
               if (x == averages-1) {                                                                // if it's the last measurement to average, then print the results
-                Serial1.print("\"relative_humidity\": ");
-                Serial.print("\"relative_humidity\": ");
+                Serial1.print("\"relative_humidity\":");
+                Serial.print("\"relative_humidity\":");
                 Serial1.print(relative_humidity_average);  
                 Serial1.print(",");
                 Serial.print(relative_humidity_average);  
@@ -1319,20 +1413,20 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "temperature") {
               Temperature((int) environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"temperature\": ");
-                Serial.print("\"temperature\": ");
+                Serial1.print("\"temperature\":");
+                Serial.print("\"temperature\":");
                 Serial1.print(temperature_average);  
                 Serial1.print(",");
                 Serial.print(temperature_average);  
                 Serial.print(",");     
               }       
-          }
+            }
             if (environmental.getArray(i).getLong(1) == 1 \
           && (String) environmental.getArray(i).getString(0) == "contactless_temperature") {
               Contactless_Temperature( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"contactless_temperature\": ");
-                Serial.print("\"contactless_temperature\": ");
+                Serial1.print("\"contactless_temperature\":");
+                Serial.print("\"contactless_temperature\":");
                 Serial1.print(objt_average);  
                 Serial1.print(",");
                 Serial.print(objt_average);  
@@ -1343,8 +1437,8 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "co2") {
               Co2( environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"co2\": ");
-                Serial.print("\"co2\": ");
+                Serial1.print("\"co2\":");
+                Serial.print("\"co2\":");
                 Serial1.print(co2_value_average);  
                 Serial1.print(",");
                 Serial.print(co2_value_average);  
@@ -1355,39 +1449,106 @@ void loop() {
           && (String) environmental.getArray(i).getString(0) == "light_intensity") {
               Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
-                Serial1.print("\"light_intensity\": ");
-                Serial.print("\"light_intensity\": ");
+                Serial1.print("\"light_intensity\":");
+                Serial.print("\"light_intensity\":");
                 Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
-                Serial1.print("\"r\": ");
-                Serial.print("\"r\": ");
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
                 Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
-                Serial1.print("\"g\": ");
-                Serial.print("\"g\": ");
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
                 Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
-                Serial1.print("\"b\": ");
-                Serial.print("\"b\": ");
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
                 Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(b_average));  
                 Serial.print(",");  
               }
             }
-          } 
-          calculations();
-          if (x+1 < averages) {                                                             // countdown to next average, unless it's the end of the very last run
-            countdown(averages_delay);
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "analog_read") {                      // perform analog reads
+              int pin = environmental.getArray(i).getLong(2);
+              pinMode(pin,INPUT);
+              int analog_read = analogRead(pin);
+              if (x == averages-1) {
+                Serial1.print("\"analog_read\":");
+                Serial.print("\"analog_read\":");
+                Serial1.print(analog_read);  
+                Serial1.print(",");
+                Serial.print(analog_read);  
+                Serial.print(",");                
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "digital_read") {                      // perform digital reads
+              int pin = environmental.getArray(i).getLong(2);
+              pinMode(pin,INPUT);
+              int digital_read = digitalRead(pin);
+              if (x == averages-1) {
+                Serial1.print("\"digital_read\":");
+                Serial.print("\"digital_read\":");
+                Serial1.print(digital_read);  
+                Serial1.print(",");
+                Serial.print(digital_read);  
+                Serial.print(",");                
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "digital_write") {                      // perform digital write
+              int pin = environmental.getArray(i).getLong(2);
+              int setting = environmental.getArray(i).getLong(3);
+              pinMode(pin,OUTPUT);
+              digitalWriteFast(pin,setting);
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "analog_write") {                      // perform analog write with length of time to apply the pwm
+              int pin = environmental.getArray(i).getLong(2);
+              int setting = environmental.getArray(i).getLong(3);
+              int freq = environmental.getArray(i).getLong(4);
+              int wait = environmental.getArray(i).getLong(5);
+#ifdef DEBUGSIMPLE
+              Serial.println(pin);
+              Serial.println(pin);
+              Serial.println(wait);
+              Serial.println(setting);
+              Serial.println(freq);              
+#endif
+              pinMode(pin,OUTPUT);
+              analogWriteFrequency(pin, freq);                                                           // set analog frequency
+              analogWrite(pin,setting);
+              delay(wait);
+              analogWrite(pin,0);
+              reset_freq();                                                                              // reset analog frequencies
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
+              if (x == 0) {                                                                // if it's the last measurement to average, then print the results
+                Serial1.print("\"note\":\"");
+                Serial.print("\"note\":\"");
+                String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+                Serial1.print(note);
+                Serial1.print("\",");
+                Serial.print(note);  
+                Serial.print("\",");                
+              }
+            }            
+          }
+          if (x+1 < averages) {                                                               //  to next average, unless it's the end of the very last run
+            user_enter_long(averages_delay*1000);
           }
         }
-        Serial1.print("\"data_raw\":[");                                                    // print the averaged results
+        skipPart:                                                                             // skip to the end of the protocol
+        Serial1.print("\"data_raw\":[");                                                      // print the averaged results
         Serial.print("\"data_raw\":[");
         for (int i=0;i<size_of_data_raw;i++) {                                                  // print data_raw, divided by the number of averages
           Serial.print(data_raw_average[i]/averages);
@@ -1399,7 +1560,11 @@ void loop() {
         }
         Serial1.println("]}");                                                              // close out the data_raw and protocol
         Serial.println("]}");
-
+        if (quit == -1) {                                                                   // after printing any remaining data, skip the rest and close out the measurement
+          Serial1.print("]");                                                              // close out the data_raw and protocol
+          Serial.print("]");
+          goto skipall;
+        }
 #ifdef DEBUGSIMPLE
         Serial.print("# of protocols repeats, current protocol repeat, number of total protocols, current protocol      ");
         Serial.print(protocols);
@@ -1409,17 +1574,18 @@ void loop() {
         Serial.print(number_of_protocols);
         Serial.print(",");
         Serial.println(q);
-#endif      
+#endif 
+
         if (q < number_of_protocols-1 | u < protocols-1) {                               // if it's not the last protocol in the measurement and it's not the last repeat of the current protocol, add a comma
           Serial.print(",");
           Serial1.print(",");
-          delay(protocols_delay*1000);
+          user_enter_long(protocols_delay*1000);
         }
         else if (q == number_of_protocols-1 && u == protocols-1) {                      // if it is the last protocol, then close out the data json
           Serial.print("]");
           Serial1.print("]");
         }      
-  
+
         averages = 1;   			                                        // number of times to repeat the entire run 
         averages_delay = 0;                  	                                                // seconds wait time between averages
         analog_averages = 1;                                                             // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
@@ -1442,24 +1608,27 @@ void loop() {
         g_average = 0;
         b_average = 0;
         act_background_light_prev = act_background_light;                               // set current background as previous background for next protocol
-  #ifdef DEBUGSIMPLE
+#ifdef DEBUGSIMPLE
         Serial.println("previous light set to:   ");
         Serial.println(act_background_light_prev);
-  #endif    
+#endif    
       }
     }
     serial_bt_flush();
-    
+
     if (y < measurements-1) {                                                      // add commas between measurements
       Serial.print(",");
       Serial1.print(",");
-      delay(measurements_delay*1000);                                                   // delay between measurements
+      user_enter_long(measurements_delay*1000);
     }
   }
+  skipall:
   Serial.println("]}");
   Serial.println("");
+//  Serial.print("!");  
   Serial1.println("]}");
   Serial1.println("");
+//  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
   free(data_raw_average);                                                         // free the calloc() of data_raw_average
@@ -1469,7 +1638,6 @@ void loop() {
 void pulse1() {		                                                        // interrupt service routine which turns the measuring light on
   digitalWriteFast(SAMPLE_AND_HOLD, LOW);		            		 // turn on measuring light and/or actinic lights etc., tick counter
   digitalWriteFast(_meas_light, HIGH);						// turn on measuring light
-  data1 = analogRead(detector);                                              // save the detector reading as data1
   on=1;
 }
 
@@ -1480,16 +1648,16 @@ void pulse2() {    	                                                        // i
 
 void lighttests_all() {
 
- // enter value to increment lights (suggested value is 40) followed by +
- // or press only +0 to exit
+  // enter value to increment lights (suggested value is 40) followed by +
+  // or press only +0 to exit
 
   double increment = user_enter_dbl(60000);
 
-  Serial.print("{\"response\": \"");
-  Serial1.print("{\"response\": \""); 
- 
+  Serial.print("{\"response\":\"");
+  Serial1.print("{\"response\":\""); 
+
   if (increment == 0) {
-  //back to main menu
+    //back to main menu
     goto skipit;
   }
   Serial.print(increment);  
@@ -1599,7 +1767,7 @@ void lighttests_all() {
     delay(50);
   }
   digitalWriteFast(MEASURINGLIGHT2,LOW);
-  
+
   digitalWriteFast(MEASURINGLIGHT3,HIGH);
   Serial.println();
   Serial.print("DAC number:   ");
@@ -1624,231 +1792,231 @@ void lighttests_all() {
     delay(50);
   }
   digitalWriteFast(MEASURINGLIGHT4,LOW);
-  skipit:
+skipit:
   serial_bt_flush();
   Serial.println("\"}");
   Serial.println("");
   Serial1.println("\"}");
   Serial1.println("");
 }
-  
+
 void lighttests(int _choose) {
 
   float sensor_value = 0;
   digitalWriteFast(DAC_ON, LOW);                                               // leave DAC on for light tests.
 
-    dac.analogWrite(0,4095);                                                       // write to input register of a DAC. channel 0 for high (saturating).  0 (low) - 4095 (high).  1 step = +3.654uE  
-    dac.analogWrite(1,4095);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-    digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, LOW);                         // preset the switch to the actinic (low) preset position
-    dac.analogWrite(2,4095);                                                       // write to input register of a DAC. channel 2, calibrating light.  0 (low) - 4095 (high).  1 step = +3.654uE  
-    dac.analogWrite(3,4095);                                                       // write to input register of a DAC. channel 3 measuring light.  0 (high) - 4095 (low).  2092 = 0.  From 2092 to zero, 1 step = +.2611uE
-    digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, HIGH);
+  dac.analogWrite(0,4095);                                                       // write to input register of a DAC. channel 0 for high (saturating).  0 (low) - 4095 (high).  1 step = +3.654uE  
+  dac.analogWrite(1,4095);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+  digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, LOW);                         // preset the switch to the actinic (low) preset position
+  dac.analogWrite(2,4095);                                                       // write to input register of a DAC. channel 2, calibrating light.  0 (low) - 4095 (high).  1 step = +3.654uE  
+  dac.analogWrite(3,4095);                                                       // write to input register of a DAC. channel 3 measuring light.  0 (high) - 4095 (low).  2092 = 0.  From 2092 to zero, 1 step = +.2611uE
+  digitalWriteFast(ACTINICLIGHT_INTENSITY_SWITCH, HIGH);
 
-    serial_bt_flush();
-    if (_choose == 98) {
-      call_print_calibration(0);
-      int tcs_to_act = 100;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
-      int _tcs_to_act = 0;                                                           // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
-      double dac_setting = 0;
-      while (1) {
-        dac_setting = user_enter_dbl(60000);
-        if (dac_setting == -1) {
-          goto end;
-        }
-        serial_bt_flush();
-        dac.analogWrite(0,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        if (dac_setting != 0) {
-          digitalWriteFast(ACTINICLIGHT1, HIGH);
-        }
-        else {
-          digitalWriteFast(ACTINICLIGHT1, LOW);
-        }
+  serial_bt_flush();
+  if (_choose == 98) {
+    call_print_calibration(0);
+    int tcs_to_act = 100;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
+    int _tcs_to_act = 0;                                                           // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
+    double dac_setting = 0;
+    while (1) {
+      dac_setting = user_enter_dbl(60000);
+      if (dac_setting == -1) {
+        goto end;
       }
-      end:
       serial_bt_flush();
-      digitalWriteFast(ACTINICLIGHT1, LOW);
+      dac.analogWrite(0,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      if (dac_setting != 0) {
+        digitalWriteFast(ACTINICLIGHT1, HIGH);
+      }
+      else {
+        digitalWriteFast(ACTINICLIGHT1, LOW);
+      }
     }
-    
-    if (_choose == 99) {
-      call_print_calibration(0);
-      float ambient_light = 0;
-      int _light = user_enter_dbl(60000);                                          // enter the light [15,16,11,2,20]
-      int tcs_to_act = 100;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
-      int _tcs_to_act = 0;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
-      Serial.print("{\"act_to_tcs\":[");
-      Serial1.print("{\"act_to_tcs\":[");
-      dac.analogWrite(0,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-      dac.analogWrite(3,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-      while (Serial.available()<3 && Serial1.available()<3) {
-        digitalWriteFast(_light, HIGH);
-        sensor_value = lux_to_uE(Light_Intensity(1));
-        _tcs_to_act = (uE_to_intensity(_light,sensor_value)*tcs_to_act)/100;
+end:
+    serial_bt_flush();
+    digitalWriteFast(ACTINICLIGHT1, LOW);
+  }
+
+  if (_choose == 99) {
+    call_print_calibration(0);
+    float ambient_light = 0;
+    int _light = user_enter_dbl(60000);                                          // enter the light [15,16,11,2,20]
+    int tcs_to_act = 100;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
+    int _tcs_to_act = 0;                                                          // the actinic value is == to the ambient value (100 is ==, 200 is 2x, 50 is .5x, etc.)
+    Serial.print("{\"act_to_tcs\":[");
+    Serial1.print("{\"act_to_tcs\":[");
+    dac.analogWrite(0,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+    dac.analogWrite(3,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+    while (Serial.available()<3 && Serial1.available()<3) {
+      digitalWriteFast(_light, HIGH);
+      sensor_value = lux_to_uE(Light_Intensity(1));
+      _tcs_to_act = (uE_to_intensity(_light,sensor_value)*tcs_to_act)/100;
 #ifdef DEBUGSIMPLE
-        Serial.print(sensor_value);
-        Serial1.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(",");
-        Serial.print(lux_to_uE(sensor_value));
-        Serial1.print(lux_to_uE(sensor_value));
-        Serial.print(",");
-        Serial1.print(",");
-        Serial.print(tcs_to_act);
-        Serial1.print(tcs_to_act);
-        Serial.println();
-        Serial1.println();
+      Serial.print(sensor_value);
+      Serial1.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(",");
+      Serial.print(lux_to_uE(sensor_value));
+      Serial1.print(lux_to_uE(sensor_value));
+      Serial.print(",");
+      Serial1.print(",");
+      Serial.print(tcs_to_act);
+      Serial1.print(tcs_to_act);
+      Serial.println();
+      Serial1.println();
 #endif
-        if (sensor_value == 0) {                                                              // if the ambient light is zero, then turn off the light completely
-          digitalWriteFast(_light, LOW);
-        }
-        else {
-          dac.analogWrite(0,_tcs_to_act);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-          dac.analogWrite(3,_tcs_to_act);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        }
-        Serial.print(sensor_value);
-        Serial1.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(",");
-        Serial.print(_tcs_to_act);
-        Serial1.print(_tcs_to_act);
-        Serial.println(",");
-        Serial1.println(",");        
-        delay(1000);
+      if (sensor_value == 0) {                                                              // if the ambient light is zero, then turn off the light completely
+        digitalWriteFast(_light, LOW);
       }
-        serial_bt_flush();
-        digitalWriteFast(_light, LOW);      
+      else {
+        dac.analogWrite(0,_tcs_to_act);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+        dac.analogWrite(3,_tcs_to_act);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      }
+      Serial.print(sensor_value);
+      Serial1.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(",");
+      Serial.print(_tcs_to_act);
+      Serial1.print(_tcs_to_act);
+      Serial.println(",");
+      Serial1.println(",");        
+      delay(1000);
     }
-    serial_bt_flush(); 
-    if (_choose == 100) {
-      lighttests_all();
-      }
-    serial_bt_flush(); 
-    if (_choose == 101) {
-      Serial.print("{\"light_intensity\":[");
-      Serial1.print("{\"light_intensity\":[");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = lux_to_uE(Light_Intensity(1));
-        Serial.print(sensor_value);
-        Serial1.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(",");
-        delay(2000);
-      }
     serial_bt_flush();
+    digitalWriteFast(_light, LOW);      
+  }
+  serial_bt_flush(); 
+  if (_choose == 100) {
+    lighttests_all();
+  }
+  serial_bt_flush(); 
+  if (_choose == 101) {
+    Serial.print("{\"light_intensity\":[");
+    Serial1.print("{\"light_intensity\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = lux_to_uE(Light_Intensity(1));
+      Serial.print(sensor_value);
+      Serial1.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(",");
+      delay(2000);
     }
-    else if (_choose == 102) {                      // co2
-      Serial.print("{\"Co2_value\":[");
-      Serial1.print("{\"Co2_value\":[");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = Co2(1);
-        Serial.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(sensor_value);
-        Serial1.print(",");
-        delay(2000);
-      }
     serial_bt_flush();
+  }
+  else if (_choose == 102) {                      // co2
+    Serial.print("{\"Co2_value\":[");
+    Serial1.print("{\"Co2_value\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = Co2(1);
+      Serial.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(sensor_value);
+      Serial1.print(",");
+      delay(2000);
     }
-    else if (_choose == 103) {                      // temperature
-      Serial.print("{\"temperature\":[");
-      Serial1.print("{\"temperature\":[");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = Temperature(1);
-        Serial.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(sensor_value);
-        Serial1.print(",");
-        delay(2000);
-      }
     serial_bt_flush();
+  }
+  else if (_choose == 103) {                      // temperature
+    Serial.print("{\"temperature\":[");
+    Serial1.print("{\"temperature\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = Temperature(1);
+      Serial.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(sensor_value);
+      Serial1.print(",");
+      delay(2000);
     }
-    else if (_choose == 104) {                      //relative humidity
-      Serial.print("{\"relative_humidity\":[");
-      Serial1.print("{\"relative_humidity\":[");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = Relative_Humidity(1);
-        Serial.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(sensor_value);
-        Serial1.print(",");
-        delay(2000);
-      }
     serial_bt_flush();
+  }
+  else if (_choose == 104) {                      //relative humidity
+    Serial.print("{\"relative_humidity\":[");
+    Serial1.print("{\"relative_humidity\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = Relative_Humidity(1);
+      Serial.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(sensor_value);
+      Serial1.print(",");
+      delay(2000);
     }
-    else if (_choose == 105) {
-      Serial.print("{\"light_intensity\":[");
-      Serial1.print("{\"light_intensity\":[");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = Light_Intensity(1);
-        Serial.print(sensor_value);
-        Serial1.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(",");
-        delay(2000);
-      }
     serial_bt_flush();
+  }
+  else if (_choose == 105) {
+    Serial.print("{\"light_intensity\":[");
+    Serial1.print("{\"light_intensity\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = Light_Intensity(1);
+      Serial.print(sensor_value);
+      Serial1.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(",");
+      delay(2000);
     }
-    else if (_choose == 106) {
-      Serial1.print("{\"contactless_temperature\": [");
-      Serial.print("{\"contactless_temperature\": [");
-      while (Serial.available()<3 && Serial1.available()<3) {
-        sensor_value = Contactless_Temperature(1);
-        Serial.print(sensor_value);
-        Serial1.print(sensor_value);
-        Serial.print(",");
-        Serial1.print(",");
-        delay(200);
-      }
     serial_bt_flush();
+  }
+  else if (_choose == 106) {
+    Serial1.print("{\"contactless_temperature\":[");
+    Serial.print("{\"contactless_temperature\":[");
+    while (Serial.available()<3 && Serial1.available()<3) {
+      sensor_value = Contactless_Temperature(1);
+      Serial.print(sensor_value);
+      Serial1.print(sensor_value);
+      Serial.print(",");
+      Serial1.print(",");
+      delay(200);
     }
-    
-    if (_choose<34 && _choose>0) {
-      Serial1.print("{[");
-      Serial.print("{[");
-      int dac_setting = 0;
-      while (1) {
-        dac_setting = user_enter_dbl(60000);
-        if (dac_setting == -1) {
-          goto last;
-        }
-        serial_bt_flush();
-        dac.analogWrite(0,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        dac.analogWrite(1,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        dac.analogWrite(2,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        dac.analogWrite(3,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
-        digitalWriteFast(_choose, HIGH);      
-        if (dac_setting != 0) {
-          digitalWriteFast(_choose, HIGH);      
-        }
-        else {
-          digitalWriteFast(_choose, LOW);      
-        }
+    serial_bt_flush();
+  }
+
+  if (_choose<34 && _choose>0) {
+    Serial1.print("{[");
+    Serial.print("{[");
+    int dac_setting = 0;
+    while (1) {
+      dac_setting = user_enter_dbl(60000);
+      if (dac_setting == -1) {
+        goto last;
       }
-      last:
       serial_bt_flush();
-      digitalWriteFast(_choose, LOW);      
-    }
-    else if (_choose>33 && _choose <38) {
-      int reading = 0;
-      int pulsedistance = 0;
-      while (1) {
-        Serial.println();
-        Serial1.println();
-        pulsedistance = user_enter_dbl(60000);
-        if (pulsedistance == -1) {
-          goto final;
-        }
-        digitalWriteFast(SAMPLE_AND_HOLD, LOW);
-        delayMicroseconds(pulsedistance);
-        reading = analogRead(_choose);
-        digitalWriteFast(SAMPLE_AND_HOLD, HIGH);
-        Serial.print(reading);
-        Serial1.print(reading);
-        Serial.print(",");
-        Serial1.print(",");
+      dac.analogWrite(0,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      dac.analogWrite(1,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      dac.analogWrite(2,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      dac.analogWrite(3,dac_setting);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
+      digitalWriteFast(_choose, HIGH);      
+      if (dac_setting != 0) {
+        digitalWriteFast(_choose, HIGH);      
       }
-    final:
-    serial_bt_flush();
+      else {
+        digitalWriteFast(_choose, LOW);      
+      }
     }
+last:
+    serial_bt_flush();
+    digitalWriteFast(_choose, LOW);      
+  }
+  else if (_choose>33 && _choose <38) {
+    int reading = 0;
+    int pulsedistance = 0;
+    while (1) {
+      Serial.println();
+      Serial1.println();
+      pulsedistance = user_enter_dbl(60000);
+      if (pulsedistance == -1) {
+        goto final;
+      }
+      digitalWriteFast(SAMPLE_AND_HOLD, LOW);
+      delayMicroseconds(pulsedistance);
+      reading = analogRead(_choose);
+      digitalWriteFast(SAMPLE_AND_HOLD, HIGH);
+      Serial.print(reading);
+      Serial1.print(reading);
+      Serial.print(",");
+      Serial1.print(",");
+    }
+final:
+    serial_bt_flush();
+  }
   digitalWriteFast(DAC_ON, HIGH);                                               // turn DAC back off
   Serial.print(sensor_value);
   Serial1.print(sensor_value);
@@ -1862,7 +2030,7 @@ float Relative_Humidity(int var1) {
   if (var1 == 1 | var1 == 0) {
     float relative_humidity = htu.readHumidity();
 #ifdef DEBUGSIMPLE
-    Serial.print("\"relative_humidity\": ");
+    Serial.print("\"relative_humidity\":");
     Serial.print(relative_humidity);  
     Serial.print(",");
 #endif
@@ -1875,7 +2043,7 @@ float Temperature(int var1) {
   if (var1 == 1 | var1 == 0) {
     float temperature = htu.readTemperature();
 #ifdef DEBUGSIMPLE
-    Serial.print("\"temperature\": ");
+    Serial.print("\"temperature\":");
     Serial.print(temperature);  
     Serial.print(",");
 #endif
@@ -1887,10 +2055,10 @@ float Temperature(int var1) {
 int Light_Intensity(int var1) {
   if (var1 == 1 | var1 == 0 | var1 == 3) {
     word lux, r, g, b;
-	lux = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
-	r = TCS3471.readRData();
-	g = TCS3471.readGData();
-	b = TCS3471.readBData();
+    lux = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
+    r = TCS3471.readRData();
+    g = TCS3471.readGData();
+    b = TCS3471.readBData();
 #ifdef DEBUGSIMPLE
     Serial.print("\"light_intensity\": ");
     Serial.print(lux, DEC);
@@ -1942,12 +2110,12 @@ void print_sensor_calibration(int _open) {
   }
 }
 
-String user_enter_str(long timeout,int _pwr_off) {
+String user_enter_str (long timeout,int _pwr_off) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
-  char serial_buffer [32] = {0};
+  char serial_buffer [1000] = {0};
   String serial_string;
-  serial_bt_flush();
+  //  serial_bt_flush();
   long start1 = millis();
   long end1 = millis();
 #ifdef DEBUG
@@ -1965,23 +2133,25 @@ String user_enter_str(long timeout,int _pwr_off) {
       }
     }
   }
-  skip:
-    if (Serial.available()>0) {                                                          // if it's from USB, then read it.
-      if (Serial.peek() != '[') {
-        Serial.readBytesUntil('+',serial_buffer, 32);
-        serial_string = serial_buffer;
-        serial_bt_flush();
-      }
-      else {}
+skip:
+  if (Serial.available()>0) {                                                          // if it's from USB, then read it.
+    if (Serial.peek() != '[') {
+      Serial.readBytesUntil('+',serial_buffer, 1000);
+      serial_string = serial_buffer;
+      //        serial_bt_flush();
     }
-    else if (Serial1.available()>0) {                                                    // if it's from bluetooth, then read it instead.
-      if (Serial1.peek() != '[') {
-        Serial1.readBytesUntil('+',serial_buffer, 32);
-        serial_string = serial_buffer;
-        serial_bt_flush();
-      }
-      else {}
+    else {
     }
+  }
+  else if (Serial1.available()>0) {                                                    // if it's from bluetooth, then read it instead.
+    if (Serial1.peek() != '[') {
+      Serial1.readBytesUntil('+',serial_buffer, 1000);
+      serial_string = serial_buffer;
+      //        serial_bt_flush();
+    }
+    else {
+    }
+  }
   return serial_string;
   Serial.setTimeout(1000);
   Serial1.setTimeout(1000);
@@ -1991,7 +2161,8 @@ long user_enter_long(long timeout) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
   long val;  
-  char serial_buffer [32] = {0};
+  char serial_buffer [32] = {
+    0  };
   String serial_string;
   long start1 = millis();
   long end1 = millis();
@@ -2001,8 +2172,8 @@ long user_enter_long(long timeout) {
       goto skip;
     }
   }                        // wait until some info comes in over USB or bluetooth...
-  skip:
-   if (Serial1.available()>0) {                                                    // if it's from bluetooth, then read it instead.
+skip:
+  if (Serial1.available()>0) {                                                    // if it's from bluetooth, then read it instead.
     Serial1.readBytesUntil('+',serial_buffer, 32);
     serial_string = serial_buffer;
     val = atol(serial_string.c_str());  
@@ -2027,7 +2198,8 @@ double user_enter_dbl(long timeout) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
   double val;
-  char serial_buffer [32] = {0};
+  char serial_buffer [32] = {
+    0  };
   String serial_string;
   long start1 = millis();
   long end1 = millis();
@@ -2037,7 +2209,7 @@ double user_enter_dbl(long timeout) {
       goto skip;
     }
   }                        // wait until some info comes in over USB or bluetooth...
-  skip:
+skip:
   if (Serial.available()>0) {                                                          // if it's from USB, then read it.
     Serial.readBytesUntil('+',serial_buffer, 32);
     serial_string = serial_buffer;
@@ -2141,13 +2313,13 @@ void print_cal(String name, float array[],int last) {                           
   Serial1.print("\"");
   Serial1.print(name);
   Serial1.print("\":[");
-    for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
-      Serial.print(array[i]);
-      Serial1.print(array[i]);
-      if (i != sizeof(all_pins)/sizeof(int)-1) {        
-        Serial.print(",");    
-        Serial1.print(",");    
-      }
+  for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // recall the calibration arrays
+    Serial.print(array[i]);
+    Serial1.print(array[i]);
+    if (i != sizeof(all_pins)/sizeof(int)-1) {        
+      Serial.print(",");    
+      Serial1.print(",");    
+    }
   }
   Serial.print("]");    
   Serial1.print("]");    
@@ -2165,17 +2337,19 @@ void print_cal(String name, float array[],int last) {                           
 
 void reset_all(int which) {
   if (which == 0) {
-    int clean [1408] = {};
+    int clean [1408] = {
+    };
     EEPROM_writeAnything(0,clean);
   }
   else {
-    int clean [1348] = {};
+    int clean [1348] = {
+    };
     EEPROM_writeAnything(60,clean);                                                      // only reset the arrays, leave other calibrations
   }  
 }
 
 void call_print_calibration (int _print) {
-     
+
   EEPROM_readAnything(0,tmp006_cal_S);
   EEPROM_readAnything(4,light_slope);
   EEPROM_readAnything(8,light_y_intercept);
@@ -2203,7 +2377,7 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(1384,userdef4);
   EEPROM_readAnything(1392,userdef5);
   EEPROM_readAnything(1400,userdef6);
-  
+
   if (_print == 1) {                                                                                      // if this should be printed to COM port --
     Serial.print("{");
     Serial1.print("{");
@@ -2238,8 +2412,8 @@ void call_print_calibration (int _print) {
 void save_calibration_slope (int _pin,float _slope_val,int location) {
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-       EEPROM_writeAnything(location+i*4,_slope_val);
-//        save_eeprom_dbl(_slope_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
+      EEPROM_writeAnything(location+i*4,_slope_val);
+      //        save_eeprom_dbl(_slope_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
     }
   }
 }
@@ -2247,8 +2421,8 @@ void save_calibration_slope (int _pin,float _slope_val,int location) {
 float save_calibration_yint (int _pin,float _yint_val,int location) {
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-       EEPROM_writeAnything(location+i*4,_yint_val);
-//        save_eeprom_dbl(_yint_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
+      EEPROM_writeAnything(location+i*4,_yint_val);
+      //        save_eeprom_dbl(_yint_val,location+i*10);                                                                   // then in the same index location in the calibrations array, save the inputted value.
     }
   }
 }
@@ -2279,10 +2453,10 @@ void add_calibration (int location) {                                           
     }                                                                                            // THIS IS STUPID... not sure why but for some reason you have to split up the eeprom saves or they just won't work... at leats this works...
     save_calibration_slope(pin,slope_val,location);                                                      // save the value in the calibration string which corresponding pin index in all_pins
     save_calibration_yint(pin,yint_val,location+120);                                                      // save the value in the calibration string which corresponding pin index in all_pins
-    skipit:
+skipit:
     delay(1);
   }
-  final:
+final:
   serial_bt_flush();
   call_print_calibration(1);
 }
@@ -2339,13 +2513,14 @@ void print_offset(int _open) {
 void add_userdef(int location) {
 
   call_print_calibration(1);
+  float userdef;
   for (int i=0;i<2;i++) {                        // loop twice for 2 values per userdef
-    float userdef = user_enter_dbl(60000);  
-    Serial.print(userdef,2);
-    Serial1.print(userdef,2);
+    userdef = user_enter_dbl(60000);  
+    Serial.print(userdef,6);
+    Serial1.print(userdef,6);
     EEPROM_writeAnything(location+i*4,userdef);
-    serial_bt_flush();  
   }  
+  serial_bt_flush();  
   call_print_calibration(1);
 }
 
@@ -2357,52 +2532,53 @@ void calibrate_offset() {
   Serial.print(slope_34,2);
   Serial1.print(slope_34,2);
   EEPROM_writeAnything(24,slope_34);
-  serial_bt_flush();
+  //  serial_bt_flush();
 
   yintercept_34 = user_enter_dbl(60000);  
   Serial.print(yintercept_34,2);
   Serial1.print(yintercept_34,2);
   EEPROM_writeAnything(28,yintercept_34);
-  serial_bt_flush();
+  //  serial_bt_flush();
 
   slope_35 = user_enter_dbl(60000);  
   Serial.print(slope_35,2);
   Serial1.print(slope_35,2);
   EEPROM_writeAnything(32,slope_35);
-  serial_bt_flush();
+  //  serial_bt_flush();
 
   yintercept_35 = user_enter_dbl(60000);  
   Serial.print(yintercept_35,2);
   Serial1.print(yintercept_35,2);
   EEPROM_writeAnything(36,yintercept_35);
+  //  serial_bt_flush();
+
   serial_bt_flush();
-  
   call_print_calibration(1);
 }
 
 void calibrate_light_sensor() {
 
-    call_print_calibration(1);
+  call_print_calibration(1);
 
-    light_slope = user_enter_dbl(60000);  
-    Serial.print(light_slope,6);
-    Serial1.print(light_slope,6);
-    EEPROM_writeAnything(4,light_slope);
-    Serial.print("success");
-    Serial1.print("success");
-    serial_bt_flush();
+  light_slope = user_enter_dbl(60000);  
+  Serial.print(light_slope,6);
+  Serial1.print(light_slope,6);
+  EEPROM_writeAnything(4,light_slope);
+  //    Serial.print("success");
+  //    Serial1.print("success");
 
-    light_y_intercept = user_enter_dbl(60000);  
-    Serial.print(light_y_intercept,6);
-    Serial1.print(light_y_intercept,6);
-    EEPROM_writeAnything(8,light_y_intercept);
-    Serial.print("success\"");
-    Serial1.print("success\"");
-    serial_bt_flush();
-    Serial.println("},");                  // close out JSON
-    Serial1.println("},");  
+  light_y_intercept = user_enter_dbl(60000);  
+  Serial.print(light_y_intercept,6);
+  Serial1.print(light_y_intercept,6);
+  EEPROM_writeAnything(8,light_y_intercept);
+  //    Serial.print("success\"");
+  //    Serial1.print("success\"");
+  //    serial_bt_flush();
+  Serial.println("},");                  // close out JSON
+  Serial1.println("},");  
 
-    call_print_calibration(1);
+  serial_bt_flush();
+  call_print_calibration(1);
 }
 
 float Contactless_Temperature(int var1) {
@@ -2434,64 +2610,64 @@ float Contactless_Temperature(int var1) {
       return objt;
     }
     else {
-    objt_average += objt / averages;
-    return objt;
+      objt_average += objt / averages;
+      return objt;
     }
   }
   /*
   else if (var1 == 3) {
-    Serial.println("Place a piece of black electrical tape, or other high emissivity item in the leaf clip and permanently clamp the clip with a rubber band.  Place the entire unit in a cooler out of the sun for 15 minutes to let the temeprature come to equilibrium in the space.  Once finished, press any key and the calibration will continue.  It will take anywhere between 30 seconds and 10 minutes, depending how far out of calibration you were initially");
-    int tmp006_up = 0;
-    int tmp006_down = 0;
-    float tmp006_walk = 2;
-    while (Serial.available()<1) {
-    }                                         // wait for button press
-    while (tmp006_walk > .05 && tmp006_up < 100 && tmp006_down < 100) {     // if it's walked 100 steps in any direction or if it's zoned in on the value (ie walk is <.1) then save the final value to EEPROM
-      float objt = Contactless_Temperature(1);
-      delay(10);
-      float temperature = Temperature(1);
-      if (objt<temperature) {                                        // if the temperature using contactless temp sensor (tmp006) is less than the on-board temperature (htu21d)
-        tmp006_cal_S -= tmp006_walk;                                  // walk the calibration value down slightly
-        tmp006_up++;
-      }
-      else if (objt>temperature) {                                    // if the temperature using contactless temp sensor (tmp006) is less than the on-board temperature (htu21d)
-        tmp006_cal_S += tmp006_walk;                                   // walk the calibration value down slightly
-        tmp006_down++;
-      }
-      Serial.print(tmp006_cal_S);
-      Serial.print(",");
-      Serial.print(tmp006_walk);
-      Serial.print(",");
-      Serial.print(tmp006_up);
-      Serial.print(",");
-      Serial.print(tmp006_down);
-      Serial.println();
-      delay(10);
-      if (tmp006_up>2 && tmp006_down>2) {                             // if it's walked back and forth a few times, then make the walk steps smaller (therefore more accurate)
-        tmp006_up = 0;
-        tmp006_down = 0;
-        tmp006_walk /= 5;
-      }
-    }
-    EEPROM_writeAnything(0,tmp006_cal_S);
-//    save_eeprom(tmp006_cal_S,240);
-    Serial.println("Finished calibration - new values saved!");
-  }
-  */
+   Serial.println("Place a piece of black electrical tape, or other high emissivity item in the leaf clip and permanently clamp the clip with a rubber band.  Place the entire unit in a cooler out of the sun for 15 minutes to let the temeprature come to equilibrium in the space.  Once finished, press any key and the calibration will continue.  It will take anywhere between 30 seconds and 10 minutes, depending how far out of calibration you were initially");
+   int tmp006_up = 0;
+   int tmp006_down = 0;
+   float tmp006_walk = 2;
+   while (Serial.available()<1) {
+   }                                         // wait for button press
+   while (tmp006_walk > .05 && tmp006_up < 100 && tmp006_down < 100) {     // if it's walked 100 steps in any direction or if it's zoned in on the value (ie walk is <.1) then save the final value to EEPROM
+   float objt = Contactless_Temperature(1);
+   delay(10);
+   float temperature = Temperature(1);
+   if (objt<temperature) {                                        // if the temperature using contactless temp sensor (tmp006) is less than the on-board temperature (htu21d)
+   tmp006_cal_S -= tmp006_walk;                                  // walk the calibration value down slightly
+   tmp006_up++;
+   }
+   else if (objt>temperature) {                                    // if the temperature using contactless temp sensor (tmp006) is less than the on-board temperature (htu21d)
+   tmp006_cal_S += tmp006_walk;                                   // walk the calibration value down slightly
+   tmp006_down++;
+   }
+   Serial.print(tmp006_cal_S);
+   Serial.print(",");
+   Serial.print(tmp006_walk);
+   Serial.print(",");
+   Serial.print(tmp006_up);
+   Serial.print(",");
+   Serial.print(tmp006_down);
+   Serial.println();
+   delay(10);
+   if (tmp006_up>2 && tmp006_down>2) {                             // if it's walked back and forth a few times, then make the walk steps smaller (therefore more accurate)
+   tmp006_up = 0;
+   tmp006_down = 0;
+   tmp006_walk /= 5;
+   }
+   }
+   EEPROM_writeAnything(0,tmp006_cal_S);
+   //    save_eeprom(tmp006_cal_S,240);
+   Serial.println("Finished calibration - new values saved!");
+   }
+   */
 }
 
 unsigned long Co2(int var1) {
   if (var1 == 1 | var1 == 0) {
     requestCo2(readCO2,2000);
     unsigned long co2_value = getCo2(response);
-  #ifdef DEBUGSIMPLE
-    Serial1.print("\"co2_content\": ");
-    Serial.print("\"co2_content\": ");
+#ifdef DEBUGSIMPLE
+    Serial1.print("\"co2_content\":");
+    Serial.print("\"co2_content\":");
     Serial1.print(co2_value);  
     Serial1.print(",");
     Serial.print(co2_value);  
     Serial.print(",");
-  #endif
+#endif
     delay(100);
     co2_value_average += co2_value / averages;
     return co2_value;
@@ -2516,14 +2692,14 @@ void requestCo2(byte packet[],int timeout) {
     }
   }
   switch (error) {
-    case 0:
+  case 0:
     while(Serial3.available() < 7 ) //Wait to get a 7 byte response
     {
       timeout++;  
       if(timeout > 10) {   //if it takes to long there was probably an error
-  #ifdef DEBUGSIMPLE
+#ifdef DEBUGSIMPLE
         Serial.println("I timed out!");
-  #endif
+#endif
         while(Serial3.available())  //flush whatever we have
             Serial3.read();
         break;                        //exit and try again
@@ -2532,12 +2708,12 @@ void requestCo2(byte packet[],int timeout) {
     }
     for (int i=0; i < 7; i++) {
       response[i] = Serial3.read();    
-  #ifdef DEBUGSIMPLE
+#ifdef DEBUGSIMPLE
       Serial.println("I got it!");
-  #endif
+#endif
     }  
     break;
-    case 1:
+  case 1:
     break;
   }
 }
@@ -2557,36 +2733,6 @@ int numDigits(int number) {
     digits++;
   }
   return digits;
-}
-
-int countdown(int _wait) {                                                                         // count down the number of seconds defined by wait
-  for (int z=0;z<_wait;z++) { 
-#ifdef DEBUG
-    Serial.print(_wait);
-    Serial.print(",");
-    Serial.print(z);
-#endif
-#ifdef DEBUGSIMPLE
-    Serial.print("Time remaining: ");
-    Serial.print(_wait-z);
-    Serial.print(", ");
-    Serial.println(Serial.available());    
-#endif
-    delay(1000);
-    if (Serial.peek() == 49) {                                                                      // THIS ISN'T IMPLEMENTED - can't really skip for some reason the incomign serial buffer keeps filling up
-#ifdef DEBUG
-      Serial.println("Ok - skipping wait!");
-#endif
-      delay(5);                                                                                    // if multiple buttons were pressed, make sure they all get into the serial cache...
-      z = _wait;
-      while (Serial.available()>0) {                                                                   //flush the buffer in case multiple buttons were pressed
-        Serial.read();
-      }
-    }
-  }
-}
-
-void calculations() {
 }
 
 float getFloatFromSerialMonitor(){                                               // getfloat function from Gabrielle Miller on cerebralmeltdown.com - thanks!
@@ -2653,59 +2799,59 @@ double readObjTempC_mod(void) {
 
 void i2cWrite(byte address, byte count, byte* buffer)
 {
-    Wire.beginTransmission(address);
-    byte i;
-    for (i = 0; i < count; i++)
-    {
+  Wire.beginTransmission(address);
+  byte i;
+  for (i = 0; i < count; i++)
+  {
 #if ARDUINO >= 100
-        Wire.write(buffer[i]);
+    Wire.write(buffer[i]);
 #else
-        Wire.send(buffer[i]);
+    Wire.send(buffer[i]);
 #endif
-    }
-    Wire.endTransmission();
+  }
+  Wire.endTransmission();
 }
 
 void i2cRead(byte address, byte count, byte* buffer)
 {
-    Wire.requestFrom(address, count);
-    byte i;
-    for (i = 0; i < count; i++)
-    {
+  Wire.requestFrom(address, count);
+  byte i;
+  for (i = 0; i < count; i++)
+  {
 #if ARDUINO >= 100
-        buffer[i] = Wire.read();
+    buffer[i] = Wire.read();
 #else
-        buffer[i] = Wire.receive();
+    buffer[i] = Wire.receive();
 #endif
-    }
+  }
 }
 
 void set_device_info(int _set) {
-  serial_bt_flush();
-  Serial.print("{\"device_id\": ");
+  //  serial_bt_flush();
+  Serial.print("{\"device_id\":");
   Serial.print(device_id,2);
   Serial.println(",");
-  Serial.print("\"firmware_version\": ");
-  Serial.print(FIRMWARE_VERSION);
+  Serial.print("\"firmware_version\":");
+  Serial.print(FIRMWARE_VERSION,3);
   Serial.println(",");
-  Serial.print("\"manufacture_date\": ");
+  Serial.print("\"manufacture_date\":");
   Serial.print(manufacture_date);
   Serial.println("}");
   Serial.println();
-  
-  Serial1.print("{\"device_id\": ");
+
+  Serial1.print("{\"device_id\":");
   Serial1.print(device_id,2);
   Serial1.println(",");
-  Serial1.print("\"firmware_version\": ");
-  Serial1.print(FIRMWARE_VERSION);
+  Serial1.print("\"firmware_version\":");
+  Serial1.print(FIRMWARE_VERSION,3);
   Serial1.println(",");
-  Serial1.print("\"manufacture_date\": ");
+  Serial1.print("\"manufacture_date\":");
   Serial1.print(manufacture_date);
   Serial1.println("}");
   Serial1.println();
-  
+
   if (_set == 1) {
-// please enter new device ID (integers only) followed by '+'
+    // please enter new device ID (integers only) followed by '+'
     device_id = user_enter_dbl(60000);
     Serial.println(device_id);  
     Serial1.println(device_id);  
@@ -2713,7 +2859,7 @@ void set_device_info(int _set) {
       goto device_end;
     }
     EEPROM_writeAnything(12,device_id);
-// please enter new date of manufacture (yyyymm) followed by '+'   
+    // please enter new date of manufacture (yyyymm) followed by '+'   
     manufacture_date = user_enter_dbl(60000);
     Serial.println(manufacture_date);  
     Serial1.println(manufacture_date);  
@@ -2723,8 +2869,8 @@ void set_device_info(int _set) {
     EEPROM_writeAnything(20,manufacture_date);
     set_device_info(0);
   }
+device_end:
   delay(1);
-  device_end:
   serial_bt_flush();
 }
 
@@ -2739,39 +2885,39 @@ void serial_bt_flush() {
 
 void configure_bluetooth () {
 
-// Bluetooth Programming Sketch for Arduino v1.2
-// By: Ryan Hunt <admin@nayr.net>
-// License: CC-BY-SA
-//
-// Standalone Bluetooth Programer for setting up inexpnecive bluetooth modules running linvor firmware.
-// This Sketch expects a bt device to be plugged in upon start. 
-// You can open Serial Monitor to watch the progress or wait for the LED to blink rapidly to signal programing is complete.
-// If programming fails it will enter command where you can try to do it manually through the Arduino Serial Monitor.
-// When programming is complete it will send a test message across the line, you can see the message by pairing and connecting
-// with a terminal application. (screen for linux/osx, hyperterm for windows)
-//
-// Hookup bt-RX to PIN 11, bt-TX to PIN 10, 5v and GND to your bluetooth module.
-//
-// Defaults are for OpenPilot Use, For more information visit: http://wiki.openpilot.org/display/Doc/Serial+Bluetooth+Telemetry
+  // Bluetooth Programming Sketch for Arduino v1.2
+  // By: Ryan Hunt <admin@nayr.net>
+  // License: CC-BY-SA
+  //
+  // Standalone Bluetooth Programer for setting up inexpnecive bluetooth modules running linvor firmware.
+  // This Sketch expects a bt device to be plugged in upon start. 
+  // You can open Serial Monitor to watch the progress or wait for the LED to blink rapidly to signal programing is complete.
+  // If programming fails it will enter command where you can try to do it manually through the Arduino Serial Monitor.
+  // When programming is complete it will send a test message across the line, you can see the message by pairing and connecting
+  // with a terminal application. (screen for linux/osx, hyperterm for windows)
+  //
+  // Hookup bt-RX to PIN 11, bt-TX to PIN 10, 5v and GND to your bluetooth module.
+  //
+  // Defaults are for OpenPilot Use, For more information visit: http://wiki.openpilot.org/display/Doc/Serial+Bluetooth+Telemetry
 
   Serial.print("{\"response\": \"");
   Serial1.print("{\"response\": \"");
-// Enter bluetooth device name as seen by other bluetooth devices (20 char max), followed by '+'.
+  // Enter bluetooth device name as seen by other bluetooth devices (20 char max), followed by '+'.
   String name = user_enter_str(60000,0);  
-// Enter current bluetooth device baud rate, followed by '+' (if new jy-mcu,it's probably 9600, if it's already had firmware installed by 115200)
+  // Enter current bluetooth device baud rate, followed by '+' (if new jy-mcu,it's probably 9600, if it's already had firmware installed by 115200)
   long baud_now = user_enter_dbl(60000);  
-// PLEASE NOTE - the pairing key has been set automatically to '1234'.
+  // PLEASE NOTE - the pairing key has been set automatically to '1234'.
 
   int pin =         1234;                    // Pairing Code for Module, 4 digits only.. (0000-9999)
   int led =         13;                      // Pin of Blinking LED, default should be fine.
   char* testMsg =   "PhotosynQ changing bluetooth name!!"; //
   int x;
   int wait =        1000;                    // How long to wait between commands (1s), dont change this.
-  
+
   pinMode(led, OUTPUT);
   Serial.begin(115200);                      // Speed of Debug Console
 
-// Configuring bluetooth module for use with PhotosynQ, please wait.
+  // Configuring bluetooth module for use with PhotosynQ, please wait.
   Serial1.begin(baud_now);                        // Speed of your bluetooth module, 9600 is default from factory.
   digitalWrite(led, HIGH);                 // Turn on LED to signal programming has started
   delay(wait);
@@ -2854,7 +3000,7 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity,
   Serial.print(",");
   Serial.println(cal_intensities.getLong(_cycle));
 #endif  
-  
+
   int on = 0;                                                                            // so identify the places to turn the light on by flipping this to 1
   if (_light == 2 | _light == 20) {                                                      // if it's a saturating light, and...
     if (act_intensities.getLong(_cycle) > 0) {                                            // if the actinic intensity is greater than zero then...
@@ -2866,7 +3012,7 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity,
       act_intensity = _tcs;                                                       // then turn light on, and set intensity to ambient
     }
   }
-  
+
   else if (_light == 15 | _light == 16 | _light == 11 | _light == 12) {     // if it's a measuring light, and...  
     if (meas_intensities.getLong(_cycle) > 0) {                                            // if the actinic intensity is greater than zero then...
       on = 1;
@@ -2877,7 +3023,7 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity,
       meas_intensity = _tcs;                                                       // then turn light on, and set intensity to ambient
     }
   }
-  
+
   else if (_light == 14 | _light == 10) {                                             // if it's a calibrating light, and...  
     if (cal_intensities.getLong(_cycle) > 0) {                                            // if the actinic intensity is greater than zero then...
       on = 1;
@@ -2948,11 +3094,27 @@ int calculate_intensity_background(int _light,int tcs_on,int _cycle,float _light
   return on;
 }
 
+void reset_freq() {
+  analogWriteFrequency(5, 187500);                                               // reset timer 0
+  analogWriteFrequency(3, 187500);                                               // reset timer 1
+  analogWriteFrequency(25, 488.28);                                              // reset timer 2
 /*
-// so set the current freq to old depending on timer, then set new.  Then in the analog write make sure to return to whatever the previous frequency was.
-float analogWriteFrequency_save(int pin, float freq, float prev_freq) {
-  freq_timer0 = freq;                                                             // save current frequency
-  analogWriteFrequency(3, 187500);                                              // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
-*/
+Teensy 3.0              Ideal Freq:
+16	0 - 65535	732 Hz	        366 Hz
+15	0 - 32767	1464 Hz	        732 Hz
+14	0 - 16383	2929 Hz	        1464 Hz
+13	0 - 8191	5859 Hz	        2929 Hz
+12	0 - 4095	11718 Hz	5859 Hz
+11	0 - 2047	23437 Hz	11718 Hz
+10	0 - 1023	46875 Hz	23437 Hz
+9	0 - 511	        93750 Hz	46875 Hz
+8	0 - 255	        187500 Hz	93750 Hz
+7	0 - 127	        375000 Hz	187500 Hz
+6	0 - 63	        750000 Hz	375000 Hz
+5	0 - 31	        1500000 Hz	750000 Hz
+4	0 - 15	        3000000 Hz	1500000 Hz
+3	0 - 7	        6000000 Hz	3000000 Hz
+2	0 - 3	        12000000 Hz	6000000 Hz
 
-
+ */
+}

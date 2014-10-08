@@ -1,23 +1,29 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .34
+#define FIRMWARE_VERSION .351
 
 /////////////////////CHANGE LOG/////////////////////
 /*
 
 to do:
-When we get all devices back ---
-put all wait times in milliseconds
+When we get all devices back 
+put all wait times in milliseconds (averages, protocols, measurements)
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
 change intensity of actinic light in baseline calibration (so it doesn't max out).
 
  Most recent updates (34):
- - added "alert" function between cycles
- - added "prompt" function between cycles, allows user imput which is returned in data JSON as prompt_rsp
- - added "note" which acts as an environmental variable, allows user input at beginning of end of measurement 
- - for all user inputted text (ie "prompt" or "note"), char limit is 999, do not use any of the following: [ ] + " ' 
+ - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":["alert","heres alert message","0","prompt","prompt message here"]...
+ - "message_type" can be set as "alert", "confirm", or "prompt".
+   - "alert" response from user must be -1+ to continue
+   - "confirm" response from user is -1+ to continue, or 1+ to exit.  Any data collected so far will be displayed in data_raw, data which has been skipped is displayed as 0s
+   - "prompt" response from user is any test or numbers followed by +
+ - "message" is what should be displayed to the user (for example, "now choose a different leaf to continue")
+ - added "note" located in the "environmental" object (works the same as the other env vars like temp, co2, etc.).  Allows user input test at beginning of end of measurement
+ - for all user inputted text ("message" or "note"), char limit is 999, do not use any of the following: [ ] + " ' !
  - cleaned up unnecessary spaces in output data JSON 
  - added ability to exit any delay (average, protocol, measurement, etc.) using -1+
- - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (all at once, no delay)
+ - added ability to exit a measurement (between protocols only, not inside a protocol) by using -1+-1+ (send these all at once, no delay)
+ - now when there is no temperature and relative humidity sensor attached, it gives errors "no temp/rh found" or "no response from co2 sensor" type errors, in JSON format, in place of the values
+ - added 1027+ to initiate a software reset.  This is used to finish a firmware update from a hex file.  Chrome and android apps can use this to complete update.
 
  Most recent updates (33):
  - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
@@ -325,8 +331,8 @@ void setup() {
 
   float tmp = 0;
   EEPROM_readAnything(16,tmp);
-  if (tmp != FIRMWARE_VERSION) {                    // if the current firmware version isn't what's saved in EEPROM memory, then...
-    EEPROM_writeAnything(16,(float) FIRMWARE_VERSION);                                  // save the current firmware version
+  if (tmp != (float) FIRMWARE_VERSION) {                                                // if the current firmware version isn't what's saved in EEPROM memory, then...
+    EEPROM_writeAnything(16,(float) FIRMWARE_VERSION);                          // save the current firmware version
   }
 }
 
@@ -526,6 +532,7 @@ void loop() {
   for (int i=0;i<max_jsons;i++) {
     json2[i] = "";                                                              // reset all json2 char's to zero (ie reset all protocols)
   }
+
   call_print_calibration(0);                                                                  // recall all data saved in eeprom
 
   digitalWriteFast(SAMPLE_AND_HOLD,LOW);                                          // discharge sample and hold in case the cap has be
@@ -619,6 +626,10 @@ void loop() {
         break;
       case 1026:
         measureit();
+        break;
+      case 1027:
+        _reboot_Teensyduino_();                                                    // restart teensy
+        break;
       }
     }
   }        
@@ -698,8 +709,8 @@ void loop() {
   Serial.print(device_id,2);
   Serial1.print(",\"firmware_version\":\"");
   Serial.print(",\"firmware_version\":\"");
-  Serial1.print(FIRMWARE_VERSION);
-  Serial.print(FIRMWARE_VERSION);
+  Serial1.print(FIRMWARE_VERSION,3);
+  Serial.print(FIRMWARE_VERSION,3);
   Serial.print("\",\"sample\":[");
   Serial1.print("\",\"sample\":[");
 
@@ -757,8 +768,8 @@ void loop() {
         }
         int act_background_light_intensity = hashTable.getLong("act_background_light_intensity");  // sets intensity of background actinic.  Choose this OR tcs_to_act.
         int tcs_to_act =          hashTable.getLong("tcs_to_act");                               // sets the % of response from the tcs light sensor to act as actinic during the run (values 1 - 100).  If tcs_to_act is not defined (ie == 0), then the act_background_light intensity is set to actintensity1.
-        int pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
-        int pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
+        long pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
+        long pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
         int offset_off =          hashTable.getLong("offset_off");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
         int get_offset =          hashTable.getLong("get_offset");                               // include detector offset information in the output
         // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
@@ -785,8 +796,8 @@ void loop() {
         JsonArray detectors =     hashTable.getArray("detectors");                               // the Teensy pin # of the detectors used during those pulses, as an array of array.  For example, if pulses = [5,2] and detectors = [[34,35],[34,35]] .  
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
-        JsonArray alert =         hashTable.getArray("alert");                                // sends the user a message which they must reply -1+ to continue
-        JsonArray prompt =        hashTable.getArray("prompt");                                // sends the user a message to which they must reply <answer>+ to continue
+//        JsonArray message_type =  hashTable.getArray("message_type");                                // sends the user a message which they must reply -1+ to continue
+        JsonArray message =       hashTable.getArray("message");                                // sends the user a message to which they must reply <answer>+ to continue
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
 
         long size_of_data_raw = 0;
@@ -840,12 +851,14 @@ void loop() {
         Serial1.print("{");
 
         quit = user_enter_long(5);                                                        // check to see if user has quit (send -1 on USB or bluetooth serial)
+/*
         if (quit == -1) {
           Serial.print("}]");
           Serial1.print("}]");          
           goto skipall;
         }
-        
+*/
+
         Serial.print("\"protocol_id\":\"");
         Serial1.print("\"protocol_id\":\"");
         Serial.print(protocol_id);
@@ -901,9 +914,11 @@ void loop() {
         Serial.print(",");
         Serial.println(offset_35);
 #endif
+
         for (int x=0;x<averages;x++) {                                                       // Repeat the protocol this many times  
           int background_on = 0;
           long data_count = 0;
+          int message_flag = 0;                                                              // flags to indicate if an alert, prompt, or confirm have been called at least once (to print the object name to data JSON)
 
           /*
       options for relative humidity, temperature, contactless temperature. light_intensity,co2
@@ -1054,13 +1069,15 @@ void loop() {
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
-              Serial1.print("\"note\":\"");
-              Serial.print("\"note\":\"");
-              String note = user_enter_str(3000000,0);                                            // wait for user to enter note
-              Serial1.print(note);
-              Serial1.print("\",");
-              Serial.print(note);  
-              Serial.print("\",");                
+              if (x == 0) {                                                                // if it's the last measurement to average, then print the results
+                Serial1.print("\"note\":\"");
+                Serial.print("\"note\":\"");
+                String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+                Serial1.print(note);
+                Serial1.print("\",");
+                Serial.print(note);  
+                Serial.print("\",");                
+              }
             }
           }
 
@@ -1123,42 +1140,81 @@ void loop() {
 
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
               if (pulse == 0) {
-
-                String al = alert.getString(cycle);
-
-                if (al != "") {                                                                         // if there's an alert, create the alert object
-                  Serial1.print("\"alert\":[");
-                  Serial.print("\"alert\":[");
-                }
-
-                if (al != "0" && al != "") {                                                             // if there's an alert, wait for user to respond to alert
-                  Serial1.print(alert.getString(cycle));
-                  Serial.print(alert.getString(cycle));
-                  while (1) {
-                    int response = user_enter_long(3000000);                                                  // wait 50 minutes for user to respond
-                    if (response == -1) {
-                      break;
-                    }
-                  }                  
-                  if (cycle != pulses.getLength());                                                      // if it's the last cycle in the protocols, then don't add the comma
+                String _message_type = message.getArray(cycle).getString(0);                                // get what type of message it is
+                if ((_message_type != "" | quit == -1) && x == 0) {                                         // if there are some messages or the user has entered -1 to quit AND it's the first repeat of an average (so it doesn't ask these question on every average), then print object name...
+                  if (message_flag == 0) {                                                                 // if this is the first time the message has been printed, then print object name
+                    Serial1.print("\"message\":[");
+                    Serial.print("\"message\":[");
+                    message_flag = 1;
+                  }
+                  if (quit != -1) {                                                                          // if they haven't entered quit yet, check to make sure they didn't enter it since last time we checked
+                    quit = user_enter_long(5);                                                               // check to see if user has quit (send -1 on USB or bluetooth serial)
+                  }
+                  if (quit == -1) {                                                                          // if the user quit the measurement, then post any data produced so far (skipPart) and quit (skipall)
+                    Serial1.print("[]],");
+                    Serial.print("[]],");
+                    goto skipPart;
+                  }
+                  Serial1.print("[\"");
+                  Serial.print("[\"");
+                  Serial1.print(_message_type);                                                              // print message type
+                  Serial.print(_message_type);                                                               // print message
                   Serial1.print("\",");
-                  Serial.print("\",");                  
-                }
-                
-                String pr = prompt.getString(cycle);
-                if (pr != "0" && pr != "") {                                                            // if there's a prompt, wait for user to repond to prompt
-                  Serial1.print("\"prompt_msg\":\"");
-                  Serial.print("\"prompt_msg\":\"");
-                  Serial1.print(prompt.getString(cycle));
-                  Serial.print(prompt.getString(cycle));
-                  Serial1.print("\",\"prompt_rsp\":\"");
-                  Serial.print("\",\"prompt_rsp\":\"");
-                  String response = user_enter_str(3000000,0);                                                  // wait 50 minutes for user to respond
-                  Serial.print(response);
-                  Serial1.print(response);
                   Serial.print("\",");
+                  Serial1.print("\"");
+                  Serial.print("\"");
+                  Serial1.print(message.getArray(cycle).getString(1));                                       // print message
+                  Serial.print(message.getArray(cycle).getString(1));
                   Serial1.print("\",");
-                }  
+                  Serial.print("\",");
+                  if (_message_type == "0") {
+                    Serial1.print("\"\"]");
+                    Serial.print("\"\"]");
+                  }
+                  else if (_message_type == "alert") {                                                    // wait for user response to alert
+                    while (1) {
+                      int response = user_enter_long(3000000);           
+                      if (response == -1) {
+                        Serial1.print("\"ok\"]");
+                        Serial.print("\"ok\"]");
+                        break;
+                      }
+                    }
+                  }
+                  else if (_message_type == "confirm") {                                                  // wait for user's confirmation message.  If enters '1' then skip to end.
+                    while (1) {
+                      int response = user_enter_long(3000000);
+                      if (response == 1) {
+                        Serial1.print("\"cancel\"]],");
+                        Serial.print("\"cancel\"]],");
+                        goto skipPart;
+                      }
+                      if (response == -1) {
+                        Serial1.print("\"ok\"]");
+                        Serial.print("\"ok\"]");
+                        break;
+                      }
+                    }
+                  }
+                  else if (_message_type == "prompt") {                                                    // wait for user to input information, followed by +
+                    String response = user_enter_str(3000000,0);
+                    Serial1.print("\"");
+                    Serial.print("\"");
+                    Serial.print(response);
+                    Serial1.print(response);
+                    Serial1.print("\"]");
+                    Serial.print("\"]");
+                  }             
+                  if (cycle != pulses.getLength()-1) {                                                    // if it's not the last cycle, then add comma
+                    Serial1.print(",");
+                    Serial.print(",");                  
+                  }
+                  else {                                                                                 // if it is the last cycle, then close out the array
+                    Serial1.print("],");
+                    Serial.print("],");                  
+                  }
+                }
+
                 _act1_light_prev = _act1_light;                                                           // save old actinic value as current value for act1,act2,alt1,and alt2
                 _act1_light = act1_lights.getLong(cycle);
                 act1_on = calculate_intensity(_act1_light,tcs_to_act,cycle,_light_intensity,_tcs_to_act); // calculate the intensities for each light and what light should be on or off.
@@ -1476,20 +1532,23 @@ void loop() {
             }
             if (environmental.getArray(i).getLong(1) == 1 \
             && (String) environmental.getArray(i).getString(0) == "note") {                      // insert notes or other data.  Limit 999 chars, do not use following chars []+"'
-              Serial1.print("\"note\":\"");
-              Serial.print("\"note\":\"");
-              String note = user_enter_str(3000000,0);                                            // wait for user to enter note
-              Serial1.print(note);
-              Serial1.print("\",");
-              Serial.print(note);  
-              Serial.print("\",");                
+              if (x == 0) {                                                                // if it's the last measurement to average, then print the results
+                Serial1.print("\"note\":\"");
+                Serial.print("\"note\":\"");
+                String note = user_enter_str(3000000,0);                                            // wait for user to enter note
+                Serial1.print(note);
+                Serial1.print("\",");
+                Serial.print(note);  
+                Serial.print("\",");                
+              }
             }            
           }
-          if (x+1 < averages) {                                                             //  to next average, unless it's the end of the very last run
-            user_enter_long(averages_delay);
+          if (x+1 < averages) {                                                               //  to next average, unless it's the end of the very last run
+            user_enter_long(averages_delay*1000);
           }
         }
-        Serial1.print("\"data_raw\":[");                                                    // print the averaged results
+        skipPart:                                                                             // skip to the end of the protocol
+        Serial1.print("\"data_raw\":[");                                                      // print the averaged results
         Serial.print("\"data_raw\":[");
         for (int i=0;i<size_of_data_raw;i++) {                                                  // print data_raw, divided by the number of averages
           Serial.print(data_raw_average[i]/averages);
@@ -1501,7 +1560,11 @@ void loop() {
         }
         Serial1.println("]}");                                                              // close out the data_raw and protocol
         Serial.println("]}");
-
+        if (quit == -1) {                                                                   // after printing any remaining data, skip the rest and close out the measurement
+          Serial1.print("]");                                                              // close out the data_raw and protocol
+          Serial.print("]");
+          goto skipall;
+        }
 #ifdef DEBUGSIMPLE
         Serial.print("# of protocols repeats, current protocol repeat, number of total protocols, current protocol      ");
         Serial.print(protocols);
@@ -1511,7 +1574,8 @@ void loop() {
         Serial.print(number_of_protocols);
         Serial.print(",");
         Serial.println(q);
-#endif      
+#endif 
+
         if (q < number_of_protocols-1 | u < protocols-1) {                               // if it's not the last protocol in the measurement and it's not the last repeat of the current protocol, add a comma
           Serial.print(",");
           Serial1.print(",");
@@ -1561,8 +1625,10 @@ void loop() {
   skipall:
   Serial.println("]}");
   Serial.println("");
+//  Serial.print("!");  
   Serial1.println("]}");
   Serial1.println("");
+//  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
   free(data_raw_average);                                                         // free the calloc() of data_raw_average
@@ -2766,7 +2832,7 @@ void set_device_info(int _set) {
   Serial.print(device_id,2);
   Serial.println(",");
   Serial.print("\"firmware_version\":");
-  Serial.print(FIRMWARE_VERSION);
+  Serial.print(FIRMWARE_VERSION,3);
   Serial.println(",");
   Serial.print("\"manufacture_date\":");
   Serial.print(manufacture_date);
@@ -2777,7 +2843,7 @@ void set_device_info(int _set) {
   Serial1.print(device_id,2);
   Serial1.println(",");
   Serial1.print("\"firmware_version\":");
-  Serial1.print(FIRMWARE_VERSION);
+  Serial1.print(FIRMWARE_VERSION,3);
   Serial1.println(",");
   Serial1.print("\"manufacture_date\":");
   Serial1.print(manufacture_date);
