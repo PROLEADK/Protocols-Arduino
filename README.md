@@ -45,6 +45,7 @@ http://www.pjrc.com/teensy/td_download.html
 * 1023:     // add user defined calibration values (2)
 * 1024:     // add user defined calibration values (2)
 * 1025:     // add user defined calibration values (2)
+* 1027:     // reboot teensy (used for loading hex files)
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
