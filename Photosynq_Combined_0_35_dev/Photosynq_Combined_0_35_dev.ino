@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .351
+#define FIRMWARE_VERSION .352
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -10,8 +10,12 @@ put all wait times in milliseconds (averages, protocols, measurements)
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
 change intensity of actinic light in baseline calibration (so it doesn't max out).
 
+ Most recent updates (35):
+ - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed.  
+ - these options have been optimized to improve the signal quality, and you can change them through the protocol JSON (sampling_speed, conversion_speed, averaging0, and resolution0 currently)
+ 
  Most recent updates (34):
- - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":["alert","heres alert message","0","prompt","prompt message here"]...
+ - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":[["alert","heres alert message"],["0","0"],["prompt","prompt message here"]]...
  - "message_type" can be set as "alert", "confirm", or "prompt".
    - "alert" response from user must be -1+ to continue
    - "confirm" response from user is -1+ to continue, or 1+ to exit.  Any data collected so far will be displayed in data_raw, data which has been skipped is displayed as 0s
@@ -26,7 +30,7 @@ change intensity of actinic light in baseline calibration (so it doesn't max out
  - added 1027+ to initiate a software reset.  This is used to finish a firmware update from a hex file.  Chrome and android apps can use this to complete update.
 
  Most recent updates (33):
- - finish ability to perform analog_read, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
+ - finish ability to perform, analog_write, digital_read, digital_write during the 'environmental' measurement (before or after spectroscopy).
  - analog_write works - in "environmental", write:  ["analog_read",<location 0/1>,<PWM pin #>,<PWM setting>,<PWM Frequency>,<Time to hold PWM in ms>]
  - Now you can enter the main level number (like 1000+, 1015+ etc.) immediately followed by additional information successfully
  - example - to enter calibration data you can enter 1019+5.432+6.54+-1+
@@ -130,6 +134,13 @@ change intensity of actinic light in baseline calibration (so it doesn't max out
 #include <SoftwareSerial.h>
 #include "EEPROMAnything.h"
 #include <typeinfo>
+#include <ADC.h>
+#include <avr/sleep.h>
+#include <LowPower_Teensy3.h>
+
+//////////////////////ADC INFORMATION AND LOW POWER MODE////////////////////////
+ADC *adc = new ADC();
+TEENSY3_LP LP = TEENSY3_LP();
 
 //////////////////////DEVICE ID FIRMWARE VERSION////////////////////////
 float device_id = 0;
@@ -312,11 +323,13 @@ void setup() {
   digitalWriteFast(PWR_OFF, LOW);                                               // pull high to power off, pull low to keep power.
   digitalWriteFast(PWR_OFF_LIGHTS, HIGH);                                               // pull high to power on, pull low to power down.
   pinMode(13, OUTPUT);
-  analogReadAveraging(1);                                                       // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u) - this gets changed later by each protocol
+//&&
+//  analogReadAveraging(1);                                                       // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u) - this gets changed later by each protocol
   pinMode(DETECTOR1, EXTERNAL);                                                 // use external reference for the detectors
   pinMode(DETECTOR2, EXTERNAL);
-  analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
-  analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
+//&&
+//  analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
+//  analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
   float default_resolution = 488.28;
   int timer0 [8] = {
     5, 6, 9, 10, 20, 21, 22, 23  };
@@ -492,7 +505,7 @@ void measureit() {
 
 //////////////////////// MAIN LOOP /////////////////////////
 void loop() {
-
+  
   delay(50);
   int measurements = 1;                                                   // the number of times to repeat the entire measurement (all protocols)
   unsigned long measurements_delay = 0;                                    // number of milliseconds to wait between measurements  
@@ -744,7 +757,7 @@ void loop() {
       for (int u = 0;u<protocols;u++) {                                                        // the number of times to repeat the current protocol
       
         String protocol_id =      hashTable.getString("protocol_id");                          // used to determine what macro to apply
-        int analog_averages =     hashTable.getLong("analog_averages");                          // # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
+        int analog_averages =     hashTable.getLong("analog_averages");                          // DEPRECIATED IN NEWEST HARDWARE 10/14 # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
         if (analog_averages == 0) {                                                              // if averages don't exist, set it to 1 automatically.
           analog_averages = 1;
         }
@@ -766,10 +779,37 @@ void loop() {
         else {
           act_background_light =  hashTable.getLong("act_background_light");
         }
+/*
+averaging0 - 1 - 30
+averaging1 - 1 - 30
+resolution0 - 2 - 16
+resolution1 - 2 - 16
+conversion_speed - 0 - 5
+sampling_speed - 0 - 5
+*/
+
+        int averaging0 =          hashTable.getLong("averaging");                               // # of ADC internal averages
+        if (averaging0 == 0) {                                                                   // if averaging0 don't exist, set it to 10 automatically.
+          averaging0 = 10;
+        }
+        int averaging1 = averaging0;
+        int resolution0 =         hashTable.getLong("resolution");                               // adc resolution (# of bits)
+        if (resolution0 == 0) {                                                                   // if resolution0 don't exist, set it to 16 automatically.
+          resolution0 = 16;
+        }
+        int resolution1 = resolution0;
+        int conversion_speed =    hashTable.getLong("conversion_speed");                               // ADC speed to convert analog to digital signal (5 fast, 0 slow)
+        if (conversion_speed == 0) {                                                                   // if conversion_speed don't exist, set it to 3 automatically.
+          conversion_speed = 3;
+        }
+        int sampling_speed =      hashTable.getLong("sampling_speed");                               // ADC speed of sampling (5 fast, 0 slow)
+        if (sampling_speed == 0) {                                                                   // if sampling_speed don't exist, set it to 3 automatically.
+          sampling_speed = 3;
+        }
         int act_background_light_intensity = hashTable.getLong("act_background_light_intensity");  // sets intensity of background actinic.  Choose this OR tcs_to_act.
         int tcs_to_act =          hashTable.getLong("tcs_to_act");                               // sets the % of response from the tcs light sensor to act as actinic during the run (values 1 - 100).  If tcs_to_act is not defined (ie == 0), then the act_background_light intensity is set to actintensity1.
-        long pulsesize =           hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
-        long pulsedistance =       hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
+        long pulsesize =          hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
+        long pulsedistance =      hashTable.getLong("pulsedistance");                            // distance between measuring pulses in us.  Minimum 1000 us.
         int offset_off =          hashTable.getLong("offset_off");                               // turn off detector offsets (default == 0 which is on, set == 1 to turn offsets off)
         int get_offset =          hashTable.getLong("get_offset");                               // include detector offset information in the output
         // NOTE: it takes about 50us to set a DAC channel via I2C at 2.4Mz.  
@@ -778,7 +818,7 @@ void loop() {
         JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // include get_lights_cal information from the device for the specified pins
         JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // include the get_blank_cal information from the device for the specified pins
         JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // include the get_other_cal information from the device for the specified pins
-        JsonArray get_userdef0 =  hashTable.getArray("get_userghdef0");                        // include the saved userdef0 information from the device
+        JsonArray get_userdef0 =  hashTable.getArray("get_userdef0");                        // include the saved userdef0 information from the device
         JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // include the saved userdef1 information from the device
         JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // include the saved userdef2 information from the device
         JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // include the saved userdef3 information from the device
@@ -1081,7 +1121,71 @@ void loop() {
             }
           }
 
-          analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
+//&&
+//          analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
+
+//////////////////////ADC SETUP////////////////////////
+
+adc->setAveraging(averaging0,ADC_0); // set number of averages
+adc->setAveraging(averaging1,ADC_1); // set number of averages
+adc->setResolution(resolution0,ADC_0); // set bits of resolution
+adc->setResolution(resolution1,ADC_1); // set bits of resolution
+    
+switch (conversion_speed) {    
+  case 0:
+    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the conversion speed
+    break;
+  case 1:
+    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_1); // change the conversion speed
+    break;
+  case 2:
+    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_MED_SPEED,ADC_1); // change the conversion speed
+    break;
+  case 3:
+    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the conversion speed
+    break;
+  case 4:
+    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_1); // change the conversion speed
+    break;
+  case 5:
+    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
+    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the conversion speed
+    break;
+}
+
+switch (conversion_speed) {    
+  case 0:
+    adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the sampling speed
+    break;
+  case 1:
+    adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_1); // change the sampling speed
+    break;
+  case 2:
+    adc->setSamplingSpeed(ADC_MED_SPEED,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_MED_SPEED,ADC_1); // change the sampling speed
+    break;
+  case 3:
+    adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the sampling speed
+    break;
+  case 4:
+    adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_1); // change the sampling speed
+    break;
+  case 5:
+    adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the sampling speed
+    adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the sampling speed
+    break;
+}
+
+delay(2);
 
           int actfull = 0;
           int _tcs_to_act = 0;
@@ -1279,7 +1383,32 @@ void loop() {
 
             while (on == 0 | off == 0) {                                                	 // if ALL pulses happened, then...
             }
-            data1 = analogRead(detector);                                                        // save the detector reading as data1    
+//&&
+//            data1 = analogRead(detector);                                                        // save the detector reading as data1    
+
+/*
+
+ **RUN(uint8_t mode, uint8_t woi) - 
+ *      transition into BLPI mode which configures the core(2 MHZ), 
+ *      bus(2 MHZ), flash(1 MHZ) clocks and configures SysTick for 
+ *      the reduced freq, then enter into vlpr mode. Exiting Low Power 
+ *      Run mode will transition to PEE mode and reconfigures clocks
+ *      and SysTick to a pre RUN state and exit vlpr to normal run.
+ * Parameter:  mode -> LP_RUN_ON = enter Low Power Run(VLPR)
+ *             mode -> LP_RUN_OFF = exit Low Power Run(VLPR)
+ *             woi  -> NO_WAKE_ON_INTERRUPT = no exit LPR on interrupt 
+ *             woi  -> WAKE_ON_INTERRUPT = exit LPR on interrupt
+
+*/
+
+            long started1 = micros();
+//            LP.Run(LP_RUN_ON);
+            long ended1 = micros();
+            data1 = adc->analogRead(detector,ADC_1);
+            long started2 = micros();
+//            LP.Run(LP_RUN_OFF);
+            long ended2 = micros();
+
             digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						 // turn off sample and hold, and turn on lights for next pulse set
 
             if (first_flag == 1) {                                                                    // if this is the 0th pulse and a therefore new cycle
@@ -1587,7 +1716,7 @@ void loop() {
         }      
 
         averages = 1;   			                                        // number of times to repeat the entire run 
-        averages_delay = 0;                  	                                                // seconds wait time between averages
+        averages_delay = 0;                  	                                        // seconds wait time between averages
         analog_averages = 1;                                                             // # of measurements per pulse to be averaged (min 1 measurement per 6us pulselengthon)
         _act1_light = 0;
         _act2_light = 0;

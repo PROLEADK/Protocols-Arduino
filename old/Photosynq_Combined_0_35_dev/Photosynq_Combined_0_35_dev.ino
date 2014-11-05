@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .34
+#define FIRMWARE_VERSION .351
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -11,7 +11,7 @@ put all wait times in milliseconds (averages, protocols, measurements)
 change intensity of actinic light in baseline calibration (so it doesn't max out).
 
  Most recent updates (34):
- - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":["alert","heres alert message","0","prompt","prompt message here"]...
+ - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":[["alert","heres alert message"],["0","0"],["prompt","prompt message here"]]...
  - "message_type" can be set as "alert", "confirm", or "prompt".
    - "alert" response from user must be -1+ to continue
    - "confirm" response from user is -1+ to continue, or 1+ to exit.  Any data collected so far will be displayed in data_raw, data which has been skipped is displayed as 0s
@@ -778,7 +778,7 @@ void loop() {
         JsonArray get_lights_cal= hashTable.getArray("get_lights_cal");                         // include get_lights_cal information from the device for the specified pins
         JsonArray get_blank_cal = hashTable.getArray("get_blank_cal");                          // include the get_blank_cal information from the device for the specified pins
         JsonArray get_other_cal = hashTable.getArray("get_other_cal");                        // include the get_other_cal information from the device for the specified pins
-        JsonArray get_userdef0 =  hashTable.getArray("get_userdef0");                        // include the saved userdef0 information from the device
+        JsonArray get_userdef0 =  hashTable.getArray("get_userghdef0");                        // include the saved userdef0 information from the device
         JsonArray get_userdef1 =  hashTable.getArray("get_userdef1");                        // include the saved userdef1 information from the device
         JsonArray get_userdef2 =  hashTable.getArray("get_userdef2");                        // include the saved userdef2 information from the device
         JsonArray get_userdef3 =  hashTable.getArray("get_userdef3");                        // include the saved userdef3 information from the device
@@ -1139,7 +1139,7 @@ void loop() {
             detector = detectors.getArray(cycle).getLong(meas_number%meas_array_size);                    // move to next detector
 
             if (pulse < meas_array_size) {                                                                // if it's the first pulse of a cycle, then change act 1 and 2, alt1 and alt2 values as per array's set at beginning of the file
-              if (pulse == 0) {                                                                           // if it's the very first light in the pulse, then send any messages
+              if (pulse == 0) {
                 String _message_type = message.getArray(cycle).getString(0);                                // get what type of message it is
                 if ((_message_type != "" | quit == -1) && x == 0) {                                         // if there are some messages or the user has entered -1 to quit AND it's the first repeat of an average (so it doesn't ask these question on every average), then print object name...
                   if (message_flag == 0) {                                                                 // if this is the first time the message has been printed, then print object name
