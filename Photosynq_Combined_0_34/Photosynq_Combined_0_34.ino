@@ -1628,6 +1628,13 @@ void loop() {
 //  Serial.print("!");  
   Serial1.println("]}");
   Serial1.println("");
+//for (int u = 0;u<10;u++) {                                                        // send extra carriage returns to ensure JSON is closed by phone or app.
+  Serial1.println("");
+//  Serial1.println("");
+  Serial.println("");
+//  Serial.println("");
+//}
+
 //  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
