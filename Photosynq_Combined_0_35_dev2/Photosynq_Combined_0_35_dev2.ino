@@ -8,11 +8,12 @@ to do:
 When we get all devices back 
 put all wait times in milliseconds (averages, protocols, measurements)
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
-change intensity of actinic light in baseline calibration (so it doesn't max out).
+DONE change intensity of actinic light in baseline calibration (so it doesn't max out).
 
  Most recent updates (35):
- - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed.  
+ - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed, optimized values for highest quality output.  ADC reads possible only from ADC_0.
  - these options have been optimized to improve the signal quality, and you can change them through the protocol JSON (sampling_speed, conversion_speed, averaging0, and resolution0 currently)
+ - by default options are set to optimal levels (averaging = 10, conversion and sampling = 3, resolution = 16 bit).
  
  Most recent updates (34):
  - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":[["alert","heres alert message"],["0","0"],["prompt","prompt message here"]]...
@@ -789,23 +790,23 @@ sampling_speed - 0 - 5
 */
 
         int averaging0 =          hashTable.getLong("averaging");                               // # of ADC internal averages
-//        if (averaging0 == 0) {                                                                   // if averaging0 don't exist, set it to 10 automatically.
-//          averaging0 = 10;
-//        }
+        if (averaging0 == 0) {                                                                   // if averaging0 don't exist, set it to 10 automatically.
+          averaging0 = 10;
+        }
         int averaging1 = averaging0;
         int resolution0 =         hashTable.getLong("resolution");                               // adc resolution (# of bits)
-//        if (resolution0 == 0) {                                                                   // if resolution0 don't exist, set it to 16 automatically.
-//          resolution0 = 16;
-//        }
+        if (resolution0 == 0) {                                                                   // if resolution0 don't exist, set it to 16 automatically.
+          resolution0 = 16;
+        }
         int resolution1 = resolution0;
         int conversion_speed =    hashTable.getLong("conversion_speed");                               // ADC speed to convert analog to digital signal (5 fast, 0 slow)
-//        if (conversion_speed == 0) {                                                                   // if conversion_speed don't exist, set it to 3 automatically.
-//          conversion_speed = 3;
-//        }
+        if (conversion_speed == 0) {                                                                   // if conversion_speed don't exist, set it to 3 automatically.
+          conversion_speed = 3;
+        }
         int sampling_speed =      hashTable.getLong("sampling_speed");                               // ADC speed of sampling (5 fast, 0 slow)
-//        if (sampling_speed == 0) {                                                                   // if sampling_speed don't exist, set it to 3 automatically.
-//          sampling_speed = 3;
-//        }
+        if (sampling_speed == 0) {                                                                   // if sampling_speed don't exist, set it to 3 automatically.
+          sampling_speed = 3;
+        }
         int act_background_light_intensity = hashTable.getLong("act_background_light_intensity");  // sets intensity of background actinic.  Choose this OR tcs_to_act.
         int tcs_to_act =          hashTable.getLong("tcs_to_act");                               // sets the % of response from the tcs light sensor to act as actinic during the run (values 1 - 100).  If tcs_to_act is not defined (ie == 0), then the act_background_light intensity is set to actintensity1.
         long pulsesize =          hashTable.getLong("pulsesize");                                // Size of the measuring pulse (5 - 100us).  This also acts as gain control setting - shorter pulse, small signal. Longer pulse, larger signal.  
@@ -1126,62 +1127,48 @@ sampling_speed - 0 - 5
 
 //////////////////////ADC SETUP////////////////////////
 
-adc->setAveraging(averaging0,ADC_0); // set number of averages
-adc->setAveraging(averaging1,ADC_1); // set number of averages
-adc->setResolution(resolution0,ADC_0); // set bits of resolution
-adc->setResolution(resolution1,ADC_1); // set bits of resolution
-    
-switch (conversion_speed) {    
-  case 0:
-    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 1:
-    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 2:
-    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_MED_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 3:
-    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the conversion speed
-    break;
-  case 4:
-    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 5:
-    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the conversion speed
-    break;
-}
+adc->setAveraging(averaging0,ADC_0);                   // set number of averages
+adc->setResolution(resolution0,ADC_0);                 // set bits of resolution
 
 switch (conversion_speed) {    
   case 0:
+    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 1:
+    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 2:
+    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 3:
+    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
+    break;
+  case 4:
+    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 5:
+    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
+    break;
+}
+
+switch (sampling_speed) {    
+  case 0:
     adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the sampling speed
     break;
   case 1:
     adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_1); // change the sampling speed
     break;
   case 2:
     adc->setSamplingSpeed(ADC_MED_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_MED_SPEED,ADC_1); // change the sampling speed
     break;
   case 3:
     adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the sampling speed
     break;
   case 4:
     adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_1); // change the sampling speed
     break;
   case 5:
     adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the sampling speed
     break;
 }
 
@@ -1404,7 +1391,7 @@ delay(2);
 //            long started1 = micros();
 //            LP.Run(LP_RUN_ON);
 //            long ended1 = micros();
-            data1 = adc->analogRead(detector,ADC_1);
+            data1 = adc->analogRead(detector,ADC_0);
 //            long started2 = micros();
 //            LP.Run(LP_RUN_OFF);
 //            long ended2 = micros();
