@@ -1741,8 +1741,10 @@ delay(2);
   skipall:
   Serial.println("]}");
   Serial.println("");
+  Serial.println("");
 //  Serial.print("!");  
   Serial1.println("]}");
+  Serial1.println("");
   Serial1.println("");
 //  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
