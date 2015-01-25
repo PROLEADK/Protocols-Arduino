@@ -10,6 +10,10 @@ put all wait times in milliseconds (averages, protocols, measurements)
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
 DONE change intensity of actinic light in baseline calibration (so it doesn't max out).
 
+ Most recent updates (36):
+ - added light_intensity_raw to the list of environmental measurements.  Acts the same as normal, but outputs the raw data value.
+ - other added features in dev2?  Check dev3?
+ 
  Most recent updates (35):
  - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed, optimized values for highest quality output.  ADC reads possible only from ADC_0.
  - these options have been optimized to improve the signal quality, and you can change them through the protocol JSON (sampling_speed, conversion_speed, averaging0, and resolution0 currently)
@@ -1054,6 +1058,36 @@ sampling_speed - 0 - 5
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
+              Light_Intensity(environmental.getArray(i).getLong(1));
+              if (x == averages-1) {
+                Serial1.print("\"light_intensity_raw\":");
+                Serial.print("\"light_intensity_raw\":");
+                Serial1.print(lux_average);  
+                Serial1.print(",");
+                Serial.print(lux_average);  
+                Serial.print(",");                
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
+                Serial1.print(r_average);  
+                Serial1.print(",");
+                Serial.print(r_average);  
+                Serial.print(",");  
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
+                Serial1.print(g_average);  
+                Serial1.print(",");
+                Serial.print(g_average);  
+                Serial.print(",");  
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
+                Serial1.print(b_average);  
+                Serial1.print(",");
+                Serial.print(b_average);  
+                Serial.print(",");  
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "analog_read") {                      // perform analog reads
               int pin = environmental.getArray(i).getLong(2);
               pinMode(pin,INPUT);
@@ -1588,6 +1622,36 @@ delay(2);
                 Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
                 Serial.print(lux_to_uE(b_average));  
+                Serial.print(",");  
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
+              Light_Intensity(environmental.getArray(i).getLong(1));
+              if (x == averages-1) {
+                Serial1.print("\"light_intensity_raw\":");
+                Serial.print("\"light_intensity_raw\":");
+                Serial1.print(lux_average);  
+                Serial1.print(",");
+                Serial.print(lux_average);  
+                Serial.print(",");                
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
+                Serial1.print(r_average);  
+                Serial1.print(",");
+                Serial.print(r_average);  
+                Serial.print(",");  
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
+                Serial1.print(g_average);  
+                Serial1.print(",");
+                Serial.print(g_average);  
+                Serial.print(",");  
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
+                Serial1.print(b_average);  
+                Serial1.print(",");
+                Serial.print(b_average);  
                 Serial.print(",");  
               }
             }
@@ -2366,11 +2430,15 @@ float lux_to_uE(float _lux_average) {                                           
 int uE_to_intensity(int _pin, int _uE) {
   float _slope = 0;
   float _yint = 0;
+  float intensity_drift_slope = 0;
+  float intensity_drift_yint = 0;
   unsigned int _intensity = 0;
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-      _slope = calibration_slope[i];                                                                  // go get the calibration slope and yintercept
-      _yint = calibration_yint[i];
+      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];
+      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
+      _slope = calibration_other1[i]+calibration_other1[i]*intensity_drift_slope;                                                                  // go get the calibration slope and yintercept, multiply by the intensity drift
+      _yint = calibration_other2[i]+calibration_other2[i]*intensity_drift_yint;
       break;
     }
   }

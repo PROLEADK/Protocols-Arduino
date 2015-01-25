@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .352
+#define FIRMWARE_VERSION .36
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -8,11 +8,16 @@ to do:
 When we get all devices back 
 put all wait times in milliseconds (averages, protocols, measurements)
  - make all wait times (measurement, protocol, protocol_repeat, average, etc.) are in milliseconds
-change intensity of actinic light in baseline calibration (so it doesn't max out).
+DONE change intensity of actinic light in baseline calibration (so it doesn't max out).
 
+ Most recent updates (36):
+ - added light_intensity_raw to the list of environmental measurements.  Acts the same as normal light intensity measurement, but outputs the raw data value from the TCS light sensor instead of the PAR value.
+ - Now outputs 3 carriage returns instead of 2 - to help reduce error by the apps in caching the end of the measurement.
+ 
  Most recent updates (35):
- - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed.  
+ - added new ADC library for teensy 3.1 which gives additional options like sample speed and conversion speed, optimized values for highest quality output.  ADC reads possible only from ADC_0.
  - these options have been optimized to improve the signal quality, and you can change them through the protocol JSON (sampling_speed, conversion_speed, averaging0, and resolution0 currently)
+ - by default options are set to optimal levels (averaging = 10, conversion and sampling = 3, resolution = 16 bit).
  
  Most recent updates (34):
  - added "message" and "message_type" to protocol JSON (both are arrays which correspond to the cycle.  For example "pulses":[10,10,10], "message":[["alert","heres alert message"],["0","0"],["prompt","prompt message here"]]...
@@ -1053,6 +1058,36 @@ sampling_speed - 0 - 5
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
+            && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
+              Light_Intensity(environmental.getArray(i).getLong(1));
+              if (x == averages-1) {
+                Serial1.print("\"light_intensity_raw\":");
+                Serial.print("\"light_intensity_raw\":");
+                Serial1.print(lux_average);  
+                Serial1.print(",");
+                Serial.print(lux_average);  
+                Serial.print(",");                
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
+                Serial1.print(r_average);  
+                Serial1.print(",");
+                Serial.print(r_average);  
+                Serial.print(",");  
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
+                Serial1.print(g_average);  
+                Serial1.print(",");
+                Serial.print(g_average);  
+                Serial.print(",");  
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
+                Serial1.print(b_average);  
+                Serial1.print(",");
+                Serial.print(b_average);  
+                Serial.print(",");  
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "analog_read") {                      // perform analog reads
               int pin = environmental.getArray(i).getLong(2);
               pinMode(pin,INPUT);
@@ -1126,62 +1161,48 @@ sampling_speed - 0 - 5
 
 //////////////////////ADC SETUP////////////////////////
 
-adc->setAveraging(averaging0,ADC_0); // set number of averages
-adc->setAveraging(averaging1,ADC_1); // set number of averages
-adc->setResolution(resolution0,ADC_0); // set bits of resolution
-adc->setResolution(resolution1,ADC_1); // set bits of resolution
-    
-switch (conversion_speed) {    
-  case 0:
-    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 1:
-    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 2:
-    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_MED_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 3:
-    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the conversion speed
-    break;
-  case 4:
-    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_1); // change the conversion speed
-    break;
-  case 5:
-    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
-    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the conversion speed
-    break;
-}
+adc->setAveraging(averaging0,ADC_0);                   // set number of averages
+adc->setResolution(resolution0,ADC_0);                 // set bits of resolution
 
 switch (conversion_speed) {    
   case 0:
+    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 1:
+    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 2:
+    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 3:
+    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
+    break;
+  case 4:
+    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
+    break;
+  case 5:
+    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
+    break;
+}
+
+switch (sampling_speed) {    
+  case 0:
     adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_1); // change the sampling speed
     break;
   case 1:
     adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_1); // change the sampling speed
     break;
   case 2:
     adc->setSamplingSpeed(ADC_MED_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_MED_SPEED,ADC_1); // change the sampling speed
     break;
   case 3:
     adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_1); // change the sampling speed
     break;
   case 4:
     adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_1); // change the sampling speed
     break;
   case 5:
     adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the sampling speed
-    adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_1); // change the sampling speed
     break;
 }
 
@@ -1401,13 +1422,13 @@ delay(2);
 
 */
 
-            long started1 = micros();
+//            long started1 = micros();
 //            LP.Run(LP_RUN_ON);
-            long ended1 = micros();
-            data1 = adc->analogRead(detector,ADC_1);
-            long started2 = micros();
+//            long ended1 = micros();
+            data1 = adc->analogRead(detector,ADC_0);
+//            long started2 = micros();
 //            LP.Run(LP_RUN_OFF);
-            long ended2 = micros();
+//            long ended2 = micros();
 
             digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						 // turn off sample and hold, and turn on lights for next pulse set
 
@@ -1605,6 +1626,36 @@ delay(2);
               }
             }
             if (environmental.getArray(i).getLong(1) == 1 \
+            && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
+              Light_Intensity(environmental.getArray(i).getLong(1));
+              if (x == averages-1) {
+                Serial1.print("\"light_intensity_raw\":");
+                Serial.print("\"light_intensity_raw\":");
+                Serial1.print(lux_average);  
+                Serial1.print(",");
+                Serial.print(lux_average);  
+                Serial.print(",");                
+                Serial1.print("\"r\":");
+                Serial.print("\"r\":");
+                Serial1.print(r_average);  
+                Serial1.print(",");
+                Serial.print(r_average);  
+                Serial.print(",");  
+                Serial1.print("\"g\":");
+                Serial.print("\"g\":");
+                Serial1.print(g_average);  
+                Serial1.print(",");
+                Serial.print(g_average);  
+                Serial.print(",");  
+                Serial1.print("\"b\":");
+                Serial.print("\"b\":");
+                Serial1.print(b_average);  
+                Serial1.print(",");
+                Serial.print(b_average);  
+                Serial.print(",");  
+              }
+            }
+            if (environmental.getArray(i).getLong(1) == 1 \
             && (String) environmental.getArray(i).getString(0) == "analog_read") {                      // perform analog reads
               int pin = environmental.getArray(i).getLong(2);
               pinMode(pin,INPUT);
@@ -1754,8 +1805,10 @@ delay(2);
   skipall:
   Serial.println("]}");
   Serial.println("");
+  Serial.println("");
 //  Serial.print("!");  
   Serial1.println("]}");
+  Serial1.println("");
   Serial1.println("");
 //  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
@@ -2377,11 +2430,15 @@ float lux_to_uE(float _lux_average) {                                           
 int uE_to_intensity(int _pin, int _uE) {
   float _slope = 0;
   float _yint = 0;
+  float intensity_drift_slope = 0;
+  float intensity_drift_yint = 0;
   unsigned int _intensity = 0;
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-      _slope = calibration_slope[i];                                                                  // go get the calibration slope and yintercept
-      _yint = calibration_yint[i];
+      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];
+      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
+      _slope = calibration_other1[i]+calibration_other1[i]*intensity_drift_slope;                                                                  // go get the calibration slope and yintercept, multiply by the intensity drift
+      _yint = calibration_other2[i]+calibration_other2[i]*intensity_drift_yint;
       break;
     }
   }
