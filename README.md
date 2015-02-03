@@ -31,7 +31,7 @@ http://www.pjrc.com/teensy/td_download.html
 * 1007:     // view device info
 * 1008*:    // add calibration values for offset  
 * 1011**:   // add calibration values for the lights     
-* 1012**:   // add factor calibration values for of lights    
+* 1012**:   // add factort calibration values for of lights    
 * 1013:     // view and set device info      
 * 1014**:   // add calibration values for the baseline  
 * 1015**:   // add calibration values for the spad blanks
