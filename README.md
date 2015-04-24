@@ -20,32 +20,39 @@ http://www.pjrc.com/teensy/td_download.html
 
 6. Open the arduino software.  Open the Arduino IDE and go to Tools --> Board.  Select "Teensy 3.1" from the list.  Load the protocol by going to file-->sketchbook, and once loaded press the upload button - this flashes the MultispeQ with the new firmware.  Then go to tools --> serial port and select the port which contains the teensy.  Once that is checked, open the Arduino Serial Monitor (tools --> serial monitor).  You can copy and paste protocols through the serial port to run a measurement, or enter one of the following options for testing:
 
-
+TO SUBMIT, ENTER NUMBER FOLLOWED BY + (for example "1002+MultispeQ_34+112500+")
 * 1000:     // print "MultispeQ Ready" to USB and Bluetooth
 * 1001:     // power off completely (if USB connected, only batteries
 * 1002:     // configure bluetooth name and baud rate
 * 1003:     // power down lights (TL1963) only
 * 1004:     // show battery level and associated values
 * 1005:     // print all calibration data
-* 1006*:    // add calibration values for tcs light sensor to actual PAR values     
+* 1006:    // add calibration values for tcs light sensor to actual PAR values     
 * 1007:     // view device info
-* 1008*:    // add calibration values for offset  
-* 1011**:   // add calibration values for the lights     
-* 1012**:   // add factory calibration values for of lights    
+* 1008:    // add calibration values for offset  
+* 1011:   // add calibration values for the lights     
+* 1012:   // add factory calibration values for of lights    
 * 1013:     // view and set device info      
-* 1014**:   // add calibration values for the baseline  
-* 1015**:   // add calibration values for the spad blanks
+* 1014:   // add calibration values for the baseline  
+* 1015:   // add calibration values for the spad blanks
 * 1016:     // user defined calibrations, set by specific lights/detectors
 * 1017:     // reset all EEPROM values to zero
 * 1018:     // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
-* 1019**:   // add user defined calibration values (2) (factory devices use this for SPAD factor)
-* 1020:     // add user defined calibration values (2)
-* 1021:     // add user defined calibration values (2)
-* 1022:     // add user defined calibration values (2)
-* 1023:     // add user defined calibration values (2)
-* 1024:     // add user defined calibration values (2)
-* 1025:     // add user defined calibration values (2)
+* 1019:   // SPAD calibration, or can be set as user defined calibration values (2)
+* 1020:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1021:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1022:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1023:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1024:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1025:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1026:     // take an analog measurement on pin 14
 * 1027:     // reboot teensy (used for loading hex files)
+* 1028:     // set the DAC to a specific voltage value (ie 1028+<value from 0 - 4095>+)
+* 1029:     // add user defined calibration values (2)
+* 1030:     // add user defined calibration values (2)
+* 1031:     // add user defined calibration values (2)
+* 1032:     // add user defined calibration values (2)
+* 1033:     // save user defined wait time to auto-shutoff in ms (ie 1033+120000+)
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
@@ -63,9 +70,6 @@ http://www.pjrc.com/teensy/td_download.html
 * 104 - temperature (press any key to exit after entering))");
 * 106 - contactless temperature testing (press any key to exit after entering - EXPERIMENTAL not implemented yet))");
 * 99 followed by a light pin (15,16,11,12,20,2,10,14) - outputs the PAR value and matches ambient PAR to chosen lighten pin
-
-*requires new menu items in chrome app
-**requires wizard with new protocols and macros to generate calibration values
 
 FINAL NOTE: Teensy 3.1 sometimes has Serial connection problems in Windows.  If you are using windows and you cannot get the teensy to appear on list of serial devices in Arduino or you keep losing the connection, try unplugging the device, waiting at least 5 seconds, then power the device on with power button, plug the usb back in.  Hopefully that works.  Otherwise, you could try switching USB locations or sometimes the cables themselves are bad.
 
