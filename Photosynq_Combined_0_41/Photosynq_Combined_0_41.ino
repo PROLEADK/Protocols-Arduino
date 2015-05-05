@@ -1405,14 +1405,14 @@ delay(2);
             int alt1_on = 0;
             int alt2_on = 0;
             if (cycle == 0 && pulse == 0) {                                             // if it's the beginning of a measurement, then...                                                             // wait a few milliseconds so that the actinic pulse presets can stabilize
-              volatile unsigned long* systimer = (volatile unsigned long*) 0xE000E018;                    // call system clock                          
+//              volatile unsigned long* systimer = (volatile unsigned long*) 0xE000E018;                    // call system clock                          
               Serial.flush();                                                          // flush any remaining serial output info before moving forward          
               unsigned long starttimer0;
-              unsigned long timestart = 0;
-              unsigned long timeend = 0;
-              unsigned long systimerstart = 0;
-              unsigned long systimerend = 0;
-              unsigned short nowtime = 0;
+//              unsigned long timestart = 0;
+//              unsigned long timeend = 0;
+//              unsigned long systimerstart = 0;
+//              unsigned long systimerend = 0;
+//              unsigned short nowtime = 0;
 
 //              while (*systimer > 1000) {                                                  // wait until timer is at the beginning of it's cycle
 //              }
@@ -1420,10 +1420,25 @@ delay(2);
               digitalWriteFast(act_background_light_prev, LOW);                        // turn off actinic background light
 //              starttimer0 = micros();
 //              systimerstart = *systimer;
+
+
+
               timer0.begin(pulse1,pulsedistance);                                       // Begin firsts pulse
               noInterrupts();
               delayMicroseconds(pulsesize);
               interrupts();
+
+
+/*
+
+              starttimer0 = micros();
+              timer0.begin(pulse1,pulsedistance);                                       // Begin firsts pulse
+              while (micros()-starttimer0 < pulsesize) {
+              }                                                                         // wait a full pulse size, then...                                                                                          
+*/
+
+
+
 
 //              while (true) {
 //                nowtime = *systimer - systimerstart;
