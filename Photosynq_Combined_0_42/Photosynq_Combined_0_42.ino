@@ -667,7 +667,8 @@ void loop() {
   
   delay(50);
   int measurements = 1;                                                   // the number of times to repeat the entire measurement (all protocols)
-  unsigned long measurements_delay = 0;                                    // number of milliseconds to wait between measurements  
+  unsigned long measurements_delay = 0;                                    // number of seconds to wait between measurements  
+  unsigned long measurements_delay_ms = 0;                                    // number of milliseconds to wait between measurements  
   volatile unsigned long meas_number = 0;                                       // counter to cycle through measurement lights 1 - 4 during the run
   unsigned long end1;
   unsigned long start1 = millis(); 
@@ -954,7 +955,9 @@ void loop() {
         int averages_delay_ms =   hashTable.getLong("averages_delay_ms");                       // same as above but in ms
         measurements =            hashTable.getLong("measurements");                            // number of times to repeat a measurement, which is a set of protocols
         measurements_delay =      hashTable.getLong("measurements_delay");                      // delay between measurements in seconds
+        measurements_delay_ms =      hashTable.getLong("measurements_delay_ms");                      // delay between measurements in milliseconds
         int protocols_delay =     hashTable.getLong("protocols_delay");                         // delay between protocols within a measurement
+        int protocols_delay_ms =     hashTable.getLong("protocols_delay_ms");                         // delay between protocols within a measurement in milliseconds
         protocols =               hashTable.getLong("protocols");                               // delay between protocols within a measurement
         if (protocols == 0) {                                                                   // if averages don't exist, set it to 1 automatically.
           protocols = 1;
