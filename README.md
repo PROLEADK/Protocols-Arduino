@@ -53,6 +53,11 @@ TO SUBMIT, ENTER NUMBER FOLLOWED BY + (for example "1002+MultispeQ_34+112500+")
 * 1031:     // add user defined calibration values (2)
 * 1032:     // add user defined calibration values (2)
 * 1033:     // save user defined wait time to auto-shutoff in ms (ie 1033+120000+)
+* 1034 - 1037: //add user defined calibration values (2)
+* 1038      // output accelerometer values
+* 1039      // output compass values
+* 1040      // output both accel and compass values
+* 1041 - 1075: // add user defined calibration values (2)
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
