@@ -38,26 +38,20 @@ TO SUBMIT, ENTER NUMBER FOLLOWED BY + (for example "1002+MultispeQ_34+112500+")
 * 1016:     // user defined calibrations, set by specific lights/detectors
 * 1017:     // reset all EEPROM values to zero
 * 1018:     // reset only the calibration arrays to zero (leave tcs calibration, offset, device info)
-* 1019:   // SPAD calibration, or can be set as user defined calibration values (2)
-* 1020:     // SPAD calibration, or can be set as user defined calibration values (2)
-* 1021:     // SPAD calibration, or can be set as user defined calibration values (2)
-* 1022:     // SPAD calibration, or can be set as user defined calibration values (2)
-* 1023:     // SPAD calibration, or can be set as user defined calibration values (2)
-* 1024:     // SPAD calibration, or can be set as user defined calibration values (2)
-* 1025:     // SPAD calibration, or can be set as user defined calibration values (2)
+* 1019 - 1025:   // SPAD calibration, or can be set as user defined calibration values (2), (1019 = userdef0, 1025 = userdef6)
 * 1026:     // take an analog measurement on pin 14
 * 1027:     // reboot teensy (used for loading hex files)
 * 1028:     // set the DAC to a specific voltage value (ie 1028+<value from 0 - 4095>+)
-* 1029:     // add user defined calibration values (2)
+* 1029 - 1032:     // add user defined calibration values (2) (1029 = userdef7, 1032 = userdef10)
 * 1030:     // add user defined calibration values (2)
 * 1031:     // add user defined calibration values (2)
 * 1032:     // add user defined calibration values (2)
 * 1033:     // save user defined wait time to auto-shutoff in ms (ie 1033+120000+)
-* 1034 - 1037: //add user defined calibration values (2)
+* 1034 - 1037: //add user defined calibration values (2) (1034 = userdef11, 1037 = userdef14)
 * 1038      // output accelerometer values
 * 1039      // output compass values
 * 1040      // output both accel and compass values
-* 1041 - 1075: // add user defined calibration values (2)
+* 1041 - 1075: // add user defined calibration values (2) (1041 = userdef15, 1075 = userdef50)
 * 15 - measuring light 1 (main board)");
 * 16 - measuring light 2 (main board)");
 * 11 - measuring light 3 (add on board)");
