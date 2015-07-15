@@ -956,12 +956,12 @@ void loop() {
         measurements =            hashTable.getLong("measurements");                            // number of times to repeat a measurement, which is a set of protocols
         measurements_delay =      hashTable.getLong("measurements_delay");                      // delay between measurements in seconds
         measurements_delay_ms =      hashTable.getLong("measurements_delay_ms");                      // delay between measurements in milliseconds
-        int protocols_delay =     hashTable.getLong("protocols_delay");                         // delay between protocols within a measurement
-        int protocols_delay_ms =     hashTable.getLong("protocols_delay_ms");                         // delay between protocols within a measurement in milliseconds
         protocols =               hashTable.getLong("protocols");                               // delay between protocols within a measurement
         if (protocols == 0) {                                                                   // if averages don't exist, set it to 1 automatically.
           protocols = 1;
         }
+        int protocols_delay =     hashTable.getLong("protocols_delay");                         // delay between protocols within a measurement
+        int protocols_delay_ms =     hashTable.getLong("protocols_delay_ms");                         // delay between protocols within a measurement in milliseconds
         if (hashTable.getLong("act_background_light") == 0) {                                    // The Teensy pin # to associate with the background actinic light.  This light continues to be turned on EVEN BETWEEN PROTOCOLS AND MEASUREMENTS.  It is always Teensy pin 13 by default.
           act_background_light =  13;                                                            // change to new background actinic light
         }
