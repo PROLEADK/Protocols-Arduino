@@ -8,9 +8,6 @@ Need to fix
 - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
 a much more robust system for saving the values.
 
- Most recent updates (44):
- - Fixed an issue which caused PAR to be 2x larger than it should be when measuring both PAR and raw light intensity at the same time.
-
  Most recent updates (43):
  - added more saved values userdef11 - userdef50, each contains 2 floats as normal.  Also expanded the number of printed decimal places of all userdefs to 6 pdecimal places
  - changed i2c speed setting from 1200 to 400 (Wire.begin(I2C_MASTER,0x00,I2C_PINS_18_19,I2C_PULLUP_EXT,I2C_RATE_400) to allow the new compass to work.  This may not be necessary once the compass is integrated into the circuit board.
@@ -370,10 +367,6 @@ float lux_average = 0;
 float r_average = 0;
 float g_average = 0;
 float b_average = 0;
-float lux_average_forpar = 0;
-float r_average_forpar = 0;
-float g_average_forpar = 0;
-float b_average_forpar = 0;
 
 float tryit [5];
 
@@ -1468,10 +1461,6 @@ sampling_speed - 0 - 5
         r_average = 0;
         g_average = 0;
         b_average = 0;
-        lux_average_forpar = 0;
-        r_average_forpar = 0;
-        g_average_forpar = 0;
-        b_average_forpar = 0;
         calculate_offset(pulsesize);                                                                    // calculate the offset, based on the pulsesize and the calibration values (ax+b)
 
 #ifdef DEBUGSIMPLE
@@ -1552,37 +1541,37 @@ sampling_speed - 0 - 5
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity") {
-              Light_Intensity(1);
+              Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"light_intensity\":");
                 Serial.print("\"light_intensity\":");
-                Serial1.print(lux_to_uE(lux_average_forpar));  
+                Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(lux_average_forpar));  
+                Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
                 Serial1.print("\"r\":");
                 Serial.print("\"r\":");
-                Serial1.print(lux_to_uE(r_average_forpar));  
+                Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(r_average_forpar));  
+                Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
                 Serial1.print("\"g\":");
                 Serial.print("\"g\":");
-                Serial1.print(lux_to_uE(g_average_forpar));  
+                Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(g_average_forpar));  
+                Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
                 Serial1.print("\"b\":");
                 Serial.print("\"b\":");
-                Serial1.print(lux_to_uE(b_average_forpar));  
+                Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(b_average_forpar));  
+                Serial.print(lux_to_uE(b_average));  
                 Serial.print(",");  
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
-              Light_Intensity(0);
+              Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"light_intensity_raw\":");
                 Serial.print("\"light_intensity_raw\":");
@@ -2323,37 +2312,37 @@ delayMicroseconds(200);
             }
             if (environmental.getArray(i).getLong(1) == 1 \
           && (String) environmental.getArray(i).getString(0) == "light_intensity") {
-              Light_Intensity(1);
+              Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"light_intensity\":");
                 Serial.print("\"light_intensity\":");
-                Serial1.print(lux_to_uE(lux_average_forpar));  
+                Serial1.print(lux_to_uE(lux_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(lux_average_forpar));  
+                Serial.print(lux_to_uE(lux_average));  
                 Serial.print(",");                
                 Serial1.print("\"r\":");
                 Serial.print("\"r\":");
-                Serial1.print(lux_to_uE(r_average_forpar));  
+                Serial1.print(lux_to_uE(r_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(r_average_forpar));  
+                Serial.print(lux_to_uE(r_average));  
                 Serial.print(",");  
                 Serial1.print("\"g\":");
                 Serial.print("\"g\":");
-                Serial1.print(lux_to_uE(g_average_forpar));  
+                Serial1.print(lux_to_uE(g_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(g_average_forpar));  
+                Serial.print(lux_to_uE(g_average));  
                 Serial.print(",");  
                 Serial1.print("\"b\":");
                 Serial.print("\"b\":");
-                Serial1.print(lux_to_uE(b_average_forpar));  
+                Serial1.print(lux_to_uE(b_average));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(b_average_forpar));  
+                Serial.print(lux_to_uE(b_average));  
                 Serial.print(",");  
               }
             }
             if (environmental.getArray(i).getLong(1) == 1 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
-              Light_Intensity(0);
+              Light_Intensity(environmental.getArray(i).getLong(1));
               if (x == averages-1) {
                 Serial1.print("\"light_intensity_raw\":");
                 Serial.print("\"light_intensity_raw\":");
@@ -2805,7 +2794,7 @@ end:
     dac.analogWrite(3,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
     while (Serial.available()<3 && Serial1.available()<3) {
       digitalWriteFast(_light, HIGH);
-      sensor_value = lux_to_uE(Light_Intensity(0));
+      sensor_value = lux_to_uE(Light_Intensity(1));
       _tcs_to_act = (uE_to_intensity(_light,sensor_value)*tcs_to_act)/100;
 #ifdef DEBUGSIMPLE
       Serial.print(sensor_value);
@@ -2899,10 +2888,10 @@ end:
     serial_bt_flush();
   }
   else if (_choose == 105) {
-    Serial.print("{\"light_intensity_raw\":[");
-    Serial1.print("{\"light_intensity_raw\":[");
+    Serial.print("{\"light_intensity\":[");
+    Serial1.print("{\"light_intensity\":[");
     while (Serial.available()<3 && Serial1.available()<3) {
-      sensor_value = Light_Intensity(0);
+      sensor_value = Light_Intensity(1);
       Serial.print(sensor_value);
       Serial1.print(sensor_value);
       Serial.print(",");
@@ -3009,6 +2998,7 @@ float Temperature(int var1) {
 }
 
 int Light_Intensity(int var1) {
+  if (var1 == 1 | var1 == 0 | var1 == 3) {
     word lux, r, g, b;
     lux = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
     r = TCS3471.readRData();
@@ -3030,21 +3020,15 @@ int Light_Intensity(int var1) {
     //  Serial.print("\cyan\": ");
     //  Serial.print(c, DEC);
 #endif
-    if (var1 == 0) {
+    if (var1 == 1 | var1 == 0) {
       lux_average += lux / averages;
       r_average += r / averages;
       g_average += g / averages;
       b_average += b / averages;
+    }
+    return lux;
+  }
 }
-    if (var1 == 1) {
-      lux_average_forpar += lux / averages;
-      r_average_forpar += r / averages;
-      g_average_forpar += g / averages;
-      b_average_forpar += b / averages;
-}
-  return lux;
-}
-
 
 void print_sensor_calibration(int _open) {
   if (_open = 0) {
