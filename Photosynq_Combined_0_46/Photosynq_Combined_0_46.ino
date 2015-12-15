@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .43
+#define FIRMWARE_VERSION .44
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -7,6 +7,10 @@
 Need to fix
 - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
 a much more robust system for saving the values.
+- check all averages for environmental - confirm that they are actually averaging things!
+
+ Most recent updates (44):
+ - Fixed an issue which caused PAR to be 2x larger than it should be when measuring both PAR and raw light intensity at the same time.
 
  Most recent updates (43):
  - added more saved values userdef11 - userdef50, each contains 2 floats as normal.  Also expanded the number of printed decimal places of all userdefs to 6 pdecimal places
@@ -147,10 +151,12 @@ a much more robust system for saving the values.
 #include <i2c_t3.h>
 #include <SoftwareSerial.h>
 #include "EEPROMAnything.h"
-#include <typeinfo>
+//#include <typeinfo>
 #include <ADC.h>
 #include <avr/sleep.h>
 #include <LowPower_Teensy3.h>
+#include <sys/param.h>
+#include <stdint.h>
 #define ledPin 13
 
 //////////////////////ADC INFORMATION AND LOW POWER MODE////////////////////////
@@ -367,6 +373,10 @@ float lux_average = 0;
 float r_average = 0;
 float g_average = 0;
 float b_average = 0;
+float lux_average_forpar = 0;
+float r_average_forpar = 0;
+float g_average_forpar = 0;
+float b_average_forpar = 0;
 
 float tryit [5];
 
@@ -457,6 +467,160 @@ void setup() {
 
 
 }
+
+//////////////////////CRC Check functions/////////////////////////////////
+
+char *
+int32_to_hex (uint32_t i)
+{
+  static const char nybble_chars[] = "0123456789ABCDEF";
+  static char result[9];
+
+  // process 8 nibbles
+
+  result[0] = nybble_chars[(i >> 28) & 0xf];
+  result[1] = nybble_chars[(i >> 24) & 0xf];
+  result[2] = nybble_chars[(i >> 20) & 0xf];
+  result[3] = nybble_chars[(i >> 16) & 0xf];
+  result[4] = nybble_chars[(i >> 12) & 0xf];
+  result[5] = nybble_chars[(i >> 8) & 0xf];
+  result[6] = nybble_chars[(i >> 4) & 0xf];
+  result[7] = nybble_chars[(i >> 0) & 0xf];
+  return result;
+}
+
+// CRC32 support routines
+
+static uint32_t crc = 0 ^ ~0U;
+
+// must be called before using below routines
+void
+crc32_init ()
+{
+  crc = 0 ^ ~0U;		// aka 0xffffffff
+}
+
+
+uint32_t
+crc32_value (void)
+{
+  return ~crc;
+}
+
+// single byte version (slow)
+void inline
+crc32_byte (const uint32_t byte)
+{
+  int j;
+  uint32_t mask;
+
+  crc = crc ^ byte;
+  for (j = 7; j >= 0; j--)
+    {				// Do eight times.
+      mask = -(crc & 1);
+      crc = (crc >> 1) ^ (0xEDB88320 & mask);
+    }
+}
+
+// buffer version
+void
+crc32_buf (const uint8_t * message, int size)
+{
+  int i, j;
+  unsigned int byte, mask;
+
+  i = 0;
+  while (i < size)
+    {
+      byte = message[i];	// Get next byte.
+      crc = crc ^ byte;
+      for (j = 7; j >= 0; j--)
+	{			// Do eight times.
+	  mask = -(crc & 1);
+	  crc = (crc >> 1) ^ (0xEDB88320 & mask);
+	}
+      i = i + 1;
+    }
+}
+
+
+// string version
+void
+crc32_string (const uint8_t *message)
+{
+  int i, j;
+  unsigned int byte, mask;
+
+  i = 0;
+  while (message[i] != 0)
+    {
+      byte = message[i];	// Get next byte.
+      crc = crc ^ byte;
+      for (j = 7; j >= 0; j--)
+	{			// Do eight times.
+	  mask = -(crc & 1);
+	  crc = (crc >> 1) ^ (0xEDB88320 & mask);
+	}
+      i = i + 1;
+    }
+}
+
+// routines to print to two serial ports with a CRC at the end
+
+void
+Serial_Print (const char *str)
+{
+  // output to both ports
+  Serial.print (str);
+  Serial1.print (str);
+
+  // add to crc value
+  crc32_string ((uint8_t*)str);
+}
+
+void
+Serial_Print_Line (const char *str)
+{
+  // output to both ports
+  Serial.println (str);
+  Serial1.println (str);
+
+  // add to crc value
+  crc32_string ((uint8_t*)str);
+  crc32_string ((uint8_t*)"\r\n");
+}
+
+
+// print CRC (8 hex digits) and a newline and clear the crc value
+void
+Serial_Print_CRC (void)
+{
+  char *p = int32_to_hex (crc32_value ());
+
+  Serial.println (p);
+  Serial1.println (p);
+
+  crc32_init ();		// reset for next time
+}
+
+#if 0
+int
+main ()
+{
+  crc32_init ();
+  crc32_buf ("abcd", 4);
+  crc32_byte ('e');
+  crc32_buf ("fghij", 5);
+  printf ("crc =%x\n", crc32_value ());
+
+  crc32_init ();
+  crc32_string ("abcdefghij");
+  printf ("crc =%x\n", crc32_value ());
+  Serial_Print_CRC ();
+  Serial_Print ("abcdefghij");
+  Serial_Print_CRC ();
+}
+#endif
 
 void pwr_off() { 
   digitalWriteFast(PWR_OFF, HIGH);
@@ -1461,6 +1625,10 @@ sampling_speed - 0 - 5
         r_average = 0;
         g_average = 0;
         b_average = 0;
+        lux_average_forpar = 0;
+        r_average_forpar = 0;
+        g_average_forpar = 0;
+        b_average_forpar = 0;
         calculate_offset(pulsesize);                                                                    // calculate the offset, based on the pulsesize and the calibration values (ax+b)
 
 #ifdef DEBUGSIMPLE
@@ -1541,37 +1709,37 @@ sampling_speed - 0 - 5
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity") {
-              Light_Intensity(environmental.getArray(i).getLong(1));
+              Light_Intensity(1);
               if (x == averages-1) {
                 Serial1.print("\"light_intensity\":");
                 Serial.print("\"light_intensity\":");
-                Serial1.print(lux_to_uE(lux_average));  
+                Serial1.print(lux_to_uE(lux_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(lux_average));  
+                Serial.print(lux_to_uE(lux_average_forpar));  
                 Serial.print(",");                
                 Serial1.print("\"r\":");
                 Serial.print("\"r\":");
-                Serial1.print(lux_to_uE(r_average));  
+                Serial1.print(lux_to_uE(r_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(r_average));  
+                Serial.print(lux_to_uE(r_average_forpar));  
                 Serial.print(",");  
                 Serial1.print("\"g\":");
                 Serial.print("\"g\":");
-                Serial1.print(lux_to_uE(g_average));  
+                Serial1.print(lux_to_uE(g_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(g_average));  
+                Serial.print(lux_to_uE(g_average_forpar));  
                 Serial.print(",");  
                 Serial1.print("\"b\":");
                 Serial.print("\"b\":");
-                Serial1.print(lux_to_uE(b_average));  
+                Serial1.print(lux_to_uE(b_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(b_average));  
+                Serial.print(lux_to_uE(b_average_forpar));  
                 Serial.print(",");  
               }
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
-              Light_Intensity(environmental.getArray(i).getLong(1));
+              Light_Intensity(0);
               if (x == averages-1) {
                 Serial1.print("\"light_intensity_raw\":");
                 Serial.print("\"light_intensity_raw\":");
@@ -2312,37 +2480,37 @@ delayMicroseconds(200);
             }
             if (environmental.getArray(i).getLong(1) == 1 \
           && (String) environmental.getArray(i).getString(0) == "light_intensity") {
-              Light_Intensity(environmental.getArray(i).getLong(1));
+              Light_Intensity(1);
               if (x == averages-1) {
                 Serial1.print("\"light_intensity\":");
                 Serial.print("\"light_intensity\":");
-                Serial1.print(lux_to_uE(lux_average));  
+                Serial1.print(lux_to_uE(lux_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(lux_average));  
+                Serial.print(lux_to_uE(lux_average_forpar));  
                 Serial.print(",");                
                 Serial1.print("\"r\":");
                 Serial.print("\"r\":");
-                Serial1.print(lux_to_uE(r_average));  
+                Serial1.print(lux_to_uE(r_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(r_average));  
+                Serial.print(lux_to_uE(r_average_forpar));  
                 Serial.print(",");  
                 Serial1.print("\"g\":");
                 Serial.print("\"g\":");
-                Serial1.print(lux_to_uE(g_average));  
+                Serial1.print(lux_to_uE(g_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(g_average));  
+                Serial.print(lux_to_uE(g_average_forpar));  
                 Serial.print(",");  
                 Serial1.print("\"b\":");
                 Serial.print("\"b\":");
-                Serial1.print(lux_to_uE(b_average));  
+                Serial1.print(lux_to_uE(b_average_forpar));  
                 Serial1.print(",");
-                Serial.print(lux_to_uE(b_average));  
+                Serial.print(lux_to_uE(b_average_forpar));  
                 Serial.print(",");  
               }
             }
             if (environmental.getArray(i).getLong(1) == 1 \
             && (String) environmental.getArray(i).getString(0) == "light_intensity_raw") {
-              Light_Intensity(environmental.getArray(i).getLong(1));
+              Light_Intensity(0);
               if (x == averages-1) {
                 Serial1.print("\"light_intensity_raw\":");
                 Serial.print("\"light_intensity_raw\":");
@@ -2569,10 +2737,16 @@ delayMicroseconds(200);
   Serial.println("]}");
   Serial.println("");
   Serial.println("");
+  Serial_Print_Line("]}");
+  Serial_Print_Line("");
+  Serial_Print_Line("");
+
 //  Serial.print("!");  
   Serial1.println("]}");
   Serial1.println("");
   Serial1.println("");
+  Serial_Print_CRC ();
+
 //  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
@@ -2794,7 +2968,7 @@ end:
     dac.analogWrite(3,0);                                                       // write to input register of a DAC. channel 1, for low (actinic).  0 (low) - 4095 (high).  1 step = +3.69uE
     while (Serial.available()<3 && Serial1.available()<3) {
       digitalWriteFast(_light, HIGH);
-      sensor_value = lux_to_uE(Light_Intensity(1));
+      sensor_value = lux_to_uE(Light_Intensity(0));
       _tcs_to_act = (uE_to_intensity(_light,sensor_value)*tcs_to_act)/100;
 #ifdef DEBUGSIMPLE
       Serial.print(sensor_value);
@@ -2888,10 +3062,10 @@ end:
     serial_bt_flush();
   }
   else if (_choose == 105) {
-    Serial.print("{\"light_intensity\":[");
-    Serial1.print("{\"light_intensity\":[");
+    Serial.print("{\"light_intensity_raw\":[");
+    Serial1.print("{\"light_intensity_raw\":[");
     while (Serial.available()<3 && Serial1.available()<3) {
-      sensor_value = Light_Intensity(1);
+      sensor_value = Light_Intensity(0);
       Serial.print(sensor_value);
       Serial1.print(sensor_value);
       Serial.print(",");
@@ -2998,7 +3172,6 @@ float Temperature(int var1) {
 }
 
 int Light_Intensity(int var1) {
-  if (var1 == 1 | var1 == 0 | var1 == 3) {
     word lux, r, g, b;
     lux = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
     r = TCS3471.readRData();
@@ -3020,15 +3193,21 @@ int Light_Intensity(int var1) {
     //  Serial.print("\cyan\": ");
     //  Serial.print(c, DEC);
 #endif
-    if (var1 == 1 | var1 == 0) {
+    if (var1 == 0) {
       lux_average += lux / averages;
       r_average += r / averages;
       g_average += g / averages;
       b_average += b / averages;
-    }
-    return lux;
-  }
 }
+    if (var1 == 1) {
+      lux_average_forpar += lux / averages;
+      r_average_forpar += r / averages;
+      g_average_forpar += g / averages;
+      b_average_forpar += b / averages;
+}
+  return lux;
+}
+
 
 void print_sensor_calibration(int _open) {
   if (_open = 0) {
@@ -5008,6 +5187,3 @@ int MLX90614_getRawData(int TaTo) {
         int tempData = (((dataHigh & 0x007F) << 8) + dataLow);
         return tempData;
 }
-
-
-
