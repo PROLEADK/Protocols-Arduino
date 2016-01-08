@@ -1,8 +1,8 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .46
+#define FIRMWARE_VERSION .462
 #define DEVICE_NAME "CoralspeQ"
 
-*/***** To convert from MultispeQ to CoralspeQ ***** 
+/***** To convert from MultispeQ to CoralspeQ ***** 
 Change DEVICE_NAME to CoralspeQ
 Change #define SPEC_ST to 7 and #define SPEC_CLK to 8
 comment out Serial3.begin
@@ -261,11 +261,7 @@ float manufacture_date = 0;
 #define SPEC_CHANNELS    256
 uint16_t spec_data[SPEC_CHANNELS];
 unsigned long spec_data_average[SPEC_CHANNELS];            // saves the averages of each spec measurement
-int delay_time = 1;                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
 int idx = 0;
-int read_time = 35;                                        // Amount of time that the analogRead() procedure takes (in microseconds)
-int intTime = 100; 
-int accumulateMode = false;
 int spec_on = 0;                                            // flag to indicate that spec is being used during this measurement
 
 int _meas_light;															 // measuring light to be used during the interrupt
@@ -1185,7 +1181,7 @@ void loop() {
         Serial_Print_Float(MLX90614_Read(0),3);
         break;
       case 1077:                                                                   // read spectrophotometer mode     
-        readSpectrometer();
+        readSpectrometer(100,35,35,false);
         print_data();
         break;
       case 1078:                                                                   // over the air update of firmware.    
@@ -1425,23 +1421,10 @@ sampling_speed - 0 - 5
         
         //********************INPUT DATA FOR CORALSPEQ********************//
         JsonArray spec =          hashTable.getArray("spec");                                // defines whether the spec will be called during each array.  note for each single plus, the spec will call and add 256 values to data_raw!
-        int _delay_time = hashTable.getLong("delay_time");                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
-        if (_delay_time == 0) {                                                                    // if user inputted a value, then save it.  Otherwise, use default value
-        delay_time = 1;
-        }
-        int _read_time = hashTable.getLong("read_time");                                        // Amount of time that the analogRead() procedure takes (in microseconds)
-        if (read_time == 0) {    
-        read_time = 35;        
-        }
-        int _intTime = hashTable.getLong("intTime");                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
-        if (intTime == 0) { 
-        intTime = 100;
-        }
-        int _accumulateMode = hashTable.getLong("accumulateMode");
-        if (accumulateMode == 0) { 
-        accumulateMode = false;
-        }
-        
+        JsonArray delay_time =    hashTable.getArray("delay_time");                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
+        JsonArray read_time =     hashTable.getArray("read_time");                                        // Amount of time that the analogRead() procedure takes (in microseconds)
+        JsonArray intTime =       hashTable.getArray("intTime");                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
+        JsonArray accumulateMode = hashTable.getArray("accumulateMode");        
         total_cycles =            pulses.getLength()-1;                                          // (start counting at 0!)
 
         long size_of_data_raw = 0;
@@ -1701,7 +1684,7 @@ sampling_speed - 0 - 5
             }
             if (environmental.getArray(i).getLong(1) == 0 \
             && (String) environmental.getArray(i).getString(0) == "spec") {                      // perform analog reads
-              readSpectrometer();
+              readSpectrometer(100,35,35,false);
               spec_on = 1;                                                                       // throw flag to indicate that the spec is being used
             }
             if (environmental.getArray(i).getLong(1) == 0 \
@@ -1825,6 +1808,10 @@ delay(2);
             int alt1_on = 0;
             int alt2_on = 0;
             int _spec = 0;                                                              // create the spec flag for the coralspeq
+            int _intTime = 0;                                                              // create the spec flag for the coralspeq
+            int _delay_time = 0;                                                              // create the spec flag for the coralspeq
+            int _read_time = 0;                                                              // create the spec flag for the coralspeq
+            int _accumulateMode = 0;                                                              // create the spec flag for the coralspeq
             if (cycle == 0 && pulse == 0) {                                             // if it's the beginning of a measurement, then...                                                             // wait a few milliseconds so that the actinic pulse presets can stabilize
 //              volatile unsigned long* systimer = (volatile unsigned long*) 0xE000E018;                    // call system clock                          
               Serial.flush();                                                          // flush any remaining serial output info before moving forward          
@@ -1948,8 +1935,25 @@ delay(2);
                 _alt2_light = alt2_lights.getLong(cycle);
                 alt2_on = calculate_intensity(_alt2_light,tcs_to_act,cycle,_light_intensity);
   
-                _spec = spec.getLong(cycle);                                                      // pull whether the spec will get called in this cycle or not for coralspeq
-
+                _spec = spec.getLong(cycle);                                                      // pull whether the spec will get called in this cycle or not for coralspeq and set parameters.  If they are empty (not defined by the user) set them to the default value
+                if (_spec == 1) {
+                  _intTime = intTime.getLong(cycle);
+                  if (_intTime == 0) {
+                    _intTime = 100;
+                  }
+                  _delay_time = delay_time.getLong(cycle);
+                  if (_delay_time == 0) {
+                    _delay_time = 35;
+                  }
+                  _read_time = read_time.getLong(cycle);
+                  if (_read_time == 0) {
+                    _read_time = 35;
+                  }
+                  _accumulateMode = accumulateMode.getLong(cycle);
+                  if (_accumulateMode == 0) {
+                    _accumulateMode = false;
+                  }
+                }
               }
               calculate_intensity(_meas_light,tcs_to_act,cycle,_light_intensity);                      // in addition, calculate the intensity of the current measuring light
 
@@ -2138,7 +2142,7 @@ delayMicroseconds(200);
               }
             }
             else if (_spec == 1) {                                              // if spec_on is 1 for this cycle, then collect data from the coralspeq and save it to data_raw_average.
-              readSpectrometer();                                                        // collect a reading from the spec
+              readSpectrometer(_intTime, _delay_time, _read_time, _accumulateMode);                                                        // collect a reading from the spec
               for (int i=0 ; i < SPEC_CHANNELS; i++) {
                 data_raw_average[data_count] += spec_data[i];
                 data_count++;
@@ -4499,7 +4503,7 @@ int MLX90614_getRawData(int TaTo) {
         return tempData;
 }
  
-void readSpectrometer()
+void readSpectrometer(int intTime, int delay_time, int read_time, int accumulateMode)
 {
 /*
   //int delay_time = 35;     // delay per half clock (in microseconds).  This ultimately conrols the integration time.
