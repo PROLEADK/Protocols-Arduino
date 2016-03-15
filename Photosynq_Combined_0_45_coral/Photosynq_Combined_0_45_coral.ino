@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .452
+#define FIRMWARE_VERSION .453
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -8,6 +8,16 @@ Need to fix
 - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
 a much more robust system for saving the values.
 - check all averages for environmental - confirm that they are actually averaging things!
+
+
+ Most recent updates (45_coralspeq v3):
+
+- added ability to use -1 through -10 in the act1_lights to set 2^value to use Dave's new method for estimating Phi2
+- adjusted the following subroutines and variables -->
+    calculate_intensity
+    uE_to_intensity
+    added variable tcs_dac_values
+    added print statement for tcs_dac_values
 
  Most recent updates (45_coralspeq):
  - To use the speq:
@@ -207,13 +217,14 @@ float manufacture_date = 0;
 
 #define SPEC_CHANNELS    256
 uint16_t spec_data[SPEC_CHANNELS];
-unsigned long spec_data_average[SPEC_CHANNELS];            // saves the averages of each spec measurement
+unsigned long spec_data_average[SPEC_CHANNELS];                             // saves the averages of each spec measurement
 int idx = 0;
-int spec_on = 0;                                            // flag to indicate that spec is being used during this measurement
+int spec_on = 0;                                                            // flag to indicate that spec is being used during this measurement
+int tcs_dac_values[100] = {};
 
-int _meas_light;															 // measuring light to be used during the interrupt
-int serial_buffer_size = 5000;                                        // max size of the incoming jsons
-int max_jsons = 15;                                                   // max number of protocols per measurement
+int _meas_light;							    // measuring light to be used during the interrupt
+int serial_buffer_size = 5000;                                              // max size of the incoming jsons
+int max_jsons = 15;                                                         // max number of protocols per measurement
 float all_pins [26] = {
   15,16,11,12,2,20,14,10,34,35,36,37,38,3,4,9,24,25,26,27,28,29,30,31,32,33};
 float calibration_slope [26] = {
@@ -1544,6 +1555,9 @@ sampling_speed - 0 - 5
 #endif
 
         for (int x=0;x<averages;x++) {                                                       // Repeat the protocol this many times  
+          for (int p=0;p<100;p++) {
+            tcs_dac_values[p] = 0;
+          }
           int background_on = 0;
           long data_count = 0;
           int message_flag = 0;                                                              // flags to indicate if an alert, prompt, or confirm have been called at least once (to print the object name to data JSON)
@@ -2638,8 +2652,22 @@ delayMicroseconds(200);
               Serial1.print(",");
             }
           }
-          Serial1.println("]}");                                                              // close out the data_raw and protocol
-          Serial.println("]}");
+          Serial1.print("],");                                                              // close out the data_raw and protocol
+          Serial.print("],");
+          Serial.print("\"tcs_dac_values\": [");
+          Serial1.print("\"tcs_dac_values\": [");
+          for (int p=0;p<100;p++) {
+            Serial.print(tcs_dac_values[p]);           
+            Serial1.print(tcs_dac_values[p]);           
+            if (p != 99) {
+              Serial.print(",");           
+              Serial1.print(",");
+            }           
+          }
+          Serial.print("]");
+          Serial1.print("]");            
+          Serial1.println("}");                                                              // close out the data_raw and protocol
+          Serial.println("}");
           if (quit == -1) {                                                                   // after printing any remaining data, skip the rest and close out the measurement
             Serial1.print("]");                                                              // close out the data_raw and protocol
             Serial.print("]");
@@ -3350,20 +3378,21 @@ int uE_to_intensity(int _pin, int _uE) {                                        
   float _yint = 0;
   float intensity_drift_slope = 0;
   float intensity_drift_yint = 0;
-  unsigned int _intensity = 0;
+  float _intensity = 0;
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];
-      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
-      _slope = calibration_other1[i]+calibration_other1[i]*intensity_drift_slope;                                                                  // go get the calibration slope and yintercept, multiply by the intensity drift
+//      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];    // these produce errors in the compiler sometimes.
+//      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
+      _slope = calibration_other1[i]+calibration_other1[i]*intensity_drift_slope;                             // go get the calibration slope and yintercept, multiply by the intensity drift
       _yint = calibration_other2[i]+calibration_other2[i]*intensity_drift_yint;
       break;
     }
   }
-  if (_slope != 0 | _yint != 0) {                                                                      // if calibration values exist then...
-    _intensity = (_uE-_yint)/_slope;                                                                    // calculate the resulting intensity DAC value
+  if (_slope != 0 || _yint != 0) {                                                                      // if calibration values exist then...
+      _intensity = (_uE - _yint) / _slope;                                                                    // calculate the resulting intensity DAC value
   }
 #ifdef DEBUGSIMPLE
+  Serial.println("");
   Serial.print("uE, slope, yint, act_background pin, DAC intensity:   ");
   Serial.print(_uE);
   Serial.print(",");
@@ -4817,10 +4846,29 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
     }
     else if (act_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
-      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      int dac_multiplier = -1*act_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number and subtract by 1 (so 2^1 is 2^0 instead which == 1 which is what we want here)
+/*
+      Serial.println("");
+      Serial.print(dac_multiplier);
+      Serial.print(",");
+      Serial.print(_light);
+      Serial.print(",");
+      Serial.print(_light_intensity);
+      Serial.print(",");
+      Serial.print(uE_to_intensity(_light,_light_intensity));
+*/
+      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
+        _tcs = 2048;
+      }
+/*
+      Serial.print("");
+      Serial.print(_tcs);
+      Serial.print(",");
+      Serial.println(dac_multiplier);
+*/
       act_intensity = _tcs;                                                                 // then turn light on, and set intensity to ambient
-//      Serial.println(_light);
-//      Serial.println(_tcs);
+      tcs_dac_values[_cycle] = _tcs;
     }
   }
 
@@ -4829,12 +4877,15 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       on = 1;
       meas_intensity = meas_intensities.getLong(_cycle);                                    // turn light on and set intensity equal to the intensity specified in the JSON
     }
-    else if (meas_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {      // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
+    else if (meas_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
-      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      int dac_multiplier = -1*meas_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
+      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum (2048)
+        _tcs = 2048;
+      }
       meas_intensity = _tcs;                                                                 // then turn light on, and set intensity to ambient
-//      Serial.println(_light);
-//      Serial.println(_tcs);
+      tcs_dac_values[_cycle] = _tcs;
     }
   }
 
@@ -4843,11 +4894,26 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       on = 1;
       cal_intensity = cal_intensities.getLong(_cycle);                                    // turn light on and set intensity equal to the intensity specified in the JSON
     }
-    else if (cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {      // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
+    else if (cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
-      cal_intensity = _tcs;                                                       // then turn light on, and set intensity to ambient
-    }
+      int dac_multiplier = -1*cal_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
+      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
+        _tcs = 2048;
+      }
+      cal_intensity = _tcs;                                                                 // then turn light on, and set intensity to ambient
+      tcs_dac_values[_cycle] = _tcs;
+    }  
   }
+/*
+  Serial.println("");
+  Serial.print(",");
+  Serial.print(_tcs);
+  Serial.print(",");
+  Serial.print(_cycle);
+  Serial.print(",");
+  Serial.println(_tcs);
+*/
   return on;
 }
 
