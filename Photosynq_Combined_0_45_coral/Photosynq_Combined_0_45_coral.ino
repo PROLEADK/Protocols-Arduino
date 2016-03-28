@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .453
+#define FIRMWARE_VERSION .454
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -8,6 +8,15 @@ Need to fix
 - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
 a much more robust system for saving the values.
 - check all averages for environmental - confirm that they are actually averaging things!
+
+ Most recent updates (45_coralspeq v4):
+
+- added ability to use -1 through -10 in the act1_lights to set ambient + 16*2^value to use Dave's new method for estimating Phi2 (in v3 it was just ambient * 2 ^ value)
+- adjusted the following subroutines and variables -->
+    calculate_intensity
+    uE_to_intensity
+    added variable tcs_dac_values
+    added print statement for tcs_dac_values
 
 
  Most recent updates (45_coralspeq v3):
@@ -4857,7 +4866,8 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       Serial.print(",");
       Serial.print(uE_to_intensity(_light,_light_intensity));
 */
-      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
       }
@@ -4880,7 +4890,8 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
     else if (meas_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
       int dac_multiplier = -1*meas_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
-      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum (2048)
         _tcs = 2048;
       }
@@ -4897,7 +4908,8 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
     else if (cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
       int dac_multiplier = -1*cal_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
-      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
       }
