@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .454
+#define FIRMWARE_VERSION .455
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -8,6 +8,10 @@ Need to fix
 - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
 a much more robust system for saving the values.
 - check all averages for environmental - confirm that they are actually averaging things!
+
+ Most recent updates (45_coralspeq v5):
+
+- fixed the problem where a PAR value of 0 was not incremented when user set intensity to -1 - -10.  This now sets intensity of 0,16,32,64... as expected.
 
  Most recent updates (45_coralspeq v4):
 
@@ -4853,30 +4857,15 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       on = 1;
       act_intensity = act_intensities.getLong(_cycle);                                    // turn light on and set intensity equal to the intensity specified in the JSON
     }
-    else if (act_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
+    else if ((act_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) || (act_intensities.getLong(_cycle) < -1 && tcs_on > 0)) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0) OR  if intensity is <-1 then make sure that even if light intensity == 0 it still has the chance to go through the multiplier effect
       on = 1;
       int dac_multiplier = -1*act_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number and subtract by 1 (so 2^1 is 2^0 instead which == 1 which is what we want here)
-/*
-      Serial.println("");
-      Serial.print(dac_multiplier);
-      Serial.print(",");
-      Serial.print(_light);
-      Serial.print(",");
-      Serial.print(_light_intensity);
-      Serial.print(",");
-      Serial.print(uE_to_intensity(_light,_light_intensity));
-*/
-//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
-      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 8*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
       }
-/*
-      Serial.print("");
-      Serial.print(_tcs);
-      Serial.print(",");
-      Serial.println(dac_multiplier);
-*/
+//      Serial.println("");
+//      Serial.print(_tcs);
       act_intensity = _tcs;                                                                 // then turn light on, and set intensity to ambient
       tcs_dac_values[_cycle] = _tcs;
     }
@@ -4887,11 +4876,10 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       on = 1;
       meas_intensity = meas_intensities.getLong(_cycle);                                    // turn light on and set intensity equal to the intensity specified in the JSON
     }
-    else if (meas_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
+    else if ((meas_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) || (meas_intensities.getLong(_cycle) < -1 && tcs_on > 0)) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
       int dac_multiplier = -1*meas_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
-//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
-      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 8*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum (2048)
         _tcs = 2048;
       }
@@ -4905,11 +4893,11 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       on = 1;
       cal_intensity = cal_intensities.getLong(_cycle);                                    // turn light on and set intensity equal to the intensity specified in the JSON
     }
-    else if (cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
+    else if ((cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) || (cal_intensities.getLong(_cycle) < -1 && tcs_on > 0)) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
       int dac_multiplier = -1*cal_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
 //      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
-      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 16*pow(2,dac_multiplier));
+      _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 8*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
       }
