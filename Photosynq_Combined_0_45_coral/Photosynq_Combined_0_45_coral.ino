@@ -1,55 +1,114 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .455
+#define FIRMWARE_VERSION .456
 
 /////////////////////CHANGE LOG/////////////////////
 /*
 
-Need to fix
-- line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
-a much more robust system for saving the values.
-- check all averages for environmental - confirm that they are actually averaging things!
-
+ Need to fix
+ - line 3218 in print_cal_userdef I'm using array_length, which must be passed to the function.  Ideally I should be figuring out the array length dynamically, then dividing by the variable type.  This would allow
+ a much more robust system for saving the values.
+ - check all averages for environmental - confirm that they are actually averaging things!
+ 
+ Most recent updates (45_coralspeq v6):
+ 
+ - Added ability to save 2 sets of 256 values (full spectra).  Inputting those values from a + command, and outputting those values from get_userdef51 and get_userdef52.  Because these exceeded available memory, the following commands are now no longer functional and shouldn't be touched:
+ 
+ 
+ EEPROM_readAnything(24,slope_34);
+ EEPROM_readAnything(28,yintercept_34);
+ EEPROM_readAnything(32,slope_35);
+ EEPROM_readAnything(36,yintercept_35);
+ EEPROM_readAnything(40,userdef0);
+ EEPROM_readAnything(60,calibration_slope);
+ EEPROM_readAnything(180,calibration_yint);
+ EEPROM_readAnything(300,calibration_slope_factory);
+ EEPROM_readAnything(420,calibration_yint_factory);
+ EEPROM_readAnything(540,calibration_baseline_slope);
+ EEPROM_readAnything(660,calibration_baseline_yint);
+ EEPROM_readAnything(880,calibration_blank1);
+ EEPROM_readAnything(1000,calibration_blank2);
+ EEPROM_readAnything(1448,userdef11);
+ EEPROM_readAnything(1456,userdef12);
+ EEPROM_readAnything(1464,userdef13);
+ EEPROM_readAnything(1760,userdef14);
+ EEPROM_readAnything(1472,userdef15);
+ EEPROM_readAnything(1480,userdef16);
+ EEPROM_readAnything(1488,userdef17);
+ EEPROM_readAnything(1496,userdef18);
+ EEPROM_readAnything(1504,userdef19);
+ EEPROM_readAnything(1512,userdef20);
+ EEPROM_readAnything(1520,userdef21);
+ EEPROM_readAnything(1528,userdef22);
+ EEPROM_readAnything(1536,userdef23);
+ EEPROM_readAnything(1544,userdef24);
+ EEPROM_readAnything(1552,userdef25);
+ EEPROM_readAnything(1560,userdef26);
+ EEPROM_readAnything(1568,userdef27);
+ EEPROM_readAnything(1576,userdef28);
+ EEPROM_readAnything(1584,userdef29);
+ EEPROM_readAnything(1592,userdef30);
+ EEPROM_readAnything(1600,userdef31);
+ EEPROM_readAnything(1608,userdef32);
+ EEPROM_readAnything(1616,userdef33);
+ EEPROM_readAnything(1624,userdef34);
+ EEPROM_readAnything(1632,userdef35);
+ EEPROM_readAnything(1640,userdef36);
+ EEPROM_readAnything(1648,userdef37);
+ EEPROM_readAnything(1656,userdef38);
+ EEPROM_readAnything(1664,userdef39);
+ EEPROM_readAnything(1672,userdef40);
+ EEPROM_readAnything(1680,userdef41);
+ EEPROM_readAnything(1688,userdef42);
+ EEPROM_readAnything(1696,userdef43);
+ EEPROM_readAnything(1704,userdef44);
+ EEPROM_readAnything(1712,userdef45);
+ EEPROM_readAnything(1720,userdef46);
+ EEPROM_readAnything(1732,userdef47);
+ EEPROM_readAnything(1744,userdef48);
+ EEPROM_readAnything(1756,userdef49);
+ EEPROM_readAnything(1768,userdef50);
+ 
  Most recent updates (45_coralspeq v5):
-
-- fixed the problem where a PAR value of 0 was not incremented when user set intensity to -1 - -10.  This now sets intensity of 0,16,32,64... as expected.
-
+ 
+ - fixed the problem where a PAR value of 0 was not incremented when user set intensity to -1 - -10.  This now sets intensity of 0,16,32,64... as expected.
+ 
  Most recent updates (45_coralspeq v4):
-
-- added ability to use -1 through -10 in the act1_lights to set ambient + 16*2^value to use Dave's new method for estimating Phi2 (in v3 it was just ambient * 2 ^ value)
-- adjusted the following subroutines and variables -->
-    calculate_intensity
-    uE_to_intensity
-    added variable tcs_dac_values
-    added print statement for tcs_dac_values
-
-
+ 
+ - added ability to use -1 through -10 in the act1_lights to set ambient + 16*2^value to use Dave's new method for estimating Phi2 (in v3 it was just ambient * 2 ^ value)
+ - adjusted the following subroutines and variables -->
+ calculate_intensity
+ uE_to_intensity
+ added variable tcs_dac_values
+ added print statement for tcs_dac_values
+ 
+ 
  Most recent updates (45_coralspeq v3):
-
-- added ability to use -1 through -10 in the act1_lights to set 2^value to use Dave's new method for estimating Phi2
-- adjusted the following subroutines and variables -->
-    calculate_intensity
-    uE_to_intensity
-    added variable tcs_dac_values
-    added print statement for tcs_dac_values
-
+ 
+ - added ability to use -1 through -10 in the act1_lights to set 2^value to use Dave's new method for estimating Phi2
+ - adjusted the following subroutines and variables -->
+ calculate_intensity
+ uE_to_intensity
+ added variable tcs_dac_values
+ added print statement for tcs_dac_values
+ 
  Most recent updates (45_coralspeq):
  - To use the speq:
  - set pulses = 1, spec = 1, and meas_lights = 13 in a given pulse set.  This should output 256 values.  At this point, do not set pulses > 1, just create new pulse sets to run multiple spec traces together.
  - you can set actinic and measuring lights as per normal MultispeQ rules.  If you want the lights to warm up first or have delays, just use additional pulse sets.  
  - For delays which do not output a signal, you can set meas_lights == 0 and no output will be produced from that pulse set (nice for very long delays).
-
+ 
  Most recent updates (45):
  - Fixed the lack of averaging in the r,g,b and light_intensity (raw and PAR), and the incorrect use of the averaged par for use in each individually repeated measurement using ambient light.
  - Added in support for coral spec (in "environmental" access with "spec") - replaced normal "data_raw" with the spec data if "spec" is called in the protocol JSON.
-
+ 
  Most recent updates (44):
  - Fixed an issue which caused PAR to be 2x larger than it should be when measuring both PAR and raw light intensity at the same time.
-
+ 
  Most recent updates (43):
  - added more saved values userdef11 - userdef50, each contains 2 floats as normal.  Also expanded the number of printed decimal places of all userdefs to 6 pdecimal places
  - changed i2c speed setting from 1200 to 400 (Wire.begin(I2C_MASTER,0x00,I2C_PINS_18_19,I2C_PULLUP_EXT,I2C_RATE_400) to allow the new compass to work.  This may not be necessary once the compass is integrated into the circuit board.
  - added development versions for measuring the accelerometer and compass as part of the "environmental" json (for example "environmental":[["accel",0],["compass",0]])
-
+ 
  Most recent updates (42):
  - added averages_delay_ms, measurements_delay_ms, protocols_delay_ms
  - returned the data_raw_average (changed in v0.41) back to a unsigned long from unsigned short because it needs to be summed and ends up >64k. 
@@ -57,20 +116,20 @@ a much more robust system for saving the values.
  Most recent updates (41):
  - reduced variability between measurements by changing the delay between timer 1 and timer 2 from a while loop to a delayMicroseconds
  - doubled maximum trace size (from 10k to 20k points) by converting saved output data from long to unsigned short
-
+ 
  Most recent updates (40):
  - fixed auto-power off output to work with chrome app
-
+ 
  Most recent updates (39):
  - pwr_off_ms, call on 1033+. Sets how long it takes to power off the device (in ms).  If set to 0 - 5000 will default to 12000 (2 minutes), if set to < 0 will default to 9999999999 (way long time) 
  - added more saved values userdef7 - userdef10 (1029,1030,1031,1032), each contains 2 floats as normal with userdef0 - userdef6
  - added dacit on 1028+, which runs constant values on A14 DAC from max to min, for testing with cyclic voltammetry.
-
+ 
  Most recent updates (39):
  - pwr_off_ms, call on 1033+. Sets how long it takes to power off the device (in ms).  If set to 0 - 5000 will default to 12000 (2 minutes), if set to < 0 will default to 9999999999 (way long time) 
  - added more saved values userdef7 - userdef10 (1029,1030,1031,1032), each contains 2 floats as normal with userdef0 - userdef6
  - added dacit on 1028+, which runs constant values on A14 DAC from max to min, for testing with cyclic voltammetry.
-
+ 
  Most recent updates (39):
  - pwr_off_ms, call on 1033+. Sets how long it takes to power off the device (in ms).  If set to 0 - 5000 will default to 12000 (2 minutes), if set to < 0 will default to 9999999999 (way long time) 
  - added more saved values userdef7 - userdef10 (1029,1030,1031,1032), each contains 2 floats as normal with userdef0 - userdef6
@@ -80,10 +139,10 @@ a much more robust system for saving the values.
  - fixed bug - could not display userdef0 - 6, addressed the issue
  - added -1+ at the top level menu to produce a 5ms delay.
  - got rid of the serial_flush for the functions used to input calibrations 1014, 1015, 1012 etc so that users can save multiple different calibrations to the device at the same time (used in the multiple thickness SPAD measurement).
-
+ 
  Most recent updates (37):
  - fixed the ambient light setting (-1) and background actinic (act_background_light) so it now works with all lights.
-
+ 
  Most recent updates (36):
  - added light_intensity_raw to the list of environmental measurements.  Acts the same as normal light intensity measurement, but outputs the raw data value from the TCS light sensor instead of the PAR value.
  - Now outputs 3 carriage returns instead of 2 - to help reduce error by the apps in caching the end of the measurement.
@@ -233,7 +292,8 @@ uint16_t spec_data[SPEC_CHANNELS];
 unsigned long spec_data_average[SPEC_CHANNELS];                             // saves the averages of each spec measurement
 int idx = 0;
 int spec_on = 0;                                                            // flag to indicate that spec is being used during this measurement
-int tcs_dac_values[100] = {};
+int tcs_dac_values[100] = {
+};
 
 int _meas_light;							    // measuring light to be used during the interrupt
 int serial_buffer_size = 5000;                                              // max size of the incoming jsons
@@ -362,7 +422,12 @@ float userdef49[3] = {
 };
 float userdef50[3] = {
 };
-float pwr_off_ms[2] = {120000,0};                                                // number of milliseconds before unit auto powers down.
+uint16_t userdef51[256] = {
+};
+uint16_t userdef52[256] = {
+};
+float pwr_off_ms[2] = {
+  120000,0};                                                // number of milliseconds before unit auto powers down.
 //float pwr_off_ms = 120000;                                                // number of milliseconds before unit auto powers down.
 int averages = 1;
 int pwr_off_state = 0;
@@ -490,26 +555,26 @@ void setup() {
   digitalWriteFast(PWR_OFF, LOW);                                               // pull high to power off, pull low to keep power.
   digitalWriteFast(PWR_OFF_LIGHTS, HIGH);                                               // pull high to power on, pull low to power down.
   pinMode(13, OUTPUT);
-//&&
-//  analogReadAveraging(1);                                                       // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u) - this gets changed later by each protocol
+  //&&
+  //  analogReadAveraging(1);                                                       // set analog averaging to 1 (ie ADC takes only one signal, takes ~3u) - this gets changed later by each protocol
   pinMode(DETECTOR1, EXTERNAL);                                                 // use external reference for the detectors
   pinMode(DETECTOR2, EXTERNAL);
-//&&
-//  analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
-//  analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
+  //&&
+  //  analogReadRes(ANALOGRESOLUTION);                                              // set at top of file, should be 16 bit
+  //  analogresolutionvalue = pow(2,ANALOGRESOLUTION);                              // calculate the max analogread value of the resolution setting
   float default_resolution = 488.28;
   int timer0 [8] = {
-    5, 6, 9, 10, 20, 21, 22, 23  };
+    5, 6, 9, 10, 20, 21, 22, 23    };
   int timer1 [2] = {
-    3, 4  };
+    3, 4    };
   int timer2 [2] = {
-    25, 32  }; 
+    25, 32    }; 
   analogWriteFrequency(3, 187500);                                              // Pins 3 and 5 are each on timer 0 and 1, respectively.  This will automatically convert all other pwm pins to the same frequency.
   analogWriteFrequency(5, 187500);
   pinMode(DAC_ON, OUTPUT);
   digitalWriteFast(DAC_ON, HIGH);                                               // pull high to power off, pull low to keep power.
 
-// Set pinmodes for the coralspeq
+  // Set pinmodes for the coralspeq
   //pinMode(SPEC_EOS, INPUT);
   pinMode(SPEC_GAIN, OUTPUT);
   pinMode(SPEC_ST, OUTPUT);
@@ -535,12 +600,14 @@ void setup() {
 
 void pwr_off() { 
   digitalWriteFast(PWR_OFF, HIGH);
-  delay(50);
+  delay(10);
   digitalWriteFast(PWR_OFF, LOW);
+  
   Serial.println("{\"pwr_off\":\"HIGH\"}");
   Serial1.println("{\"pwr_off\":\"HIGH\"}");
   Serial.println();
   Serial1.println();
+  
 }
 
 void pwr_off_lights() {
@@ -580,6 +647,7 @@ Battery output:
  */
 
 void batt_level() {
+
   dac.analogWrite(0,4095);                                        // if we are setting actinic equal to the light sensor, then do it!
   digitalWriteFast(DAC_ON, LOW);                                               // pull high to power off, pull low to keep power.
   delayMicroseconds(1);
@@ -607,92 +675,93 @@ void batt_level() {
   Serial1.println("]}");
   Serial.println();
   Serial1.println();
+  
 }
 
 
 void get_calibration_userdef() {
-  
-      Serial.print("\"get_userdef0\": [");
-      Serial.print(userdef0[0]);
-      Serial.print(",");
-      Serial.print(userdef0[1]);
-      Serial.print("],");
-      Serial1.print("\"get_userdef0\": [");
-      Serial1.print(userdef0[0]);
-      Serial1.print(",");
-      Serial1.print(userdef0[1]);
-      Serial1.print("],");
 
-      Serial.print("\"get_userdef1\":");
-      Serial.print(userdef1[0]);
-      Serial.print(",");
-      Serial.print(userdef1[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef0\": [");
+  Serial.print(userdef0[0]);
+  Serial.print(",");
+  Serial.print(userdef0[1]);
+  Serial.print("],");
+  Serial1.print("\"get_userdef0\": [");
+  Serial1.print(userdef0[0]);
+  Serial1.print(",");
+  Serial1.print(userdef0[1]);
+  Serial1.print("],");
 
-      Serial.print("\"get_userdef2\":");
-      Serial.print(userdef2[0]);
-      Serial.print(",");
-      Serial.print(userdef2[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef1\":");
+  Serial.print(userdef1[0]);
+  Serial.print(",");
+  Serial.print(userdef1[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef3\":");
-      Serial.print(userdef3[0]);
-      Serial.print(",");
-      Serial.print(userdef3[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef2\":");
+  Serial.print(userdef2[0]);
+  Serial.print(",");
+  Serial.print(userdef2[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef4\":");
-      Serial.print(userdef4[0]);
-      Serial.print(",");
-      Serial.print(userdef4[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef3\":");
+  Serial.print(userdef3[0]);
+  Serial.print(",");
+  Serial.print(userdef3[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef5\":");
-      Serial.print(userdef5[0]);
-      Serial.print(",");
-      Serial.print(userdef5[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef4\":");
+  Serial.print(userdef4[0]);
+  Serial.print(",");
+  Serial.print(userdef4[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef6\":");
-      Serial.print(userdef6[0]);
-      Serial.print(",");
-      Serial.print(userdef6[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef5\":");
+  Serial.print(userdef5[0]);
+  Serial.print(",");
+  Serial.print(userdef5[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef7\":");
-      Serial.print(userdef7[0]);
-      Serial.print(",");
-      Serial.print(userdef7[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef6\":");
+  Serial.print(userdef6[0]);
+  Serial.print(",");
+  Serial.print(userdef6[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef8\":");
-      Serial.print(userdef8[0]);
-      Serial.print(",");
-      Serial.print(userdef8[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef7\":");
+  Serial.print(userdef7[0]);
+  Serial.print(",");
+  Serial.print(userdef7[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef9\":");
-      Serial.print(userdef9[0]);
-      Serial.print(",");
-      Serial.print(userdef9[1]);
-      Serial.print("],");
-      Serial.print(",");
+  Serial.print("\"get_userdef8\":");
+  Serial.print(userdef8[0]);
+  Serial.print(",");
+  Serial.print(userdef8[1]);
+  Serial.print("],");
+  Serial.print(",");
 
-      Serial.print("\"get_userdef10\":");
-      Serial.print(userdef10[0]);
-      Serial.print(",");
-      Serial.print(userdef10[1]);
-      Serial.print("],");
-      Serial.print(",");
- }    
+  Serial.print("\"get_userdef9\":");
+  Serial.print(userdef9[0]);
+  Serial.print(",");
+  Serial.print(userdef9[1]);
+  Serial.print("],");
+  Serial.print(",");
+
+  Serial.print("\"get_userdef10\":");
+  Serial.print(userdef10[0]);
+  Serial.print(",");
+  Serial.print(userdef10[1]);
+  Serial.print("],");
+  Serial.print(",");
+}    
 
 
 void get_calibration(float slope[], float yint[],float _slope, float _yint, JsonArray cal,String name) {
@@ -714,37 +783,37 @@ void get_calibration(float slope[], float yint[],float _slope, float _yint, Json
       }
     }
     else if (_slope == 0) {
-    for (int z = 0;z<cal.getLength();z++) {                                          // check each pins in the get_ir_baseline array, and for each pin...
-      Serial.print("[");
-      Serial.print(cal.getLong(z));                                                  // print the pin name
-      Serial.print(","); 
-      Serial1.print("[");
-      Serial1.print(cal.getLong(z));                                                  // print the pin name
-      Serial1.print(","); 
-      for (int i = 0;i<sizeof(all_pins)/sizeof(int);i++) {                          // look through available pins, pull out the baseline slope and yint associated with requested pin
-        if (all_pins[i] == cal.getLong(z)) {
-          if (_slope == 0) {                                                        // if this is an array, then print this way...
-            Serial.print(slope[i]);
-            Serial1.print(slope[i]);
-            if (yint [0] != 0) {                                                        
-              Serial.print(",");
-              Serial.print(yint[i]);                                                // ignore second value if it's 0
-              Serial1.print(",");
-              Serial1.print(yint[i]);                                                // ignore second value if it's 0
+      for (int z = 0;z<cal.getLength();z++) {                                          // check each pins in the get_ir_baseline array, and for each pin...
+        Serial.print("[");
+        Serial.print(cal.getLong(z));                                                  // print the pin name
+        Serial.print(","); 
+        Serial1.print("[");
+        Serial1.print(cal.getLong(z));                                                  // print the pin name
+        Serial1.print(","); 
+        for (int i = 0;i<sizeof(all_pins)/sizeof(int);i++) {                          // look through available pins, pull out the baseline slope and yint associated with requested pin
+          if (all_pins[i] == cal.getLong(z)) {
+            if (_slope == 0) {                                                        // if this is an array, then print this way...
+              Serial.print(slope[i]);
+              Serial1.print(slope[i]);
+              if (yint [0] != 0) {                                                        
+                Serial.print(",");
+                Serial.print(yint[i]);                                                // ignore second value if it's 0
+                Serial1.print(",");
+                Serial1.print(yint[i]);                                                // ignore second value if it's 0
+              }
             }
+            Serial.print("]");
+            Serial1.print("]");
+            goto cal_end;                                                                            // bail if you found your pin
           }
-          Serial.print("]");
-          Serial1.print("]");
-          goto cal_end;                                                                            // bail if you found your pin
+        }
+cal_end:
+        delay(1);
+        if (z != cal.getLength()-1) {                                                  // add a comma if it's not the last value
+          Serial.print(",");
+          Serial1.print(",");
         }
       }
-cal_end:
-      delay(1);
-      if (z != cal.getLength()-1) {                                                  // add a comma if it's not the last value
-        Serial.print(",");
-        Serial1.print(",");
-      }
-    }
     }
     Serial.print("],");
     Serial1.print("],");
@@ -776,7 +845,7 @@ void measureit() {
   int readit;
   pinMode(A14,INPUT);
   Serial.println(A14);
-  
+
   for (i=0;i<100;i++) {
     readit = analogRead(A14);
     Serial.println(readit); 
@@ -797,46 +866,46 @@ void dacit() {            // 1028
 
   analogWriteRes(12);
   int i;
-//  int readit;
+  //  int readit;
   pinMode(A14,OUTPUT);
-  
-/*                              // speed testing for various analog read and writes
-  delay(5);
-  long gogo = 0;
-  long endend = 0;
-  for (i=0;i<40;i++) {
-    gogo = micros();
-//    analogWrite(A14,i*100);
-//    data1 = adc->analogRead(detector,ADC_0);
-//    analogRead(A14);
-    endend = micros();
-    Serial.println(endend - gogo);
-    delay(100);
-  }
-//  Serial.println(A14);
-*/
+
+  /*                              // speed testing for various analog read and writes
+   delay(5);
+   long gogo = 0;
+   long endend = 0;
+   for (i=0;i<40;i++) {
+   gogo = micros();
+   //    analogWrite(A14,i*100);
+   //    data1 = adc->analogRead(detector,ADC_0);
+   //    analogRead(A14);
+   endend = micros();
+   Serial.println(endend - gogo);
+   delay(100);
+   }
+   //  Serial.println(A14);
+   */
 
   while (Serial.available() == 0) {
-  for (i=0;i<1500;i++) {
-    analogWrite(A14,i);
-//    Serial.println(readit); 
-    delay(3);
-    int j = analogRead(26);
-    Serial.print(i);
-    Serial.print(",");
-    Serial.print(j);
-    Serial.println(",");
-  }
-  for (i=1500;i>0;i--) {
-    analogWrite(A14,i);
-//    Serial.println(readit); 
-    delay(3);
-    int j = analogRead(26);
-    Serial.print(i);
-    Serial.print(",");
-    Serial.print(j);
-    Serial.println(",");
-  }
+    for (i=0;i<1500;i++) {
+      analogWrite(A14,i);
+      //    Serial.println(readit); 
+      delay(3);
+      int j = analogRead(26);
+      Serial.print(i);
+      Serial.print(",");
+      Serial.print(j);
+      Serial.println(",");
+    }
+    for (i=1500;i>0;i--) {
+      analogWrite(A14,i);
+      //    Serial.println(readit); 
+      delay(3);
+      int j = analogRead(26);
+      Serial.print(i);
+      Serial.print(",");
+      Serial.print(j);
+      Serial.println(",");
+    }
   }
   Serial.read();
   Serial.read();
@@ -854,7 +923,7 @@ void dacit() {            // 1028
 
 //////////////////////// MAIN LOOP /////////////////////////
 void loop() {
-  
+
   delay(50);
   int measurements = 1;                                                   // the number of times to repeat the entire measurement (all protocols)
   unsigned long measurements_delay = 0;                                    // number of seconds to wait between measurements  
@@ -889,7 +958,7 @@ void loop() {
   int number_of_protocols = 0;                                                      // reset number of protocols
   int end_flag = 0;
   int which_serial = 0;
-//  long* data_raw_average = (long*)malloc(4);
+  //  long* data_raw_average = (long*)malloc(4);
   unsigned long* data_raw_average = (unsigned long*)malloc(4);
   char serial_buffer [serial_buffer_size];
   String json2 [max_jsons];
@@ -1033,55 +1102,55 @@ void loop() {
         add_userdef(1760,2,4,1);
         break;
       case 1038:                                                                   // save user defined value to accelerometer
-          int Xval, Yval, Zval;
-          while (Serial.peek() != '1') {
-            MMA8653FC_read(&Xval,&Yval,&Zval);
-            Serial.print(Xval);
-            Serial.print(",");
-            Serial.print(Yval);
-            Serial.print(",");
-            Serial.print(Zval);
-            Serial.println(",");
-            delay(100);
-          }
-          Serial.read();
-          break;
+        int Xval, Yval, Zval;
+        while (Serial.peek() != '1') {
+          MMA8653FC_read(&Xval,&Yval,&Zval);
+          Serial.print(Xval);
+          Serial.print(",");
+          Serial.print(Yval);
+          Serial.print(",");
+          Serial.print(Zval);
+          Serial.println(",");
+          delay(100);
+        }
+        Serial.read();
+        break;
       case 1039:                                                                   // save user defined value to compass
-          int Xcomp, Ycomp, Zcomp;
-          while (Serial1.peek() != '1') {
-            MAG3110_read(&Xcomp,&Ycomp,&Zcomp);
-            delay(200);
-            Serial.print(Xcomp);
-            Serial.print(",");
-            Serial.print(Ycomp);
-            Serial.print(",");
-            Serial.print(Zcomp);
-            Serial.println(",");
-          }
-          Serial.read();
-          break;
+        int Xcomp, Ycomp, Zcomp;
+        while (Serial1.peek() != '1') {
+          MAG3110_read(&Xcomp,&Ycomp,&Zcomp);
+          delay(200);
+          Serial.print(Xcomp);
+          Serial.print(",");
+          Serial.print(Ycomp);
+          Serial.print(",");
+          Serial.print(Zcomp);
+          Serial.println(",");
+        }
+        Serial.read();
+        break;
       case 1040:                                                                   // save user defined value to EEPROM
-//          Xval, Yval, Zval;
-//          Xcomp, Ycomp, Zcomp;
-          while (Serial.peek() != '1') {
-            MMA8653FC_read(&Xval,&Yval,&Zval);
-            MAG3110_read(&Xcomp,&Ycomp,&Zcomp);
-            delay(200);
-            Serial.print(Xval);
-            Serial.print(",");
-            Serial.print(Yval);
-            Serial.print(",");
-            Serial.print(Zval);
-            Serial.print(",");
-            Serial.print(Xcomp);
-            Serial.print(",");
-            Serial.print(Ycomp);
-            Serial.print(",");
-            Serial.print(Zcomp);
-            Serial.println(",");
-          }
-          Serial.read();
-          break;
+        //          Xval, Yval, Zval;
+        //          Xcomp, Ycomp, Zcomp;
+        while (Serial.peek() != '1') {
+          MMA8653FC_read(&Xval,&Yval,&Zval);
+          MAG3110_read(&Xcomp,&Ycomp,&Zcomp);
+          delay(200);
+          Serial.print(Xval);
+          Serial.print(",");
+          Serial.print(Yval);
+          Serial.print(",");
+          Serial.print(Zval);
+          Serial.print(",");
+          Serial.print(Xcomp);
+          Serial.print(",");
+          Serial.print(Ycomp);
+          Serial.print(",");
+          Serial.print(Zcomp);
+          Serial.println(",");
+        }
+        Serial.read();
+        break;
       case 1041:                                                                   // save user defined value to EEPROM
         add_userdef(1472,2,4,1);
         break;
@@ -1194,8 +1263,14 @@ void loop() {
         readSpectrometer(100,35,35,false);
         print_data();
         break;
-        }
-     }
+      case 1078:                                                                   // save user defined value to EEPROM
+        add_userdef2(24,256,2,1);
+        break;
+      case 1079:                                                                   // save user defined value to EEPROM
+        add_userdef2(536,256,2,1);
+        break;
+      }
+    }
   }        
   if (Serial.peek() == 91) {
 #ifdef DEBUGSIMPLE
@@ -1306,7 +1381,7 @@ void loop() {
       int protocols = 1;
       int quit = 0;
       for (int u = 0;u<protocols;u++) {                                                        // the number of times to repeat the current protocol
-      
+
         String protocol_id =      hashTable.getString("protocol_id");                          // used to determine what macro to apply
         int analog_averages =     hashTable.getLong("analog_averages");                          // DEPRECIATED IN NEWEST HARDWARE 10/14 # of measurements per measurement pulse to be internally averaged (min 1 measurement per 6us pulselengthon) - LEAVE THIS AT 1 for now
         if (analog_averages == 0) {                                                              // if averages don't exist, set it to 1 automatically.
@@ -1333,14 +1408,14 @@ void loop() {
         else {
           act_background_light =  hashTable.getLong("act_background_light");
         }
-/*
+        /*
 averaging0 - 1 - 30
-averaging1 - 1 - 30
-resolution0 - 2 - 16
-resolution1 - 2 - 16
-conversion_speed - 0 - 5
-sampling_speed - 0 - 5
-*/
+         averaging1 - 1 - 30
+         resolution0 - 2 - 16
+         resolution1 - 2 - 16
+         conversion_speed - 0 - 5
+         sampling_speed - 0 - 5
+         */
 
         int averaging0 =          hashTable.getLong("averaging");                               // # of ADC internal averages
         if (averaging0 == 0) {                                                                   // if averaging0 don't exist, set it to 10 automatically.
@@ -1423,6 +1498,8 @@ sampling_speed - 0 - 5
         int get_userdef48 =  hashTable.getLong("get_userdef48");                        // include the saved userdef48 information from the device
         int get_userdef49 =  hashTable.getLong("get_userdef49");                        // include the saved userdef49 information from the device
         int get_userdef50 =  hashTable.getLong("get_userdef50");                        // include the saved userdef50 information from the device
+        int get_userdef51 =  hashTable.getLong("get_userdef51");                        // include the saved userdef51 information from the device
+        int get_userdef52 =  hashTable.getLong("get_userdef52");                        // include the saved userdef52 information from the device
         JsonArray pulses =        hashTable.getArray("pulses");                                // the number of measuring pulses, as an array.  For example [50,10,50] means 50 pulses, followed by 10 pulses, follwed by 50 pulses.
         JsonArray act1_lights =   hashTable.getArray("act1_lights");
         JsonArray act2_lights =   hashTable.getArray("act2_lights");
@@ -1434,9 +1511,9 @@ sampling_speed - 0 - 5
         JsonArray detectors =     hashTable.getArray("detectors");                               // the Teensy pin # of the detectors used during those pulses, as an array of array.  For example, if pulses = [5,2] and detectors = [[34,35],[34,35]] .  
         JsonArray meas_lights =   hashTable.getArray("meas_lights");
         JsonArray environmental = hashTable.getArray("environmental");
-//        JsonArray message_type =  hashTable.getArray("message_type");                                // sends the user a message which they must reply -1+ to continue
+        //        JsonArray message_type =  hashTable.getArray("message_type");                                // sends the user a message which they must reply -1+ to continue
         JsonArray message =       hashTable.getArray("message");                                // sends the user a message to which they must reply <answer>+ to continue
-        
+
         //********************INPUT DATA FOR CORALSPEQ********************//
         JsonArray spec =          hashTable.getArray("spec");                                // defines whether the spec will be called during each array.  note for each single plus, the spec will call and add 256 values to data_raw!
         JsonArray delay_time =    hashTable.getArray("delay_time");                                         // delay per half clock (in microseconds).  This ultimately conrols the integration time.
@@ -1464,7 +1541,7 @@ sampling_speed - 0 - 5
           }
         }
         free(data_raw_average);                                                            // free malloc of data_raw_average
-//        data_raw_average = (long*)calloc(size_of_data_raw,sizeof(long));                   // get some memory space for data_raw_average, initialize all at zero.
+        //        data_raw_average = (long*)calloc(size_of_data_raw,sizeof(long));                   // get some memory space for data_raw_average, initialize all at zero.
         data_raw_average = (unsigned long*)calloc(size_of_data_raw,sizeof(unsigned long));                   // get some memory space for data_raw_average, initialize all at zero.
 
 #ifdef DEBUGSIMPLE
@@ -1503,13 +1580,13 @@ sampling_speed - 0 - 5
         Serial1.print("{");
 
         quit = user_enter_long(5);                                                        // check to see if user has quit (send -1 on USB or bluetooth serial)
-/*
+        /*
         if (quit == -1) {
-          Serial.print("}]");
-          Serial1.print("}]");          
-          goto skipall;
-        }
-*/
+         Serial.print("}]");
+         Serial1.print("}]");          
+         goto skipall;
+         }
+         */
 
         Serial.print("\"protocol_id\":\"");
         Serial1.print("\"protocol_id\":\"");
@@ -1522,14 +1599,14 @@ sampling_speed - 0 - 5
           print_offset(1);
         }
 
-        print_get_userdef0(get_userdef0,get_userdef1,get_userdef2,get_userdef3,get_userdef4,get_userdef5,get_userdef6,get_userdef7,get_userdef8,get_userdef9,get_userdef10,get_userdef11,get_userdef12,get_userdef13,get_userdef14,get_userdef15,get_userdef16,get_userdef17,get_userdef18,get_userdef19,get_userdef20,get_userdef21,get_userdef22,get_userdef23,get_userdef24,get_userdef25,get_userdef26,get_userdef27,get_userdef28,get_userdef29,get_userdef30,get_userdef31,get_userdef32,get_userdef33,get_userdef34,get_userdef35,get_userdef36,get_userdef37,get_userdef38,get_userdef39,get_userdef40,get_userdef41,get_userdef42,get_userdef43,get_userdef44,get_userdef45,get_userdef46,get_userdef47,get_userdef48,get_userdef49,get_userdef50); // check to see if we need to print any of the user defined calibrations
+        print_get_userdef0(get_userdef0,get_userdef1,get_userdef2,get_userdef3,get_userdef4,get_userdef5,get_userdef6,get_userdef7,get_userdef8,get_userdef9,get_userdef10,get_userdef11,get_userdef12,get_userdef13,get_userdef14,get_userdef15,get_userdef16,get_userdef17,get_userdef18,get_userdef19,get_userdef20,get_userdef21,get_userdef22,get_userdef23,get_userdef24,get_userdef25,get_userdef26,get_userdef27,get_userdef28,get_userdef29,get_userdef30,get_userdef31,get_userdef32,get_userdef33,get_userdef34,get_userdef35,get_userdef36,get_userdef37,get_userdef38,get_userdef39,get_userdef40,get_userdef41,get_userdef42,get_userdef43,get_userdef44,get_userdef45,get_userdef46,get_userdef47,get_userdef48,get_userdef49,get_userdef50,get_userdef51,get_userdef52); // check to see if we need to print any of the user defined calibrations
 
         get_calibration(calibration_baseline_slope,calibration_baseline_yint,0,0,get_ir_baseline ,"get_ir_baseline");
         get_calibration(calibration_slope,calibration_yint,0,0,get_lights_cal ,"get_lights_cal");
         get_calibration(calibration_blank1,calibration_blank2,0,0,get_blank_cal,"get_blank_cal");
         get_calibration(calibration_other1,calibration_other2,0,0,get_other_cal,"get_other_cal");
         get_calibration(0,0,light_slope,light_y_intercept,get_tcs_cal,"get_tcs_cal");
-//        get_calibration_userdef();
+        //        get_calibration_userdef();
 
         if (averages > 1) {      
           Serial1.print("\"averages\":"); 
@@ -1822,62 +1899,62 @@ sampling_speed - 0 - 5
             }
           }
 
-//&&
-//          analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
+          //&&
+          //          analogReadAveraging(analog_averages);                                      // set analog averaging (ie ADC takes one signal per ~3u)
 
-//////////////////////ADC SETUP////////////////////////
+          //////////////////////ADC SETUP////////////////////////
 
-adc->setAveraging(averaging0,ADC_0);                   // set number of averages
-adc->setResolution(resolution0,ADC_0);                 // set bits of resolution
+          adc->setAveraging(averaging0,ADC_0);                   // set number of averages
+          adc->setResolution(resolution0,ADC_0);                 // set bits of resolution
 
-switch (conversion_speed) {    
-  case 0:
-    adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
-    break;
-  case 1:
-    adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
-    break;
-  case 2:
-    adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
-    break;
-  case 3:
-    adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
-    break;
-  case 4:
-    adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
-    break;
-  case 5:
-    adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
-    break;
-}
+          switch (conversion_speed) {    
+          case 0:
+            adc->setConversionSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the conversion speed
+            break;
+          case 1:
+            adc->setConversionSpeed(ADC_LOW_SPEED,ADC_0); // change the conversion speed
+            break;
+          case 2:
+            adc->setConversionSpeed(ADC_MED_SPEED,ADC_0); // change the conversion speed
+            break;
+          case 3:
+            adc->setConversionSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the conversion speed
+            break;
+          case 4:
+            adc->setConversionSpeed(ADC_HIGH_SPEED,ADC_0); // change the conversion speed
+            break;
+          case 5:
+            adc->setConversionSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the conversion speed
+            break;
+          }
 
-switch (sampling_speed) {    
-  case 0:
-    adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the sampling speed
-    break;
-  case 1:
-    adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_0); // change the sampling speed
-    break;
-  case 2:
-    adc->setSamplingSpeed(ADC_MED_SPEED,ADC_0); // change the sampling speed
-    break;
-  case 3:
-    adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the sampling speed
-    break;
-  case 4:
-    adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_0); // change the sampling speed
-    break;
-  case 5:
-    adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the sampling speed
-    break;
-}
+          switch (sampling_speed) {    
+          case 0:
+            adc->setSamplingSpeed(ADC_VERY_LOW_SPEED,ADC_0); // change the sampling speed
+            break;
+          case 1:
+            adc->setSamplingSpeed(ADC_LOW_SPEED,ADC_0); // change the sampling speed
+            break;
+          case 2:
+            adc->setSamplingSpeed(ADC_MED_SPEED,ADC_0); // change the sampling speed
+            break;
+          case 3:
+            adc->setSamplingSpeed(ADC_HIGH_SPEED_16BITS,ADC_0); // change the sampling speed
+            break;
+          case 4:
+            adc->setSamplingSpeed(ADC_HIGH_SPEED,ADC_0); // change the sampling speed
+            break;
+          case 5:
+            adc->setSamplingSpeed(ADC_VERY_HIGH_SPEED,ADC_0); // change the sampling speed
+            break;
+          }
 
-delay(2);
+          delay(2);
 
           int actfull = 0;
-//          int _tcs_to_act = 0;
+          //          int _tcs_to_act = 0;
           float _light_intensity = lux_to_uE(lux_local);
-//          _tcs_to_act = (uE_to_intensity(act_background_light,_light_intensity)*tcs_to_act)/100;  // set intensity of actinic background light
+          //          _tcs_to_act = (uE_to_intensity(act_background_light,_light_intensity)*tcs_to_act)/100;  // set intensity of actinic background light
 #ifdef DEBUGSIMPLE
           Serial.println();
           Serial.print("tcs to act: ");
@@ -1899,21 +1976,21 @@ delay(2);
             int _read_time = 0;                                                              // create the spec flag for the coralspeq
             int _accumulateMode = 0;                                                              // create the spec flag for the coralspeq
             if (cycle == 0 && pulse == 0) {                                             // if it's the beginning of a measurement, then...                                                             // wait a few milliseconds so that the actinic pulse presets can stabilize
-//              volatile unsigned long* systimer = (volatile unsigned long*) 0xE000E018;                    // call system clock                          
+              //              volatile unsigned long* systimer = (volatile unsigned long*) 0xE000E018;                    // call system clock                          
               Serial.flush();                                                          // flush any remaining serial output info before moving forward          
               unsigned long starttimer0;
-//              unsigned long timestart = 0;
-//              unsigned long timeend = 0;
-//              unsigned long systimerstart = 0;
-//              unsigned long systimerend = 0;
-//              unsigned short nowtime = 0;
+              //              unsigned long timestart = 0;
+              //              unsigned long timeend = 0;
+              //              unsigned long systimerstart = 0;
+              //              unsigned long systimerend = 0;
+              //              unsigned short nowtime = 0;
 
-//              while (*systimer > 1000) {                                                  // wait until timer is at the beginning of it's cycle
-//              }
+              //              while (*systimer > 1000) {                                                  // wait until timer is at the beginning of it's cycle
+              //              }
 
               digitalWriteFast(act_background_light_prev, LOW);                        // turn off actinic background light
-//              starttimer0 = micros();
-//              systimerstart = *systimer;
+              //              starttimer0 = micros();
+              //              systimerstart = *systimer;
 
 
 
@@ -1923,99 +2000,99 @@ delay(2);
               interrupts();
 
 
-/*
+              /*
 
-              starttimer0 = micros();
-              timer0.begin(pulse1,pulsedistance);                                       // Begin firsts pulse
-              while (micros()-starttimer0 < pulsesize) {
-              }                                                                         // wait a full pulse size, then...                                                                                          
-*/
-
-
+               starttimer0 = micros();
+               timer0.begin(pulse1,pulsedistance);                                       // Begin firsts pulse
+               while (micros()-starttimer0 < pulsesize) {
+               }                                                                         // wait a full pulse size, then...                                                                                          
+               */
 
 
-//              while (true) {
-//                nowtime = *systimer - systimerstart;
-//                if (nowtime > pulsesize*100) {
-//                  break;
-//                }
-//              }
-//              systimerend = micros();
-//              Serial.println(starttimer0);
-//              Serial.println(systimerend);
-//              Serial.println(systimerend-starttimer0);
-//              Serial.println("");
 
 
-/*
+              //              while (true) {
+              //                nowtime = *systimer - systimerstart;
+              //                if (nowtime > pulsesize*100) {
+              //                  break;
+              //                }
+              //              }
+              //              systimerend = micros();
+              //              Serial.println(starttimer0);
+              //              Serial.println(systimerend);
+              //              Serial.println(systimerend-starttimer0);
+              //              Serial.println("");
+
+
+              /*
               while (true) {
-                nowtime = micros() - starttimer0;
-                if (nowtime > pulsesize) {
-                  break;
-                }
-              }
-              systimerend = *systimer;
-              Serial.println(systimerend);
-              Serial.println(systimerstart);
-              Serial.println(systimerend-systimerstart);
-              Serial.println("");
-*/
-// when measuring systimer, 100 systimer counts is == 1 us.  System timer counts down from 100,000... that means system timer countdown covers a total of 1000us
+               nowtime = micros() - starttimer0;
+               if (nowtime > pulsesize) {
+               break;
+               }
+               }
+               systimerend = *systimer;
+               Serial.println(systimerend);
+               Serial.println(systimerstart);
+               Serial.println(systimerend-systimerstart);
+               Serial.println("");
+               */
+              // when measuring systimer, 100 systimer counts is == 1 us.  System timer counts down from 100,000... that means system timer countdown covers a total of 1000us
 
-/*
+              /*
               timestart = *systimer;
-              while (true) {
-                nowtime = timerstart - micros();
-                if (nowtime > pulsesize) {
-                  break;
-                }
-              }
-*/
-//              Serial.print(*systimer);
+               while (true) {
+               nowtime = timerstart - micros();
+               if (nowtime > pulsesize) {
+               break;
+               }
+               }
+               */
+              //              Serial.print(*systimer);
 
-//              Serial.print("");
-//              timeend = *systimer;
+              //              Serial.print("");
+              //              timeend = *systimer;
 
-//              Serial.print(*systimer);
+              //              Serial.print(*systimer);
 
-//              Serial.println("");
-//              Serial.print(timeend-timestart);
+              //              Serial.println("");
+              //              Serial.print(timeend-timestart);
 
-//              Serial.println(",");
-//              Serial.print(timeend);
-//              Serial.println(",");
-//              Serial.print(timestart);
-            
-//              delayMicroseconds(pulsesize);
+              //              Serial.println(",");
+              //              Serial.print(timeend);
+              //              Serial.println(",");
+              //              Serial.print(timestart);
 
-
-//              while (nowtime < pulsesize) {              
-//              nowtime = micros()-starttimer0;
-//              Serial.println(nowtime);
-//              }                           // wait a full pulse size, then...                                                                                          
+              //              delayMicroseconds(pulsesize);
 
 
-//              while (micros()-starttimer0 < pulsesize) {              
-//              }                                                                         // wait a full pulse size, then...                                                                                          
-/*
-
-              while (true) {
-              nowtime = micros()-starttimer0;  
-//              Serial.println(nowtime);
-                if (nowtime>pulsesize) {
-                  break;
-                }
-              }
+              //              while (nowtime < pulsesize) {              
+              //              nowtime = micros()-starttimer0;
+              //              Serial.println(nowtime);
+              //              }                           // wait a full pulse size, then...                                                                                          
 
 
-              
-              //while (nowtime < pulsesize) {
-              while(true) {
-                if ( micros()-starttimer0 < pulsesize ) {
-                  break;
-                }
-              }                                                                    // wait a full pulse size, then...                                                                                          
-*/
+              //              while (micros()-starttimer0 < pulsesize) {              
+              //              }                                                                         // wait a full pulse size, then...                                                                                          
+              /*
+
+               while (true) {
+               nowtime = micros()-starttimer0;  
+               //              Serial.println(nowtime);
+               if (nowtime>pulsesize) {
+               break;
+               }
+               }
+               
+               
+               
+               //while (nowtime < pulsesize) {
+               while(true) {
+               if ( micros()-starttimer0 < pulsesize ) {
+               break;
+               }
+               }                                                                    // wait a full pulse size, then...                                                                                          
+               */
               timer1.begin(pulse2,pulsedistance);                                       // Begin second pulse
             }      
 
@@ -2131,7 +2208,7 @@ delay(2);
                 _alt2_light_prev = _alt2_light;
                 _alt2_light = alt2_lights.getLong(cycle);
                 alt2_on = calculate_intensity(_alt2_light,tcs_to_act,cycle,_light_intensity);
-  
+
                 _spec = spec.getLong(cycle);                                                      // pull whether the spec will get called in this cycle or not for coralspeq and set parameters.  If they are empty (not defined by the user) set them to the default value
                 if (_spec == 1) {
                   _intTime = intTime.getLong(cycle);
@@ -2205,92 +2282,92 @@ delay(2);
 
             while (on == 0 | off == 0) {                                                	 // if ALL pulses happened, then...
             }
-//&&
-//            data1 = analogRead(detector);                                                        // save the detector reading as data1    
+            //&&
+            //            data1 = analogRead(detector);                                                        // save the detector reading as data1    
 
-/*
+            /*
 
- **RUN(uint8_t mode, uint8_t woi) - 
- *      transition into BLPI mode which configures the core(2 MHZ), 
- *      bus(2 MHZ), flash(1 MHZ) clocks and configures SysTick for 
- *      the reduced freq, then enter into vlpr mode. Exiting Low Power 
- *      Run mode will transition to PEE mode and reconfigures clocks
- *      and SysTick to a pre RUN state and exit vlpr to normal run.
- * Parameter:  mode -> LP_RUN_ON = enter Low Power Run(VLPR)
- *             mode -> LP_RUN_OFF = exit Low Power Run(VLPR)
- *             woi  -> NO_WAKE_ON_INTERRUPT = no exit LPR on interrupt 
- *             woi  -> WAKE_ON_INTERRUPT = exit LPR on interrupt
+             **RUN(uint8_t mode, uint8_t woi) - 
+             *      transition into BLPI mode which configures the core(2 MHZ), 
+             *      bus(2 MHZ), flash(1 MHZ) clocks and configures SysTick for 
+             *      the reduced freq, then enter into vlpr mode. Exiting Low Power 
+             *      Run mode will transition to PEE mode and reconfigures clocks
+             *      and SysTick to a pre RUN state and exit vlpr to normal run.
+             * Parameter:  mode -> LP_RUN_ON = enter Low Power Run(VLPR)
+             *             mode -> LP_RUN_OFF = exit Low Power Run(VLPR)
+             *             woi  -> NO_WAKE_ON_INTERRUPT = no exit LPR on interrupt 
+             *             woi  -> WAKE_ON_INTERRUPT = exit LPR on interrupt
+             
+             */
 
-*/
+            //            long started1 = micros();
+            //            LP.Run(LP_RUN_ON);
+            //            long ended1 = micros();
 
-//            long started1 = micros();
-//            LP.Run(LP_RUN_ON);
-//            long ended1 = micros();
-
-// normal way of doing it
+            // normal way of doing it
             data1 = adc->analogRead(detector,ADC_0);
 
 
-// performing medians
+            // performing medians
 
-/*
+            /*
 
-delayMicroseconds(200);
+             delayMicroseconds(200);
+             
+             float data_array[50];
+             long beginning = micros();
+             for (int i = 0;i<50;i++) {
+             data_array[i] = adc->analogRead(detector,ADC_0);
+             }
+             //            long ending = micros();
+             for (int i = 0;i<50;i++) {
+             Serial.print(data_array[i]);
+             Serial.print(",");
+             }
+             //            long difference = ending - beginning;
+             //            Serial.print(difference);
+             //            Serial.println("");
+             Serial.println("");
+             for (int i=0;i<50;i++) {
+             for (int j=0;j<50;j++) {
+             if (data_array[i] > data_array[j]) {
+             float temp = data_array[i];
+             data_array[i] = data_array[j];
+             data_array[j] = temp;
+             }
+             }
+             }
+             //            for (int i=0;i<50;i++) {
+             //              Serial.print(data_array[i]);
+             //              Serial.print(",");
+             //            }   
+             data1 = data_array[24];
+             //            Serial.println();
+             //            Serial.print("This is actual output  ");
+             //            Serial.println(data1);
+             
+             */
 
-            float data_array[50];
-            long beginning = micros();
-            for (int i = 0;i<50;i++) {
-              data_array[i] = adc->analogRead(detector,ADC_0);
-            }
-//            long ending = micros();
-            for (int i = 0;i<50;i++) {
-              Serial.print(data_array[i]);
-              Serial.print(",");
-            }
-//            long difference = ending - beginning;
-//            Serial.print(difference);
-//            Serial.println("");
-            Serial.println("");
-            for (int i=0;i<50;i++) {
-              for (int j=0;j<50;j++) {
-                if (data_array[i] > data_array[j]) {
-                  float temp = data_array[i];
-                  data_array[i] = data_array[j];
-                  data_array[j] = temp;
-                }
-              }
-            }
-//            for (int i=0;i<50;i++) {
-//              Serial.print(data_array[i]);
-//              Serial.print(",");
-//            }   
-            data1 = data_array[24];
-//            Serial.println();
-//            Serial.print("This is actual output  ");
-//            Serial.println(data1);
-            
-*/            
-            
-            
-/*            
-            long started2 = micros();
-            LP.Run(LP_RUN_OFF);
-            long ended2 = micros();
-*/
+
+            /*            
+             long started2 = micros();
+             LP.Run(LP_RUN_OFF);
+             long ended2 = micros();
+             */
             digitalWriteFast(SAMPLE_AND_HOLD, HIGH);						 // turn off sample and hold, and turn on lights for next pulse set
 
             if (first_flag == 1) {                                                                    // if this is the 0th pulse and a therefore new cycle
               digitalWriteFast(_act1_light_prev, LOW);                                                // turn off previous lights, turn on the new ones on (if light setting is zero, then no light on
               if (act1_on == 1) {                                                                      // only turn on if your supposed to!
                 digitalWriteFast(_act1_light, HIGH);
-//                Serial.print("act1 high!");
-//                Serial.print("act1 high!");
+                //                Serial.print("act1 high!");
+                //                Serial.print("act1 high!");
               }
               digitalWriteFast(_act2_light_prev, LOW);
               if (act2_on == 1) {
                 digitalWriteFast(_act2_light, HIGH);
-//                Serial.print("act2 high!");
-//                Serial.print("act2 high!");
+                //                Serial.print("act2 high!");
+                //                Serial.print("act2 high!");
               }
               digitalWriteFast(_alt1_light_prev, LOW);
               if (alt1_on == 1) {
@@ -2632,7 +2709,7 @@ delayMicroseconds(200);
             user_enter_long(averages_delay_ms);
           }
         }
-        skipPart:                                                                             // skip to the end of the protocol
+skipPart:                                                                             // skip to the end of the protocol
 
         if (spec_on == 1) {                                                                    // if the spec is being used, then read it and print data_raw as spec values.  Otherwise, print data_raw as multispeq detector values as per normal
           Serial1.print("\"data_raw\":[");                                                      // print the averaged results
@@ -2686,7 +2763,7 @@ delayMicroseconds(200);
             Serial.print("]");
             goto skipall;
           }
-      }
+        }
 #ifdef DEBUGSIMPLE
         Serial.print("# of protocols repeats, current protocol repeat, number of total protocols, current protocol      ");
         Serial.print(protocols);
@@ -2755,15 +2832,15 @@ delayMicroseconds(200);
       user_enter_long(measurements_delay_ms);
     }
   }
-  skipall:
+skipall:
   Serial.println("]}");
   Serial.println("");
   Serial.println("");
-//  Serial.print("!");  
+  //  Serial.print("!");  
   Serial1.println("]}");
   Serial1.println("");
   Serial1.println("");
-//  Serial1.print("!");  
+  //  Serial1.print("!");  
   digitalWriteFast(act_background_light, LOW);                                    // turn off the actinic background light at the end of all measurements
   act_background_light = 13;                                                      // reset background light to teensy pin 13
   free(data_raw_average);                                                         // free the calloc() of data_raw_average
@@ -3153,12 +3230,14 @@ final:
     serial_bt_flush();
   }
   digitalWriteFast(DAC_ON, HIGH);                                               // turn DAC back off
+
   Serial.print(sensor_value);
   Serial1.print(sensor_value);
   Serial.println("]}");
   Serial1.println("]}");
   Serial.println();
   Serial1.println();
+
 }
 
 float Relative_Humidity(int var1) {
@@ -3188,38 +3267,38 @@ float Temperature(int var1) {
 }
 
 int Light_Intensity(int var1) {
-    lux_local = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
-    r_local = TCS3471.readRData();
-    g_local = TCS3471.readGData();
-    b_local = TCS3471.readBData();
+  lux_local = TCS3471.readCData();                  // take 3 measurements, outputs in format - = 65535 or whatever 16 bits is.
+  r_local = TCS3471.readRData();
+  g_local = TCS3471.readGData();
+  b_local = TCS3471.readBData();
 #ifdef DEBUGSIMPLE
-    Serial.print("\"light_intensity\": ");
-    Serial.print(lux_local, DEC);
-    Serial.print(",");
-    Serial.print("\"red\": ");
-    Serial.print(r_local, DEC);
-    Serial.print(",");
-    Serial.print("\"green\": ");
-    Serial.print(g_local, DEC);
-    Serial.print(",");
-    Serial.print("\"blue\": ");
-    Serial.print(b_local, DEC);
-    Serial.print(",");
-    //  Serial.print("\cyan\": ");
-    //  Serial.print(c, DEC);
+  Serial.print("\"light_intensity\": ");
+  Serial.print(lux_local, DEC);
+  Serial.print(",");
+  Serial.print("\"red\": ");
+  Serial.print(r_local, DEC);
+  Serial.print(",");
+  Serial.print("\"green\": ");
+  Serial.print(g_local, DEC);
+  Serial.print(",");
+  Serial.print("\"blue\": ");
+  Serial.print(b_local, DEC);
+  Serial.print(",");
+  //  Serial.print("\cyan\": ");
+  //  Serial.print(c, DEC);
 #endif
-    if (var1 == 0) {
-      lux_average += lux_local / averages;
-      r_average += r_local / averages;
-      g_average += g_local / averages;
-      b_average += b_local / averages;
-}
-    if (var1 == 1) {
-      lux_average_forpar += lux_local / averages;
-      r_average_forpar += r_local / averages;
-      g_average_forpar += g_local / averages;
-      b_average_forpar += b_local / averages;
-}
+  if (var1 == 0) {
+    lux_average += lux_local / averages;
+    r_average += r_local / averages;
+    g_average += g_local / averages;
+    b_average += b_local / averages;
+  }
+  if (var1 == 1) {
+    lux_average_forpar += lux_local / averages;
+    r_average_forpar += r_local / averages;
+    g_average_forpar += g_local / averages;
+    b_average_forpar += b_local / averages;
+  }
   return lux_local;
 }
 
@@ -3252,7 +3331,8 @@ void print_sensor_calibration(int _open) {
 String user_enter_str (long timeout,int _pwr_off) {
   Serial.setTimeout(timeout);
   Serial1.setTimeout(timeout);
-  char serial_buffer [1000] = {0};
+  char serial_buffer [1000] = {
+    0  };
   String serial_string;
   //  serial_bt_flush();
   long start1 = millis();
@@ -3266,8 +3346,8 @@ String user_enter_str (long timeout,int _pwr_off) {
   while (Serial.available() == 0 && Serial1.available() == 0) {
     if (_pwr_off == 1) {
       end1 = millis();
-//      delay(100);
-//      Serial.println(end1 - start1);
+      //      delay(100);
+      //      Serial.println(end1 - start1);
       if ((end1 - start1) > pwr_off_ms[0]) {
         pwr_off();
         goto skip;
@@ -3303,7 +3383,7 @@ long user_enter_long(long timeout) {
   Serial1.setTimeout(timeout);
   long val;  
   char serial_buffer [32] = {
-    0  };
+    0    };
   String serial_string;
   long start1 = millis();
   long end1 = millis();
@@ -3340,7 +3420,7 @@ double user_enter_dbl(long timeout) {
   Serial1.setTimeout(timeout);
   double val;
   char serial_buffer [32] = {
-    0  };
+    0    };
   String serial_string;
   long start1 = millis();
   long end1 = millis();
@@ -3394,15 +3474,15 @@ int uE_to_intensity(int _pin, int _uE) {                                        
   float _intensity = 0;
   for (int i=0;i<sizeof(all_pins)/sizeof(int);i++) {                                                      // loop through all_pins
     if (all_pins[i] == _pin) {                                                                        // when you find the pin your looking for
-//      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];    // these produce errors in the compiler sometimes.
-//      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
+      //      intensity_drift_slope = (calibration_slope_factory[i] - calibration_slope[i]) / calibration_slope_factory[i];    // these produce errors in the compiler sometimes.
+      //      intensity_drift_yint = (calibration_yint_factory[i] - calibration_yint[i]) / calibration_yint_factory[i];
       _slope = calibration_other1[i]+calibration_other1[i]*intensity_drift_slope;                             // go get the calibration slope and yintercept, multiply by the intensity drift
       _yint = calibration_other2[i]+calibration_other2[i]*intensity_drift_yint;
       break;
     }
   }
   if (_slope != 0 || _yint != 0) {                                                                      // if calibration values exist then...
-      _intensity = (_uE - _yint) / _slope;                                                                    // calculate the resulting intensity DAC value
+    _intensity = (_uE - _yint) / _slope;                                                                    // calculate the resulting intensity DAC value
   }
 #ifdef DEBUGSIMPLE
   Serial.println("");
@@ -3434,6 +3514,37 @@ void print_cal_userdef(String name, float array[],int last,int array_length) {  
   for (int i=0;i<array_length;i++) {                                                      // recall the calibration arrays
     Serial.print(array[i],6);
     Serial1.print(array[i],6);
+    if (i != array_length-1) {        
+      Serial.print(",");    
+      Serial1.print(",");    
+    }
+  }
+  Serial.print("]");    
+  Serial1.print("]");    
+  if (last != 1) {                                                                                        // if it's not the last one, then add comma.  otherwise, add curly.
+    Serial.println(",");    
+    Serial1.println(",");    
+  }
+  else { 
+    Serial.println("}");
+    Serial.println("");
+    Serial1.println("}");
+    Serial1.println("");
+  }
+}
+
+
+void print_cal_userdef2(String name, uint16_t array[],int last,int array_length) {                                                    // little function to clean up printing calibration values
+
+  Serial.print("\"");
+  Serial.print(name);
+  Serial.print("\":[");
+  Serial1.print("\"");
+  Serial1.print(name);
+  Serial1.print("\":[");
+  for (int i=0;i<array_length;i++) {                                                      // recall the calibration arrays
+    Serial.print(array[i]);
+    Serial1.print(array[i]);
     if (i != array_length-1) {        
       Serial.print(",");    
       Serial1.print(",");    
@@ -3496,28 +3607,34 @@ void reset_all(int which) {
 }
 
 void call_print_calibration (int _print) {
-  
+
   EEPROM_readAnything(0,tmp006_cal_S);
-  EEPROM_readAnything(4,light_slope);
-  EEPROM_readAnything(8,light_y_intercept);
-  EEPROM_readAnything(12,device_id);
+  EEPROM_readAnything(4,light_slope);                                // keep
+  EEPROM_readAnything(8,light_y_intercept);                          // keep
+  EEPROM_readAnything(12,device_id);                                  // keep
   // location 16 - 20 is open!
-  EEPROM_readAnything(20,manufacture_date);
+  EEPROM_readAnything(20,manufacture_date);                          // keep
+  EEPROM_readAnything(24,userdef51);                                 // 256 values
+  //  EEPROM_readAnything(1448,userdef52);                                                                    // 256 values
+  EEPROM_readAnything(536,userdef52);                                                                    // 256 values
+
+  /*
   EEPROM_readAnything(24,slope_34);
-  EEPROM_readAnything(28,yintercept_34);
-  EEPROM_readAnything(32,slope_35);
-  EEPROM_readAnything(36,yintercept_35);
-  EEPROM_readAnything(40,userdef0);
-  EEPROM_readAnything(60,calibration_slope);
-  EEPROM_readAnything(180,calibration_yint);
-  EEPROM_readAnything(300,calibration_slope_factory);
-  EEPROM_readAnything(420,calibration_yint_factory);
-  EEPROM_readAnything(540,calibration_baseline_slope);
-  EEPROM_readAnything(660,calibration_baseline_yint);
-  EEPROM_readAnything(880,calibration_blank1);
-  EEPROM_readAnything(1000,calibration_blank2);
-  EEPROM_readAnything(1120,calibration_other1);
-  EEPROM_readAnything(1240,calibration_other2);
+   EEPROM_readAnything(28,yintercept_34);
+   EEPROM_readAnything(32,slope_35);
+   EEPROM_readAnything(36,yintercept_35);
+   EEPROM_readAnything(40,userdef0);
+   EEPROM_readAnything(60,calibration_slope);
+   EEPROM_readAnything(180,calibration_yint);
+   EEPROM_readAnything(300,calibration_slope_factory);
+   EEPROM_readAnything(420,calibration_yint_factory);
+   EEPROM_readAnything(540,calibration_baseline_slope);
+   EEPROM_readAnything(660,calibration_baseline_yint);
+   EEPROM_readAnything(880,calibration_blank1);
+   EEPROM_readAnything(1000,calibration_blank2);
+   */
+  EEPROM_readAnything(1120,calibration_other1);                        // keep
+  EEPROM_readAnything(1240,calibration_other2);                        // keep
   EEPROM_readAnything(1360,userdef1);
   EEPROM_readAnything(1368,userdef2);
   EEPROM_readAnything(1376,userdef3);
@@ -3529,46 +3646,48 @@ void call_print_calibration (int _print) {
   EEPROM_readAnything(1424,userdef9);
   EEPROM_readAnything(1432,userdef10);
   EEPROM_readAnything(1440,pwr_off_ms);
+  /*
   EEPROM_readAnything(1448,userdef11);
-  EEPROM_readAnything(1456,userdef12);
-  EEPROM_readAnything(1464,userdef13);
-  EEPROM_readAnything(1760,userdef14);
-  EEPROM_readAnything(1472,userdef15);
-  EEPROM_readAnything(1480,userdef16);
-  EEPROM_readAnything(1488,userdef17);
-  EEPROM_readAnything(1496,userdef18);
-  EEPROM_readAnything(1504,userdef19);
-  EEPROM_readAnything(1512,userdef20);
-  EEPROM_readAnything(1520,userdef21);
-  EEPROM_readAnything(1528,userdef22);
-  EEPROM_readAnything(1536,userdef23);
-  EEPROM_readAnything(1544,userdef24);
-  EEPROM_readAnything(1552,userdef25);
-  EEPROM_readAnything(1560,userdef26);
-  EEPROM_readAnything(1568,userdef27);
-  EEPROM_readAnything(1576,userdef28);
-  EEPROM_readAnything(1584,userdef29);
-  EEPROM_readAnything(1592,userdef30);
-  EEPROM_readAnything(1600,userdef31);
-  EEPROM_readAnything(1608,userdef32);
-  EEPROM_readAnything(1616,userdef33);
-  EEPROM_readAnything(1624,userdef34);
-  EEPROM_readAnything(1632,userdef35);
-  EEPROM_readAnything(1640,userdef36);
-  EEPROM_readAnything(1648,userdef37);
-  EEPROM_readAnything(1656,userdef38);
-  EEPROM_readAnything(1664,userdef39);
-  EEPROM_readAnything(1672,userdef40);
-  EEPROM_readAnything(1680,userdef41);
-  EEPROM_readAnything(1688,userdef42);
-  EEPROM_readAnything(1696,userdef43);
-  EEPROM_readAnything(1704,userdef44);
-  EEPROM_readAnything(1712,userdef45);
-  EEPROM_readAnything(1720,userdef46);
-  EEPROM_readAnything(1732,userdef47);
-  EEPROM_readAnything(1744,userdef48);
-  EEPROM_readAnything(1756,userdef49);
-  EEPROM_readAnything(1768,userdef50);
+   EEPROM_readAnything(1456,userdef12);
+   EEPROM_readAnything(1464,userdef13);
+   EEPROM_readAnything(1760,userdef14);
+   EEPROM_readAnything(1472,userdef15);
+   EEPROM_readAnything(1480,userdef16);
+   EEPROM_readAnything(1488,userdef17);
+   EEPROM_readAnything(1496,userdef18);
+   EEPROM_readAnything(1504,userdef19);
+   EEPROM_readAnything(1512,userdef20);
+   EEPROM_readAnything(1520,userdef21);
+   EEPROM_readAnything(1528,userdef22);
+   EEPROM_readAnything(1536,userdef23);
+   EEPROM_readAnything(1544,userdef24);
+   EEPROM_readAnything(1552,userdef25);
+   EEPROM_readAnything(1560,userdef26);
+   EEPROM_readAnything(1568,userdef27);
+   EEPROM_readAnything(1576,userdef28);
+   EEPROM_readAnything(1584,userdef29);
+   EEPROM_readAnything(1592,userdef30);
+   EEPROM_readAnything(1600,userdef31);
+   EEPROM_readAnything(1608,userdef32);
+   EEPROM_readAnything(1616,userdef33);
+   EEPROM_readAnything(1624,userdef34);
+   EEPROM_readAnything(1632,userdef35);
+   EEPROM_readAnything(1640,userdef36);
+   EEPROM_readAnything(1648,userdef37);
+   EEPROM_readAnything(1656,userdef38);
+   EEPROM_readAnything(1664,userdef39);
+   EEPROM_readAnything(1672,userdef40);
+   EEPROM_readAnything(1680,userdef41);
+   EEPROM_readAnything(1688,userdef42);
+   EEPROM_readAnything(1696,userdef43);
+   EEPROM_readAnything(1704,userdef44);
+   EEPROM_readAnything(1712,userdef45);
+   EEPROM_readAnything(1720,userdef46);
+   EEPROM_readAnything(1732,userdef47);
+   EEPROM_readAnything(1744,userdef48);
+   EEPROM_readAnything(1756,userdef49);
+   EEPROM_readAnything(1768,userdef50);
+   */
 
   if (_print == 1) {                                                                                      // if this should be printed to COM port --
     Serial.print("{");
@@ -3639,6 +3758,8 @@ void call_print_calibration (int _print) {
     print_cal_userdef("userdef48", userdef48 ,0,3);
     print_cal_userdef("userdef49", userdef49 ,0,3);
     print_cal_userdef("userdef50", userdef50 ,0,3);
+    print_cal_userdef2("userdef51", userdef51 ,0,256);
+    print_cal_userdef2("userdef52", userdef52 ,0,256);
     print_cal_userdef("pwr_off_ms", pwr_off_ms,1,2);
   }
 }
@@ -3662,26 +3783,26 @@ float save_calibration_yint (int _pin,float _yint_val,int location) {
 }
 
 void add_calibration (int location) {                                                                 // here you can save one of the calibration values.  This may be a regular calibration, or factory calibration (which saves both factory and regular values)
-  call_print_calibration(1);                                                                            // call and print calibration info from eeprom
+  //  call_print_calibration(1);                                                                            // call and print calibration info from eeprom
   int pin = 0;
   float slope_val = 0;
   float yint_val = 0;
   while (1) {
     pin = user_enter_dbl(60000);                                                                      // define the pin to add a calibration value to
-    Serial.println(pin);
-    Serial1.println(pin);
+//    Serial.println(pin);
+//    Serial1.println(pin);
     if (pin == -1) {                                                                                    // if user enters -1, exit from this calibration
       goto final;
     }
     slope_val = user_enter_dbl(60000);                                                                  // now enter that calibration value
-    Serial.println(slope_val,6);
-    Serial1.println(slope_val,6);
+//    Serial.println(slope_val,6);
+//    Serial1.println(slope_val,6);
     if (slope_val == -1) {
       goto final;
     }
     yint_val = user_enter_dbl(60000);                                                                  // now enter that calibration value
-    Serial.println(yint_val,6);
-    Serial1.println(yint_val,6);
+//    Serial.println(yint_val,6);
+//    Serial1.println(yint_val,6);
     if (yint_val == -1) {
       goto final;
     }                                                                                            // THIS IS STUPID... not sure why but for some reason you have to split up the eeprom saves or they just won't work... at leats this works...
@@ -3691,8 +3812,9 @@ skipit:
     delay(1);
   }
 final:
-//  serial_bt_flush();
-  call_print_calibration(1);
+int nothign;
+  //  serial_bt_flush();
+  //  call_print_calibration(1);
 }
 
 void calculate_offset(int _pulsesize) {                                                                    // calculate the offset, based on the pulsesize and the calibration values offset = a*'pulsesize'+b
@@ -3744,656 +3866,685 @@ void print_offset(int _open) {
   }
 }
 
-void print_get_userdef0(int _0,int _1,int _2,int _3,int _4,int _5,int _6,int _7,int _8,int _9,int _10,int _11,int _12,int _13,int _14,int _15,int _16,int _17,int _18,int _19,int _20,int _21,int _22,int _23,int _24,int _25,int _26,int _27,int _28,int _29,int _30,int _31,int _32,int _33,int _34,int _35,int _36,int _37,int _38,int _39,int _40,int _41,int _42,int _43,int _44,int _45,int _46,int _47,int _48,int _49,int _50) {
-    if (_0 == 1) {
-      Serial.print("\"get_userdef0\":[");
-      Serial.print(userdef0[0],6);
-      Serial.print(",");
-      Serial.print(userdef0[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef0\":[");
-      Serial1.print(userdef0[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef0[1],6);
-      Serial1.print("],");
-    }      
-    if (_1 == 1) {
-      Serial.print("\"get_userdef1\":[");
-      Serial.print(userdef1[0],6);
-      Serial.print(",");
-      Serial.print(userdef1[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef1\":[");
-      Serial1.print(userdef1[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef1[1],6);
-      Serial1.print("],");
-    }      
-    if (_2 == 1) {
-      Serial.print("\"get_userdef2\":[");
-      Serial.print(userdef2[0],6);
-      Serial.print(",");
-      Serial.print(userdef2[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef2\":[");
-      Serial1.print(userdef2[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef2[1],6);
-      Serial1.print("],");
-    }      
-    if (_3 == 1) {
-      Serial.print("\"get_userdef3\":[");
-      Serial.print(userdef3[0],6);
-      Serial.print(",");
-      Serial.print(userdef3[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef3\":[");
-      Serial1.print(userdef3[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef3[1],6);
-      Serial1.print("],");
-    }      
-    if (_4 == 1) {
-      Serial.print("\"get_userdef4\":[");
-      Serial.print(userdef4[0],6);
-      Serial.print(",");
-      Serial.print(userdef4[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef4\":[");
-      Serial1.print(userdef4[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef4[1],6);
-      Serial1.print("],");
-    }      
-    if (_5 == 1) {
-      Serial.print("\"get_userdef5\":[");
-      Serial.print(userdef5[0],6);
-      Serial.print(",");
-      Serial.print(userdef5[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef5\":[");
-      Serial1.print(userdef5[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef5[1],6);
-      Serial1.print("],");
-    }      
-    if (_6 == 1) {
-      Serial.print("\"get_userdef6\":[");
-      Serial.print(userdef6[0],6);
-      Serial.print(",");
-      Serial.print(userdef6[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef6\":[");
-      Serial1.print(userdef6[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef6[1],6);
-      Serial1.print("],");
-    }      
-    if (_7 == 1) {
-      Serial.print("\"get_userdef7\":[");
-      Serial.print(userdef7[0],6);
-      Serial.print(",");
-      Serial.print(userdef7[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef7\":[");
-      Serial1.print(userdef7[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef7[1],6);
-      Serial1.print("],");
-    }      
-    if (_8 == 1) {
-      Serial.print("\"get_userdef8\":[");
-      Serial.print(userdef8[0],6);
-      Serial.print(",");
-      Serial.print(userdef8[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef8\":[");
-      Serial1.print(userdef8[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef8[1],6);
-      Serial1.print("],");
-    }      
-    if (_9 == 1) {
-      Serial.print("\"get_userdef9\":[");
-      Serial.print(userdef9[0],6);
-      Serial.print(",");
-      Serial.print(userdef9[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef9\":[");
-      Serial1.print(userdef9[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef9[1],6);
-      Serial1.print("],");
-    }      
-    if (_10 == 1) {
-      Serial.print("\"get_userdef10\":[");
-      Serial.print(userdef10[0],6);
-      Serial.print(",");
-      Serial.print(userdef10[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef10\":[");
-      Serial1.print(userdef10[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef10[1],6);
-      Serial1.print("],");
-    }      
-    if (_11 == 1) {
-      Serial.print("\"get_userdef11\":[");
-      Serial.print(userdef11[0],6);
-      Serial.print(",");
-      Serial.print(userdef11[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef11\":[");
-      Serial1.print(userdef11[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef11[1],6);
-      Serial1.print("],");
-    }      
-    if (_12 == 1) {
-      Serial.print("\"get_userdef12\":[");
-      Serial.print(userdef12[0],6);
-      Serial.print(",");
-      Serial.print(userdef12[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef12\":[");
-      Serial1.print(userdef12[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef12[1],6);
-      Serial1.print("],");
-    }      
-    if (_13 == 1) {
-      Serial.print("\"get_userdef13\":[");
-      Serial.print(userdef13[0],6);
-      Serial.print(",");
-      Serial.print(userdef13[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef13\":[");
-      Serial1.print(userdef13[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef13[1],6);
-      Serial1.print("],");
-    }      
-    if (_14 == 1) {
-      Serial.print("\"get_userdef14\":[");
-      Serial.print(userdef14[0],6);
-      Serial.print(",");
-      Serial.print(userdef14[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef14\":[");
-      Serial1.print(userdef14[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef14[1],6);
-      Serial1.print("],");
-    }      
-    if (_15 == 1) {
-      Serial.print("\"get_userdef15\":[");
-      Serial.print(userdef15[0],6);
-      Serial.print(",");
-      Serial.print(userdef15[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef15\":[");
-      Serial1.print(userdef15[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef15[1],6);
-      Serial1.print("],");
-    } 
-    if (_16 == 1) {
-      Serial.print("\"get_userdef16\":[");
-      Serial.print(userdef16[0],6);
-      Serial.print(",");
-      Serial.print(userdef16[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef16\":[");
-      Serial1.print(userdef16[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef16[1],6);
-      Serial1.print("],");
-    }      
-    if (_17 == 1) {
-      Serial.print("\"get_userdef17\":[");
-      Serial.print(userdef17[0],6);
-      Serial.print(",");
-      Serial.print(userdef17[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef17\":[");
-      Serial1.print(userdef17[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef17[1],6);
-      Serial1.print("],");
-    }      
-    if (_18 == 1) {
-      Serial.print("\"get_userdef18\":[");
-      Serial.print(userdef18[0],6);
-      Serial.print(",");
-      Serial.print(userdef18[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef18\":[");
-      Serial1.print(userdef18[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef18[1],6);
-      Serial1.print("],");
-    }      
-    if (_19 == 1) {
-      Serial.print("\"get_userdef19\":[");
-      Serial.print(userdef19[0],6);
-      Serial.print(",");
-      Serial.print(userdef19[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef19\":[");
-      Serial1.print(userdef19[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef19[1],6);
-      Serial1.print("],");
-    }      
-    if (_20 == 1) {
-      Serial.print("\"get_userdef20\":[");
-      Serial.print(userdef20[0],6);
-      Serial.print(",");
-      Serial.print(userdef20[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef20\":[");
-      Serial1.print(userdef20[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef20[1],6);
-      Serial1.print("],");
-    }      
-    if (_21 == 1) {
-      Serial.print("\"get_userdef21\":[");
-      Serial.print(userdef21[0],6);
-      Serial.print(",");
-      Serial.print(userdef21[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef21\":[");
-      Serial1.print(userdef21[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef21[1],6);
-      Serial1.print("],");
-    }      
-    if (_22 == 1) {
-      Serial.print("\"get_userdef22\":[");
-      Serial.print(userdef22[0],6);
-      Serial.print(",");
-      Serial.print(userdef22[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef22\":[");
-      Serial1.print(userdef22[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef22[1],6);
-      Serial1.print("],");
-    }      
-    if (_23 == 1) {
-      Serial.print("\"get_userdef23\":[");
-      Serial.print(userdef23[0],6);
-      Serial.print(",");
-      Serial.print(userdef23[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef23\":[");
-      Serial1.print(userdef23[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef23[1],6);
-      Serial1.print("],");
-    }      
-    if (_24 == 1) {
-      Serial.print("\"get_userdef24\":[");
-      Serial.print(userdef24[0],6);
-      Serial.print(",");
-      Serial.print(userdef24[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef24\":[");
-      Serial1.print(userdef24[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef24[1],6);
-      Serial1.print("],");
-    }      
-    if (_25 == 1) {
-      Serial.print("\"get_userdef25\":[");
-      Serial.print(userdef25[0],6);
-      Serial.print(",");
-      Serial.print(userdef25[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef25\":[");
-      Serial1.print(userdef25[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef25[1],6);
-      Serial1.print("],");
-    }      
-    if (_26 == 1) {
-      Serial.print("\"get_userdef26\":[");
-      Serial.print(userdef26[0],6);
-      Serial.print(",");
-      Serial.print(userdef26[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef26\":[");
-      Serial1.print(userdef26[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef26[1],6);
-      Serial1.print("],");
-    }      
-    if (_27 == 1) {
-      Serial.print("\"get_userdef27\":[");
-      Serial.print(userdef27[0],6);
-      Serial.print(",");
-      Serial.print(userdef27[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef27\":[");
-      Serial1.print(userdef27[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef27[1],6);
-      Serial1.print("],");
-    }      
-    if (_28 == 1) {
-      Serial.print("\"get_userdef28\":[");
-      Serial.print(userdef28[0],6);
-      Serial.print(",");
-      Serial.print(userdef28[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef28\":[");
-      Serial1.print(userdef28[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef28[1],6);
-      Serial1.print("],");
-    }      
-    if (_29 == 1) {
-      Serial.print("\"get_userdef29\":[");
-      Serial.print(userdef29[0],6);
-      Serial.print(",");
-      Serial.print(userdef29[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef29\":[");
-      Serial1.print(userdef29[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef29[1],6);
-      Serial1.print("],");
-    }      
-    if (_30 == 1) {
-      Serial.print("\"get_userdef30\":[");
-      Serial.print(userdef30[0],6);
-      Serial.print(",");
-      Serial.print(userdef30[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef30\":[");
-      Serial1.print(userdef30[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef30[1],6);
-      Serial1.print("],");
-    }      
-    if (_31 == 1) {
-      Serial.print("\"get_userdef31\":[");
-      Serial.print(userdef31[0],6);
-      Serial.print(",");
-      Serial.print(userdef31[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef31\":[");
-      Serial1.print(userdef31[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef31[1],6);
-      Serial1.print("],");
-    }      
-    if (_32 == 1) {
-      Serial.print("\"get_userdef32\":[");
-      Serial.print(userdef32[0],6);
-      Serial.print(",");
-      Serial.print(userdef32[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef32\":[");
-      Serial1.print(userdef32[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef32[1],6);
-      Serial1.print("],");
-    }      
-    if (_33 == 1) {
-      Serial.print("\"get_userdef33\":[");
-      Serial.print(userdef33[0],6);
-      Serial.print(",");
-      Serial.print(userdef33[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef33\":[");
-      Serial1.print(userdef33[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef33[1],6);
-      Serial1.print("],");
-    }      
-    if (_34 == 1) {
-      Serial.print("\"get_userdef34\":[");
-      Serial.print(userdef34[0],6);
-      Serial.print(",");
-      Serial.print(userdef34[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef34\":[");
-      Serial1.print(userdef34[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef34[1],6);
-      Serial1.print("],");
-    }      
-    if (_35 == 1) {
-      Serial.print("\"get_userdef35\":[");
-      Serial.print(userdef35[0],6);
-      Serial.print(",");
-      Serial.print(userdef35[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef35\":[");
-      Serial1.print(userdef35[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef35[1],6);
-      Serial1.print("],");
-    }      
-    if (_36 == 1) {
-      Serial.print("\"get_userdef36\":[");
-      Serial.print(userdef36[0],6);
-      Serial.print(",");
-      Serial.print(userdef36[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef36\":[");
-      Serial1.print(userdef36[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef36[1],6);
-      Serial1.print("],");
-    }      
-    if (_37 == 1) {
-      Serial.print("\"get_userdef37\":[");
-      Serial.print(userdef37[0],6);
-      Serial.print(",");
-      Serial.print(userdef37[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef37\":[");
-      Serial1.print(userdef37[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef37[1],6);
-      Serial1.print("],");
-    }      
-    if (_38 == 1) {
-      Serial.print("\"get_userdef38\":[");
-      Serial.print(userdef38[0],6);
-      Serial.print(",");
-      Serial.print(userdef38[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef38\":[");
-      Serial1.print(userdef38[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef38[1],6);
-      Serial1.print("],");
-    }      
-    if (_39 == 1) {
-      Serial.print("\"get_userdef39\":[");
-      Serial.print(userdef39[0],6);
-      Serial.print(",");
-      Serial.print(userdef39[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef39\":[");
-      Serial1.print(userdef39[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef39[1],6);
-      Serial1.print("],");
-    }      
-    if (_40 == 1) {
-      Serial.print("\"get_userdef40\":[");
-      Serial.print(userdef40[0],6);
-      Serial.print(",");
-      Serial.print(userdef40[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef40\":[");
-      Serial1.print(userdef40[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef40[1],6);
-      Serial1.print("],");
-    }      
-    if (_41 == 1) {
-      Serial.print("\"get_userdef41\":[");
-      Serial.print(userdef41[0],6);
-      Serial.print(",");
-      Serial.print(userdef41[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef41\":[");
-      Serial1.print(userdef41[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef41[1],6);
-      Serial1.print("],");
-    }      
-    if (_42 == 1) {
-      Serial.print("\"get_userdef42\":[");
-      Serial.print(userdef42[0],6);
-      Serial.print(",");
-      Serial.print(userdef42[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef42\":[");
-      Serial1.print(userdef42[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef42[1],6);
-      Serial1.print("],");
-    }      
-    if (_43 == 1) {
-      Serial.print("\"get_userdef43\":[");
-      Serial.print(userdef43[0],6);
-      Serial.print(",");
-      Serial.print(userdef43[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef43\":[");
-      Serial1.print(userdef43[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef43[1],6);
-      Serial1.print("],");
-    }      
-    if (_44 == 1) {
-      Serial.print("\"get_userdef44\":[");
-      Serial.print(userdef44[0],6);
-      Serial.print(",");
-      Serial.print(userdef44[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef44\":[");
-      Serial1.print(userdef44[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef44[1],6);
-      Serial1.print("],");
-    }      
-    if (_45 == 1) {
-      Serial.print("\"get_userdef45\":[");
-      Serial.print(userdef45[0],6);
-      Serial.print(",");
-      Serial.print(userdef45[1],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef45\":[");
-      Serial1.print(userdef45[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef45[1],6);
-      Serial1.print("],");
-    }      
-    if (_46 == 1) {
-      Serial.print("\"get_userdef46\":[");
-      Serial.print(userdef46[0],6);
-      Serial.print(",");
-      Serial.print(userdef46[1],6);
-      Serial.print(",");
-      Serial.print(userdef46[2],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef46\":[");
-      Serial1.print(userdef46[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef46[1],6);
-      Serial1.print(",");
-      Serial1.print(userdef46[2],6);
-      Serial1.print("],");
-    }      
-    if (_47 == 1) {
-      Serial.print("\"get_userdef47\":[");
-      Serial.print(userdef47[0],6);
-      Serial.print(",");
-      Serial.print(userdef47[1],6);
-      Serial.print(",");
-      Serial.print(userdef47[2],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef47\":[");
-      Serial1.print(userdef47[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef47[1],6);
-      Serial1.print(",");
-      Serial1.print(userdef47[2],6);
-      Serial1.print("],");
-    }      
-    if (_48 == 1) {
-      Serial.print("\"get_userdef48\":[");
-      Serial.print(userdef48[0],6);
-      Serial.print(",");
-      Serial.print(userdef48[1],6);
-      Serial.print(",");
-      Serial.print(userdef48[2],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef48\":[");
-      Serial1.print(userdef48[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef48[1],6);
-      Serial1.print(",");
-      Serial1.print(userdef48[2],6);
-      Serial1.print("],");
-    }      
-    if (_49 == 1) {
-      Serial.print("\"get_userdef49\":[");
-      Serial.print(userdef49[0],6);
-      Serial.print(",");
-      Serial.print(userdef49[1],6);
-      Serial.print(",");
-      Serial.print(userdef49[2],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef49\":[");
-      Serial1.print(userdef49[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef49[1],6);
-      Serial1.print(",");
-      Serial1.print(userdef49[2],6);
-      Serial1.print("],");
-    }      
-    if (_50 == 1) {
-      Serial.print("\"get_userdef50\":[");
-      Serial.print(userdef50[0],6);
-      Serial.print(",");
-      Serial.print(userdef50[1],6);
-      Serial.print(",");
-      Serial.print(userdef50[2],6);
-      Serial.print("],");
-      Serial1.print("\"get_userdef50\":[");
-      Serial1.print(userdef50[0],6);
-      Serial1.print(",");
-      Serial1.print(userdef50[1],6);
-      Serial1.print(",");
-      Serial1.print(userdef50[2],6);
-      Serial1.print("],");
-    }      
+void print_get_userdef0(int _0,int _1,int _2,int _3,int _4,int _5,int _6,int _7,int _8,int _9,int _10,int _11,int _12,int _13,int _14,int _15,int _16,int _17,int _18,int _19,int _20,int _21,int _22,int _23,int _24,int _25,int _26,int _27,int _28,int _29,int _30,int _31,int _32,int _33,int _34,int _35,int _36,int _37,int _38,int _39,int _40,int _41,int _42,int _43,int _44,int _45,int _46,int _47,int _48,int _49,int _50,int _51, int _52) {
+  if (_0 == 1) {
+    Serial.print("\"get_userdef0\":[");
+    Serial.print(userdef0[0],6);
+    Serial.print(",");
+    Serial.print(userdef0[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef0\":[");
+    Serial1.print(userdef0[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef0[1],6);
+    Serial1.print("],");
+  }      
+  if (_1 == 1) {
+    Serial.print("\"get_userdef1\":[");
+    Serial.print(userdef1[0],6);
+    Serial.print(",");
+    Serial.print(userdef1[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef1\":[");
+    Serial1.print(userdef1[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef1[1],6);
+    Serial1.print("],");
+  }      
+  if (_2 == 1) {
+    Serial.print("\"get_userdef2\":[");
+    Serial.print(userdef2[0],6);
+    Serial.print(",");
+    Serial.print(userdef2[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef2\":[");
+    Serial1.print(userdef2[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef2[1],6);
+    Serial1.print("],");
+  }      
+  if (_3 == 1) {
+    Serial.print("\"get_userdef3\":[");
+    Serial.print(userdef3[0],6);
+    Serial.print(",");
+    Serial.print(userdef3[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef3\":[");
+    Serial1.print(userdef3[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef3[1],6);
+    Serial1.print("],");
+  }      
+  if (_4 == 1) {
+    Serial.print("\"get_userdef4\":[");
+    Serial.print(userdef4[0],6);
+    Serial.print(",");
+    Serial.print(userdef4[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef4\":[");
+    Serial1.print(userdef4[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef4[1],6);
+    Serial1.print("],");
+  }      
+  if (_5 == 1) {
+    Serial.print("\"get_userdef5\":[");
+    Serial.print(userdef5[0],6);
+    Serial.print(",");
+    Serial.print(userdef5[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef5\":[");
+    Serial1.print(userdef5[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef5[1],6);
+    Serial1.print("],");
+  }      
+  if (_6 == 1) {
+    Serial.print("\"get_userdef6\":[");
+    Serial.print(userdef6[0],6);
+    Serial.print(",");
+    Serial.print(userdef6[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef6\":[");
+    Serial1.print(userdef6[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef6[1],6);
+    Serial1.print("],");
+  }      
+  if (_7 == 1) {
+    Serial.print("\"get_userdef7\":[");
+    Serial.print(userdef7[0],6);
+    Serial.print(",");
+    Serial.print(userdef7[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef7\":[");
+    Serial1.print(userdef7[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef7[1],6);
+    Serial1.print("],");
+  }      
+  if (_8 == 1) {
+    Serial.print("\"get_userdef8\":[");
+    Serial.print(userdef8[0],6);
+    Serial.print(",");
+    Serial.print(userdef8[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef8\":[");
+    Serial1.print(userdef8[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef8[1],6);
+    Serial1.print("],");
+  }      
+  if (_9 == 1) {
+    Serial.print("\"get_userdef9\":[");
+    Serial.print(userdef9[0],6);
+    Serial.print(",");
+    Serial.print(userdef9[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef9\":[");
+    Serial1.print(userdef9[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef9[1],6);
+    Serial1.print("],");
+  }      
+  if (_10 == 1) {
+    Serial.print("\"get_userdef10\":[");
+    Serial.print(userdef10[0],6);
+    Serial.print(",");
+    Serial.print(userdef10[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef10\":[");
+    Serial1.print(userdef10[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef10[1],6);
+    Serial1.print("],");
+  }      
+  if (_11 == 1) {
+    Serial.print("\"get_userdef11\":[");
+    Serial.print(userdef11[0],6);
+    Serial.print(",");
+    Serial.print(userdef11[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef11\":[");
+    Serial1.print(userdef11[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef11[1],6);
+    Serial1.print("],");
+  }      
+  if (_12 == 1) {
+    Serial.print("\"get_userdef12\":[");
+    Serial.print(userdef12[0],6);
+    Serial.print(",");
+    Serial.print(userdef12[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef12\":[");
+    Serial1.print(userdef12[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef12[1],6);
+    Serial1.print("],");
+  }      
+  if (_13 == 1) {
+    Serial.print("\"get_userdef13\":[");
+    Serial.print(userdef13[0],6);
+    Serial.print(",");
+    Serial.print(userdef13[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef13\":[");
+    Serial1.print(userdef13[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef13[1],6);
+    Serial1.print("],");
+  }      
+  if (_14 == 1) {
+    Serial.print("\"get_userdef14\":[");
+    Serial.print(userdef14[0],6);
+    Serial.print(",");
+    Serial.print(userdef14[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef14\":[");
+    Serial1.print(userdef14[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef14[1],6);
+    Serial1.print("],");
+  }      
+  if (_15 == 1) {
+    Serial.print("\"get_userdef15\":[");
+    Serial.print(userdef15[0],6);
+    Serial.print(",");
+    Serial.print(userdef15[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef15\":[");
+    Serial1.print(userdef15[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef15[1],6);
+    Serial1.print("],");
+  } 
+  if (_16 == 1) {
+    Serial.print("\"get_userdef16\":[");
+    Serial.print(userdef16[0],6);
+    Serial.print(",");
+    Serial.print(userdef16[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef16\":[");
+    Serial1.print(userdef16[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef16[1],6);
+    Serial1.print("],");
+  }      
+  if (_17 == 1) {
+    Serial.print("\"get_userdef17\":[");
+    Serial.print(userdef17[0],6);
+    Serial.print(",");
+    Serial.print(userdef17[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef17\":[");
+    Serial1.print(userdef17[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef17[1],6);
+    Serial1.print("],");
+  }      
+  if (_18 == 1) {
+    Serial.print("\"get_userdef18\":[");
+    Serial.print(userdef18[0],6);
+    Serial.print(",");
+    Serial.print(userdef18[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef18\":[");
+    Serial1.print(userdef18[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef18[1],6);
+    Serial1.print("],");
+  }      
+  if (_19 == 1) {
+    Serial.print("\"get_userdef19\":[");
+    Serial.print(userdef19[0],6);
+    Serial.print(",");
+    Serial.print(userdef19[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef19\":[");
+    Serial1.print(userdef19[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef19[1],6);
+    Serial1.print("],");
+  }      
+  if (_20 == 1) {
+    Serial.print("\"get_userdef20\":[");
+    Serial.print(userdef20[0],6);
+    Serial.print(",");
+    Serial.print(userdef20[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef20\":[");
+    Serial1.print(userdef20[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef20[1],6);
+    Serial1.print("],");
+  }      
+  if (_21 == 1) {
+    Serial.print("\"get_userdef21\":[");
+    Serial.print(userdef21[0],6);
+    Serial.print(",");
+    Serial.print(userdef21[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef21\":[");
+    Serial1.print(userdef21[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef21[1],6);
+    Serial1.print("],");
+  }      
+  if (_22 == 1) {
+    Serial.print("\"get_userdef22\":[");
+    Serial.print(userdef22[0],6);
+    Serial.print(",");
+    Serial.print(userdef22[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef22\":[");
+    Serial1.print(userdef22[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef22[1],6);
+    Serial1.print("],");
+  }      
+  if (_23 == 1) {
+    Serial.print("\"get_userdef23\":[");
+    Serial.print(userdef23[0],6);
+    Serial.print(",");
+    Serial.print(userdef23[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef23\":[");
+    Serial1.print(userdef23[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef23[1],6);
+    Serial1.print("],");
+  }      
+  if (_24 == 1) {
+    Serial.print("\"get_userdef24\":[");
+    Serial.print(userdef24[0],6);
+    Serial.print(",");
+    Serial.print(userdef24[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef24\":[");
+    Serial1.print(userdef24[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef24[1],6);
+    Serial1.print("],");
+  }      
+  if (_25 == 1) {
+    Serial.print("\"get_userdef25\":[");
+    Serial.print(userdef25[0],6);
+    Serial.print(",");
+    Serial.print(userdef25[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef25\":[");
+    Serial1.print(userdef25[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef25[1],6);
+    Serial1.print("],");
+  }      
+  if (_26 == 1) {
+    Serial.print("\"get_userdef26\":[");
+    Serial.print(userdef26[0],6);
+    Serial.print(",");
+    Serial.print(userdef26[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef26\":[");
+    Serial1.print(userdef26[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef26[1],6);
+    Serial1.print("],");
+  }      
+  if (_27 == 1) {
+    Serial.print("\"get_userdef27\":[");
+    Serial.print(userdef27[0],6);
+    Serial.print(",");
+    Serial.print(userdef27[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef27\":[");
+    Serial1.print(userdef27[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef27[1],6);
+    Serial1.print("],");
+  }      
+  if (_28 == 1) {
+    Serial.print("\"get_userdef28\":[");
+    Serial.print(userdef28[0],6);
+    Serial.print(",");
+    Serial.print(userdef28[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef28\":[");
+    Serial1.print(userdef28[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef28[1],6);
+    Serial1.print("],");
+  }      
+  if (_29 == 1) {
+    Serial.print("\"get_userdef29\":[");
+    Serial.print(userdef29[0],6);
+    Serial.print(",");
+    Serial.print(userdef29[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef29\":[");
+    Serial1.print(userdef29[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef29[1],6);
+    Serial1.print("],");
+  }      
+  if (_30 == 1) {
+    Serial.print("\"get_userdef30\":[");
+    Serial.print(userdef30[0],6);
+    Serial.print(",");
+    Serial.print(userdef30[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef30\":[");
+    Serial1.print(userdef30[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef30[1],6);
+    Serial1.print("],");
+  }      
+  if (_31 == 1) {
+    Serial.print("\"get_userdef31\":[");
+    Serial.print(userdef31[0],6);
+    Serial.print(",");
+    Serial.print(userdef31[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef31\":[");
+    Serial1.print(userdef31[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef31[1],6);
+    Serial1.print("],");
+  }      
+  if (_32 == 1) {
+    Serial.print("\"get_userdef32\":[");
+    Serial.print(userdef32[0],6);
+    Serial.print(",");
+    Serial.print(userdef32[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef32\":[");
+    Serial1.print(userdef32[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef32[1],6);
+    Serial1.print("],");
+  }      
+  if (_33 == 1) {
+    Serial.print("\"get_userdef33\":[");
+    Serial.print(userdef33[0],6);
+    Serial.print(",");
+    Serial.print(userdef33[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef33\":[");
+    Serial1.print(userdef33[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef33[1],6);
+    Serial1.print("],");
+  }      
+  if (_34 == 1) {
+    Serial.print("\"get_userdef34\":[");
+    Serial.print(userdef34[0],6);
+    Serial.print(",");
+    Serial.print(userdef34[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef34\":[");
+    Serial1.print(userdef34[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef34[1],6);
+    Serial1.print("],");
+  }      
+  if (_35 == 1) {
+    Serial.print("\"get_userdef35\":[");
+    Serial.print(userdef35[0],6);
+    Serial.print(",");
+    Serial.print(userdef35[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef35\":[");
+    Serial1.print(userdef35[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef35[1],6);
+    Serial1.print("],");
+  }      
+  if (_36 == 1) {
+    Serial.print("\"get_userdef36\":[");
+    Serial.print(userdef36[0],6);
+    Serial.print(",");
+    Serial.print(userdef36[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef36\":[");
+    Serial1.print(userdef36[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef36[1],6);
+    Serial1.print("],");
+  }      
+  if (_37 == 1) {
+    Serial.print("\"get_userdef37\":[");
+    Serial.print(userdef37[0],6);
+    Serial.print(",");
+    Serial.print(userdef37[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef37\":[");
+    Serial1.print(userdef37[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef37[1],6);
+    Serial1.print("],");
+  }      
+  if (_38 == 1) {
+    Serial.print("\"get_userdef38\":[");
+    Serial.print(userdef38[0],6);
+    Serial.print(",");
+    Serial.print(userdef38[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef38\":[");
+    Serial1.print(userdef38[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef38[1],6);
+    Serial1.print("],");
+  }      
+  if (_39 == 1) {
+    Serial.print("\"get_userdef39\":[");
+    Serial.print(userdef39[0],6);
+    Serial.print(",");
+    Serial.print(userdef39[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef39\":[");
+    Serial1.print(userdef39[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef39[1],6);
+    Serial1.print("],");
+  }      
+  if (_40 == 1) {
+    Serial.print("\"get_userdef40\":[");
+    Serial.print(userdef40[0],6);
+    Serial.print(",");
+    Serial.print(userdef40[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef40\":[");
+    Serial1.print(userdef40[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef40[1],6);
+    Serial1.print("],");
+  }      
+  if (_41 == 1) {
+    Serial.print("\"get_userdef41\":[");
+    Serial.print(userdef41[0],6);
+    Serial.print(",");
+    Serial.print(userdef41[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef41\":[");
+    Serial1.print(userdef41[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef41[1],6);
+    Serial1.print("],");
+  }      
+  if (_42 == 1) {
+    Serial.print("\"get_userdef42\":[");
+    Serial.print(userdef42[0],6);
+    Serial.print(",");
+    Serial.print(userdef42[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef42\":[");
+    Serial1.print(userdef42[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef42[1],6);
+    Serial1.print("],");
+  }      
+  if (_43 == 1) {
+    Serial.print("\"get_userdef43\":[");
+    Serial.print(userdef43[0],6);
+    Serial.print(",");
+    Serial.print(userdef43[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef43\":[");
+    Serial1.print(userdef43[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef43[1],6);
+    Serial1.print("],");
+  }      
+  if (_44 == 1) {
+    Serial.print("\"get_userdef44\":[");
+    Serial.print(userdef44[0],6);
+    Serial.print(",");
+    Serial.print(userdef44[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef44\":[");
+    Serial1.print(userdef44[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef44[1],6);
+    Serial1.print("],");
+  }      
+  if (_45 == 1) {
+    Serial.print("\"get_userdef45\":[");
+    Serial.print(userdef45[0],6);
+    Serial.print(",");
+    Serial.print(userdef45[1],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef45\":[");
+    Serial1.print(userdef45[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef45[1],6);
+    Serial1.print("],");
+  }      
+  if (_46 == 1) {
+    Serial.print("\"get_userdef46\":[");
+    Serial.print(userdef46[0],6);
+    Serial.print(",");
+    Serial.print(userdef46[1],6);
+    Serial.print(",");
+    Serial.print(userdef46[2],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef46\":[");
+    Serial1.print(userdef46[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef46[1],6);
+    Serial1.print(",");
+    Serial1.print(userdef46[2],6);
+    Serial1.print("],");
+  }      
+  if (_47 == 1) {
+    Serial.print("\"get_userdef47\":[");
+    Serial.print(userdef47[0],6);
+    Serial.print(",");
+    Serial.print(userdef47[1],6);
+    Serial.print(",");
+    Serial.print(userdef47[2],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef47\":[");
+    Serial1.print(userdef47[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef47[1],6);
+    Serial1.print(",");
+    Serial1.print(userdef47[2],6);
+    Serial1.print("],");
+  }      
+  if (_48 == 1) {
+    Serial.print("\"get_userdef48\":[");
+    Serial.print(userdef48[0],6);
+    Serial.print(",");
+    Serial.print(userdef48[1],6);
+    Serial.print(",");
+    Serial.print(userdef48[2],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef48\":[");
+    Serial1.print(userdef48[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef48[1],6);
+    Serial1.print(",");
+    Serial1.print(userdef48[2],6);
+    Serial1.print("],");
+  }      
+  if (_49 == 1) {
+    Serial.print("\"get_userdef49\":[");
+    Serial.print(userdef49[0],6);
+    Serial.print(",");
+    Serial.print(userdef49[1],6);
+    Serial.print(",");
+    Serial.print(userdef49[2],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef49\":[");
+    Serial1.print(userdef49[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef49[1],6);
+    Serial1.print(",");
+    Serial1.print(userdef49[2],6);
+    Serial1.print("],");
+  }      
+  if (_50 == 1) {
+    Serial.print("\"get_userdef50\":[");
+    Serial.print(userdef50[0],6);
+    Serial.print(",");
+    Serial.print(userdef50[1],6);
+    Serial.print(",");
+    Serial.print(userdef50[2],6);
+    Serial.print("],");
+    Serial1.print("\"get_userdef50\":[");
+    Serial1.print(userdef50[0],6);
+    Serial1.print(",");
+    Serial1.print(userdef50[1],6);
+    Serial1.print(",");
+    Serial1.print(userdef50[2],6);
+    Serial1.print("],");
+  }      
+  if (_51 == 1) {
+    Serial.print("\"get_userdef51\":[");
+    Serial1.print("\"get_userdef51\":[");
+    for (int i=0;i<256;i++) {
+      Serial.print(userdef51[i]);
+      Serial1.print(userdef51[i]);
+      if (i != 255) {
+        Serial.print(",");
+        Serial1.print(",");
+      }
+    }
+    Serial.print("],");
+    Serial1.print("],");
+  }
+  if (_52 == 1) {
+    Serial.print("\"get_userdef52\":[");
+    Serial1.print("\"get_userdef52\":[");
+    for (int i=0;i<256;i++) {
+      Serial.print(userdef52[i]);
+      Serial1.print(userdef52[i]);
+      if (i != 255) {
+        Serial.print(",");
+        Serial1.print(",");
+      }
+    }
+    Serial.print("],");
+    Serial1.print("],");
+  }
 }
 
-void add_userdef(int location, int num_of_objects, int bytes, int power_off) {
-  
-  float userdef;
-  
+void add_userdef2(int location, int num_of_objects, int bytes, int power_off) {
+
+  uint16_t userdef;
+
   if (power_off == 1) {
-    call_print_calibration(1);
+    //    call_print_calibration(1);
     for (int i=0;i<num_of_objects;i++) {                        // loop "num_of_objects" times for objects which are "bytes" size for each object
       userdef = user_enter_dbl(60000);  
-      Serial.print(userdef,6);
-      Serial1.print(userdef,6);
+//      Serial.println(userdef);
+//      Serial1.println(userdef);
       EEPROM_writeAnything(location+i*bytes,userdef);
+      //      delay(5);
     }  
   }
   else if (power_off !=1) {
-      
+
     for (int i=0;i<num_of_objects;i++) {                        // loop "num_of_objects" times for objects which are "bytes" size for each object
       userdef = user_enter_dbl(60000);  
       if (userdef > 0 && userdef < 5000) {                                                // in case pwr_off_ms is less than 5 seconds, set it to 2 minutes by default, otherwise leave it as whatever the user defined in EEPROM
@@ -4402,15 +4553,31 @@ void add_userdef(int location, int num_of_objects, int bytes, int power_off) {
       else if (userdef < 0) {                                                               // in case pwr_off_ms is < 0 , then make it maximum time (functionally never turn off)
         userdef = 99999999;
       }
-      Serial.print(userdef,6);
-      Serial1.print(userdef,6);
+//      Serial.print(userdef,6);
+//      Serial1.print(userdef,6);
       EEPROM_writeAnything(location+i*bytes,userdef);
     }  
   }
-  
+
   //  serial_bt_flush();  
   if (power_off == 1) {
-    call_print_calibration(1);
+    //   call_print_calibration(1);
+  }
+}
+
+void add_userdef(int location, int num_of_objects, int bytes, int power_off) {
+
+  float userdef;
+
+  if (power_off == 1) {
+//    call_print_calibration(1);
+    for (int i=0;i<num_of_objects;i++) {                        // loop "num_of_objects" times for objects which are "bytes" size for each object
+      userdef = user_enter_dbl(60000);  
+//      Serial.print(userdef,6);
+//      Serial1.print(userdef,6);
+      EEPROM_writeAnything(location+i*bytes,userdef);
+      //      delay(10);
+    }  
   }
 }
 
@@ -4442,7 +4609,7 @@ void calibrate_offset() {
   EEPROM_writeAnything(36,yintercept_35);
   //  serial_bt_flush();
 
-//  serial_bt_flush();
+  //  serial_bt_flush();
   call_print_calibration(1);
 }
 
@@ -4467,7 +4634,7 @@ void calibrate_light_sensor() {
   Serial.println("},");                  // close out JSON
   Serial1.println("},");  
 
-//  serial_bt_flush();
+  //  serial_bt_flush();
   call_print_calibration(1);
 }
 
@@ -4722,7 +4889,7 @@ void set_device_info(int _set) {
   }
 device_end:
   delay(1);
-//  serial_bt_flush();
+  //  serial_bt_flush();
 }
 
 void serial_bt_flush() {
@@ -4864,8 +5031,8 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
       }
-//      Serial.println("");
-//      Serial.print(_tcs);
+      //      Serial.println("");
+      //      Serial.print(_tcs);
       act_intensity = _tcs;                                                                 // then turn light on, and set intensity to ambient
       tcs_dac_values[_cycle] = _tcs;
     }
@@ -4896,7 +5063,7 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
     else if ((cal_intensities.getLong(_cycle) < 0 && tcs_on > 0 && _light_intensity > 0) || (cal_intensities.getLong(_cycle) < -1 && tcs_on > 0)) {   // if the intensity is -1 AND tcs_to_act is on AND the uE value _tcs_to_act is > 0 (ie ambient light is >0)
       on = 1;
       int dac_multiplier = -1*cal_intensities.getLong(_cycle)-1;                              // turn DAC multiplier into a positive number
-//      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
+      //      _tcs = pow(2,dac_multiplier)*(uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
       _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on/100 + 8*pow(2,dac_multiplier));
       if (_tcs > 2048) {                                                                    // if we exceed the maximum intensity of the light then set it to maximum
         _tcs = 2048;
@@ -4905,15 +5072,15 @@ int calculate_intensity(int _light,int tcs_on,int _cycle,float _light_intensity)
       tcs_dac_values[_cycle] = _tcs;
     }  
   }
-/*
+  /*
   Serial.println("");
-  Serial.print(",");
-  Serial.print(_tcs);
-  Serial.print(",");
-  Serial.print(_cycle);
-  Serial.print(",");
-  Serial.println(_tcs);
-*/
+   Serial.print(",");
+   Serial.print(_tcs);
+   Serial.print(",");
+   Serial.print(_cycle);
+   Serial.print(",");
+   Serial.println(_tcs);
+   */
   return on;
 }
 
@@ -4947,8 +5114,8 @@ int calculate_intensity_background(int _light,int tcs_on,int _cycle,float _light
     }
     else if (tcs_on > 0 && _light_intensity > 0) {                                       // or if tcs_to_act is on and ambient light is greater than zero then...
       _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
-//      Serial.println(_light);
-//      Serial.println(_tcs);
+      //      Serial.println(_light);
+      //      Serial.println(_tcs);
       dac.analogWrite(0,_tcs);                                                           // set the actinic to that value      
       on = 1;                                                                            // so identify the places to turn the light on by flipping this to 1
     }
@@ -4960,8 +5127,8 @@ int calculate_intensity_background(int _light,int tcs_on,int _cycle,float _light
     }
     else if (tcs_on > 0 && _light_intensity > 0) {                                       // or if tcs_to_act is on and ambient light is greater than zero then...
       _tcs = (uE_to_intensity(_light,_light_intensity)*tcs_on)/100;
-//      Serial.println(_light);
-//      Serial.println(_tcs);
+      //      Serial.println(_light);
+      //      Serial.println(_tcs);
       dac.analogWrite(3,_tcs);                                                           // set the actinic to that value      
       on = 1;                                                                            // so identify the places to turn the light on by flipping this to 1
     }
@@ -4983,25 +5150,25 @@ void reset_freq() {
   analogWriteFrequency(5, 187500);                                               // reset timer 0
   analogWriteFrequency(3, 187500);                                               // reset timer 1
   analogWriteFrequency(25, 488.28);                                              // reset timer 2
-/*
+  /*
 Teensy 3.0              Ideal Freq:
-16	0 - 65535	732 Hz	        366 Hz
-15	0 - 32767	1464 Hz	        732 Hz
-14	0 - 16383	2929 Hz	        1464 Hz
-13	0 - 8191	5859 Hz	        2929 Hz
-12	0 - 4095	11718 Hz	5859 Hz
-11	0 - 2047	23437 Hz	11718 Hz
-10	0 - 1023	46875 Hz	23437 Hz
-9	0 - 511	        93750 Hz	46875 Hz
-8	0 - 255	        187500 Hz	93750 Hz
-7	0 - 127	        375000 Hz	187500 Hz
-6	0 - 63	        750000 Hz	375000 Hz
-5	0 - 31	        1500000 Hz	750000 Hz
-4	0 - 15	        3000000 Hz	1500000 Hz
-3	0 - 7	        6000000 Hz	3000000 Hz
-2	0 - 3	        12000000 Hz	6000000 Hz
-
- */
+   16	0 - 65535	732 Hz	        366 Hz
+   15	0 - 32767	1464 Hz	        732 Hz
+   14	0 - 16383	2929 Hz	        1464 Hz
+   13	0 - 8191	5859 Hz	        2929 Hz
+   12	0 - 4095	11718 Hz	5859 Hz
+   11	0 - 2047	23437 Hz	11718 Hz
+   10	0 - 1023	46875 Hz	23437 Hz
+   9	0 - 511	        93750 Hz	46875 Hz
+   8	0 - 255	        187500 Hz	93750 Hz
+   7	0 - 127	        375000 Hz	187500 Hz
+   6	0 - 63	        750000 Hz	375000 Hz
+   5	0 - 31	        1500000 Hz	750000 Hz
+   4	0 - 15	        3000000 Hz	1500000 Hz
+   3	0 - 7	        6000000 Hz	3000000 Hz
+   2	0 - 3	        12000000 Hz	6000000 Hz
+   
+   */
 }
 
 // read 3 axis values (in milli-Gs) from a MMA8653FC accelerometer chip
@@ -5043,15 +5210,15 @@ Teensy 3.0              Ideal Freq:
 
 int MMA8653FC_init () {
   int i;
-  
+
   I2C_SEND (ctrl_reg1, 0X00);	        // standby to be able to configure
   I2C_SEND (xyz_data_cfg, B00000000);	// 2G full range mode
   I2C_SEND (ctrl_reg1, B00000001);	// Output data rate at 800Hz, no auto wake, no auto scale adjust, no fast read mode
 
   if ((i = MMA8653_who_am_i()) == whoami_val)
-     return 0;                          // OK
+    return 0;                          // OK
   else
-     return -1;                         // error
+    return -1;                         // error
 }
 
 //------------------------------------------------------------------
@@ -5103,14 +5270,14 @@ int MMA8653_who_am_i (void) {
 
 /*
   MAG3110 (i2c compass) read code
-  
-  JZ, May 2015
-  note: returns units of tenths of a micro-tesla but is uncalibrated for offsets (ie, wildly off)
-        value will always range +/- 20,000
-        Earth's magnetic field is 25 to 65 micro-teslas or a range of 250-650 tenths.
-        
-  
-*/
+ 
+ JZ, May 2015
+ note: returns units of tenths of a micro-tesla but is uncalibrated for offsets (ie, wildly off)
+ value will always range +/- 20,000
+ Earth's magnetic field is 25 to 65 micro-teslas or a range of 250-650 tenths.
+ 
+ 
+ */
 // note: normally a compass chip is calibrated with offsets learned from (max-min)/2 as you rotate it
 // this chip can apply these offsets
 
@@ -5128,9 +5295,9 @@ int MAG3110_init (void) {
   delay(1);
 
   if (MAG3110_who_am_i() != 0XC4)
-     return -1;                         // error
+    return -1;                         // error
   else
-     return 0;                          // chip detected
+    return 0;                          // chip detected
 }
 
 
@@ -5177,66 +5344,66 @@ void MAG3110_read (int *x,int *y,int *z) {
   *x = *y = *z = 0;
 
   if (Wire.available())
-     high_byte = Wire.read();           // read the byte
+    high_byte = Wire.read();           // read the byte
   if (Wire.available())
-     low_byte = Wire.read();            // read the byte
+    low_byte = Wire.read();            // read the byte
   *x = (int16_t) (low_byte | (high_byte << 8));    // concatenate the MSB and LSB
 
   if (Wire.available())
-     high_byte = Wire.read();           // read the byte
+    high_byte = Wire.read();           // read the byte
   if (Wire.available())
-     low_byte = Wire.read();            // read the byte
+    low_byte = Wire.read();            // read the byte
   *y = (int16_t) (low_byte | (high_byte << 8));    // concatenate the MSB and LSB
 
   if (Wire.available())
-     high_byte = Wire.read();           // read the byte
+    high_byte = Wire.read();           // read the byte
   if (Wire.available())
-     low_byte = Wire.read();            // read the byte
+    low_byte = Wire.read();            // read the byte
   *z = (int16_t) (low_byte | (high_byte << 8));    // concatenate the MSB and LSB
 
 } // MAG3110_read()
 
 float MLX90614_Read(int TaTo) {
-        I2C0_F = 0x85; // 400k 120
-        delay(5);
-        int rawData = MLX90614_getRawData(TaTo);
-        double tempData = (rawData * 0.02) - 0.01;
-        tempData -= 273.15;
-        I2C0_F = 0x0B; // 1.2M 40
-        delay(5);
+  I2C0_F = 0x85; // 400k 120
+  delay(5);
+  int rawData = MLX90614_getRawData(TaTo);
+  double tempData = (rawData * 0.02) - 0.01;
+  tempData -= 273.15;
+  I2C0_F = 0x0B; // 1.2M 40
+  delay(5);
 
-        return tempData;
+  return tempData;
 }
 
 int MLX90614_getRawData(int TaTo) {
 
-        // Store the two relevant bytes of data for temperature
-        byte dataLow = 0x00;
-        byte dataHigh = 0x00;
-        Wire.beginTransmission(0x5A);
-        if (TaTo)
-                Wire.send(0x06); //measure ambient temp
-        else
-                Wire.send(0x07); // measure objec temp
-        Wire.endTransmission(I2C_NOSTOP);
+  // Store the two relevant bytes of data for temperature
+  byte dataLow = 0x00;
+  byte dataHigh = 0x00;
+  Wire.beginTransmission(0x5A);
+  if (TaTo)
+    Wire.send(0x06); //measure ambient temp
+  else
+    Wire.send(0x07); // measure objec temp
+  Wire.endTransmission(I2C_NOSTOP);
 
-        Wire.requestFrom((uint8_t) 0x5A, (size_t) 2);
-        dataLow = Wire.read();
-        dataHigh = Wire.read();
-        Wire.endTransmission();
-        int tempData = (((dataHigh & 0x007F) << 8) + dataLow);
-        return tempData;
+  Wire.requestFrom((uint8_t) 0x5A, (size_t) 2);
+  dataLow = Wire.read();
+  dataHigh = Wire.read();
+  Wire.endTransmission();
+  int tempData = (((dataHigh & 0x007F) << 8) + dataLow);
+  return tempData;
 }
- 
+
 void readSpectrometer(int intTime, int delay_time, int read_time, int accumulateMode)
 {
-/*
+  /*
   //int delay_time = 35;     // delay per half clock (in microseconds).  This ultimately conrols the integration time.
-  int delay_time = 1;     // delay per half clock (in microseconds).  This ultimately conrols the integration time.
-  int idx = 0;
-  int read_time = 35;      // Amount of time that the analogRead() procedure takes (in microseconds)
-  int accumulateMode = false;
-*/
+   int delay_time = 1;     // delay per half clock (in microseconds).  This ultimately conrols the integration time.
+   int idx = 0;
+   int read_time = 35;      // Amount of time that the analogRead() procedure takes (in microseconds)
+   int accumulateMode = false;
+   */
 
   int i;
 
@@ -5313,7 +5480,8 @@ void readSpectrometer(int intTime, int delay_time, int read_time, int accumulate
     if (accumulateMode == false) {
       spec_data[idx] = analogRead(SPEC_VIDEO);
       spec_data_average[idx] += spec_data[idx];
-    } else {
+    } 
+    else {
       spec_data[idx] += analogRead(SPEC_VIDEO);
     }
     idx += 1;
@@ -5358,4 +5526,5 @@ void print_data()
   Serial.println("]");
   Serial1.println("]");
 }
+
 
