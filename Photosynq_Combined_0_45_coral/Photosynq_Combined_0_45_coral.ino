@@ -1,5 +1,5 @@
 // FIRMWARE VERSION OF THIS FILE (SAVED TO EEPROM ON FIRMWARE FLASH)
-#define FIRMWARE_VERSION .456
+#define FIRMWARE_VERSION .457
 
 /////////////////////CHANGE LOG/////////////////////
 /*
@@ -9,6 +9,10 @@
  a much more robust system for saving the values.
  - check all averages for environmental - confirm that they are actually averaging things!
  
+ Most recent updates (45_coralspeq v7):
+
+ - addresses problem with loading long plus commands
+
  Most recent updates (45_coralspeq v6):
  
  - Added ability to save 2 sets of 256 values (full spectra).  Inputting those values from a + command, and outputting those values from get_userdef51 and get_userdef52.  Because these exceeded available memory, the following commands are now no longer functional and shouldn't be touched:
