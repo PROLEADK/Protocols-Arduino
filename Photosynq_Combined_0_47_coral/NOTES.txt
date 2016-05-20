@@ -1,0 +1,3 @@
+
+Note:  this is tested with Arduino IDE 1.6.7 and a teensy 3.   Extra libraries should not be needed.
+
