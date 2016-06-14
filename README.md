@@ -1,7 +1,7 @@
 Protocols-Arduino
 =================
 
-This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ.  It receives communication over USB or bluetooth as a JSON (the "Protocol JSON"), parses the JSON and inteprets what to do (flash lights, measure CO2, etc.) and takes the measurement as specified, then sends back the data also as a JSON (the "Data JSON").
+This repository contains the arduino protocols used to program the Teensy 3.1 on the MultispeQ Beta.  It receives communication over USB or bluetooth as a JSON (the "Protocol JSON"), parses the JSON and inteprets what to do (flash lights, measure CO2, etc.) and takes the measurement as specified, then sends back the data also as a JSON (the "Data JSON").
 
 ***INSTALLING ARDUINO IDE, TEENSYDUINO AND APPROPRIATE LIBRARIES TO CONTRIBUTE/FORK PROTOCOLS-ARDUINO***
 
