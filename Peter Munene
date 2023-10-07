@@ -1,0 +1,53 @@
+Sub Print_ALL_Click()
+    '
+' PrintOne Macro
+'Edited By PeterMuneene&RashiMwaura 09/09/2023
+
+On Error GoTo addjump
+
+
+    varAnswer = MsgBox("Are you Sure you want to print all students?", vbYesNo, "Caution")
+    If varAnswer = vbNo Then
+        Range("q1").Select
+        Exit Sub
+    End If
+Application.ScreenUpdating = False
+    Dim varFirstStudent As Double
+    Dim varLastStudent As Double
+    Dim varFirstBulletinNumber As Double
+    Dim varSecondBulletinNumber As Double
+
+    varFirstBulletinNumber = Range("s1").Value
+    varFirstStudent = 1
+    varLastStudent = Range("l23").Value
+    
+    If varLastStudent = 0 Then
+        MsgBox "There are no students in the class.", vbExclamation, "Caution"
+        Range("q1").Select
+            Exit Sub
+    End If
+
+    Range("s1").Value = varFirstStudent
+
+
+    Do Until Range("s1").Value > varLastStudent + 1
+    If Range("s1").Value > varLastStudent Then Exit Do
+    
+    'ActiveSheet.PageSetup.PrintArea = "$k$17:$Ak$55"
+    ActiveWindow.SelectedSheets.PrintOut Copies:=1, Collate:=True
+    
+    Range("s1").Select
+    Selection.Value = Range("s1").Value + 1
+    Loop
+    
+    'End If
+    
+    Range("s1").Value = varFirstBulletinNumber
+
+    Range("q1").Select
+    
+    Application.ScreenUpdating = True
+    
+    Exit Sub
+addjump:
+End Sub
